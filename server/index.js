@@ -6,6 +6,7 @@ import supabase from "./config/supabase.js";
 dotenv.config();
 
 const app = express();
+const port = Number(process.env.PORT) || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -24,6 +25,6 @@ app.get("/health/supabase", async (req, res) => {
   return res.json({ ok: true, message: "Supabase connected" });
 });
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
