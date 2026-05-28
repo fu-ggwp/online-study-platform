@@ -1,5 +1,5 @@
 ---
-name: vdt:docs
+name: docs
 description: "Analyze codebase and manage project documentation. Use for doc initialization, updates, summaries, codebase analysis."
 user-invocable: true
 when_to_use: "Invoke to create, refresh, or audit project documentation."

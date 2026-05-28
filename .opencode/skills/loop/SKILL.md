@@ -1,5 +1,5 @@
 ---
-name: vdt:loop
+name: loop
 description: "Assess, route, fix, and verify in a loop until tests pass. Demonstrates Pattern 5: Conditional + Loop."
 user-invocable: true
 when_to_use: "Invoke when tests are failing and need iterative fix-verify cycles."

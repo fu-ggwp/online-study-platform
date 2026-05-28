@@ -1,5 +1,5 @@
 ---
-name: vdt:fix
+name: fix
 description: "Fix bugs with single-agent reasoning loop. Demonstrates Pattern 1: Single Agent Architecture."
 user-invocable: true
 when_to_use: "Invoke when there is a concrete bug to fix. One-shot reasoning loop."

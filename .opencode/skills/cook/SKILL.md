@@ -1,5 +1,5 @@
 ---
-name: vdt:cook
+name: cook
 description: "Implement features, plans, and fixes with structured workflow. Use for feature development, plan execution, code implementation pipelines."
 user-invocable: true
 when_to_use: "Invoke to implement known scope after requirements are clear."

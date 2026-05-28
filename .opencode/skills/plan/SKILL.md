@@ -1,5 +1,5 @@
 ---
-name: vdt:plan
+name: plan
 description: "Plan implementations, design architectures, create technical roadmaps with detailed phases. Use for feature planning, system design, solution architecture, implementation strategy, phase documentation."
 user-invocable: true
 when_to_use: "Invoke when work needs phases, architecture, or a roadmap."

@@ -1,5 +1,5 @@
 ---
-name: vdt:brainstorm
+name: brainstorm
 description: "Brainstorm solutions with trade-off analysis and brutal honesty. Use for ideation, architecture decisions, technical debates, feature exploration, feasibility assessment, design discussions."
 user-invocable: true
 when_to_use: "Invoke before choosing among unclear technical options."
