@@ -5,7 +5,7 @@ export async function getRoot(req, res) {
 }
 
 export async function getSupabaseHealth(req, res) {
-  const { error } = await supabase.from("profiles").select("id").limit(1);
+  const { error } = await supabase.auth.getSession();
 
   if (error) {
     return res.status(500).json({ ok: false, error: error.message });

@@ -61,6 +61,17 @@ export function createUserModel(db) {
       return data;
     },
 
+    async findById(userId) {
+      const { data, error } = await db
+        .from(tableName)
+        .select("*")
+        .eq(userColumns.userId, userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+
     async findByUsername(username) {
       const { data, error } = await db
         .from(tableName)
