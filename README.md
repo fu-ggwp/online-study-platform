@@ -19,7 +19,6 @@ smart-quiz-platform/
 ├── server/        # Express.js backend (feature-folder architecture)
 ├── docs/          # Documentation
 ├── plans/         # Planning documents
-└── PROJECT_STRUCTURE.md
 ```
 
 ## Getting Started
@@ -32,32 +31,44 @@ smart-quiz-platform/
 
 ### Installation
 
+```
 git clone https://github.com/fu-ggwp/smart-quiz-platform.git
 cd smart-quiz-platform
 npm install
+```
 
 ### Environment Variables
 
 Create a .env file in server/ with your Supabase credentials:
 
+```
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_key
 PORT=5000
-
+```
 ### Running the project
 
 # Backend
+
+```
 cd server
 npm run dev
+```
 
 # Frontend
+
+```
 cd client
 npm run dev
+```
 
 ## API Documentation
 
 Once the server is running, API docs are available at:
+
+```
 http://localhost:5000/api-docs
+```
 
 ## Team
 
