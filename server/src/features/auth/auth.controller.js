@@ -1,41 +1,78 @@
-import * as authService from "./auth.service.js";
-import { ok, fail } from "../../utils/api-response.js";
+import {
+  forgotPassword as forgotPasswordRequest,
+  getCurrentProfile,
+  loginAccount,
+  logout as logoutAccount,
+  registerAccount,
+  resetPassword as resetPasswordRequest,
+} from "./auth.service.js";
+import {
+  validateLoginPayload,
+  validateRegisterPayload,
+} from "./auth.validation.js";
+
+function sendError(res, error) {
+  const statusCode = error.statusCode || error.status || 500;
+
+  return res.status(statusCode).json({
+    message: error.message || "Authentication request failed.",
+    fields: error.fields,
+  });
+}
 
 export async function register(req, res) {
+  const result = validateRegisterPayload(req.body);
+
+  if (!result.valid) {
+    return res.status(400).json({
+      message: "The information is invalid. Please check and try again.",
+      fields: result.errors,
+    });
+  }
+
   try {
-    const result = await authService.register(req.body);
-    return ok(res, result, 201);
-  } catch (err) {
-    return fail(res, err, err.status || 400);
+    const data = await registerAccount(result.data);
+    return res.status(201).json(data);
+  } catch (error) {
+    return sendError(res, error);
   }
 }
 
 export async function login(req, res) {
+  const result = validateLoginPayload(req.body);
+
+  if (!result.valid) {
+    return res.status(400).json({
+      message: "Please complete all required information.",
+      fields: result.errors,
+    });
+  }
+
   try {
-    const result = await authService.login(req.body);
-    return ok(res, result);
-  } catch (err) {
-    return fail(res, err, err.status || 401);
+    const data = await loginAccount(result.data);
+    return res.status(200).json(data);
+  } catch (error) {
+    return sendError(res, error);
   }
 }
 
 export async function logout(req, res) {
   try {
     const token = (req.headers.authorization || "").replace("Bearer ", "");
-    await authService.logout(token);
-    return ok(res, { message: "Logged out" });
-  } catch (err) {
-    return fail(res, err, err.status || 400);
+    await logoutAccount(token);
+    return res.status(200).json({ message: "Logged out" });
+  } catch (error) {
+    return sendError(res, error);
   }
 }
 
 export async function forgotPassword(req, res) {
   try {
     const { email, redirectTo } = req.body;
-    await authService.requestPasswordReset(email, redirectTo);
-    return ok(res, { message: "Password reset email sent" });
-  } catch (err) {
-    return fail(res, err, err.status || 400);
+    await forgotPasswordRequest(email, redirectTo);
+    return res.status(200).json({ message: "Password reset email sent" });
+  } catch (error) {
+    return sendError(res, error);
   }
 }
 
@@ -43,18 +80,18 @@ export async function resetPassword(req, res) {
   try {
     const token = (req.headers.authorization || "").replace("Bearer ", "");
     const { newPassword } = req.body;
-    await authService.resetPassword(token, newPassword);
-    return ok(res, { message: "Password updated" });
-  } catch (err) {
-    return fail(res, err, err.status || 400);
+    await resetPasswordRequest(token, newPassword);
+    return res.status(200).json({ message: "Password updated" });
+  } catch (error) {
+    return sendError(res, error);
   }
 }
 
 export async function me(req, res) {
   try {
-    const profile = await authService.getCurrentProfile(req.user.id);
-    return ok(res, profile);
-  } catch (err) {
-    return fail(res, err, err.status || 404);
+    const profile = await getCurrentProfile(req.user.id);
+    return res.status(200).json(profile);
+  } catch (error) {
+    return sendError(res, error);
   }
 }
