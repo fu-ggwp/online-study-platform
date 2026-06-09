@@ -1,6 +1,24 @@
-// Cleared: previous scaffold targeted column names that don't exist on the
-// real `classes` table (e.g. `id`, `name`, `invite_code`, `is_archived`)
-// and a `join-request.model.js` whose table mapping was wrong. Rebuild
-// against the actual columns: class_id, class_name, class_code,
-// invitation_token, learner_capacity, join_policy, status — plus the
-// related `class_members` and `class_join_requests` tables.
+import supabase from "../../config/supabase.js";
+import { CLASS_TABLE } from "../../models/class.model.js";
+import { CLASS_MEMBER_TABLE } from "../../models/join-request.model.js";
+
+/**
+ * Get all classes created by a teacher, with member count.
+ * @param {string} teacherId
+ * @returns {Promise<{data: any[], error: any}>}
+ */
+export async function getClassesByTeacher(teacherId) {
+  const { data, error } = await supabase
+    .from(CLASS_TABLE)
+    .select(
+      `
+      *,
+      member_count:${CLASS_MEMBER_TABLE}(count)
+    `
+    )
+    .eq("teacher_id", teacherId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  return { data, error };
+}
