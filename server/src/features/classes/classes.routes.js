@@ -1,5 +1,10 @@
-// Cleared: previous scaffold targeted column names that don't exist on the
-// real `classes` table (e.g. `id`, `name`, `invite_code`, `is_archived`).
-// Rebuild against the actual columns: class_id, class_name, class_code,
-// invitation_token, learner_capacity, join_policy, status — plus the
-// related `class_members` and `class_join_requests` tables.
+import { Router } from "express";
+import { getMyClasses } from "./classes.controller.js";
+import { requireAuth } from "../../middlewares/auth.middleware.js";
+
+const classesRouter = Router();
+
+// GET /api/classes — teacher sees their own classes
+classesRouter.get("/", requireAuth, getMyClasses);
+
+export default classesRouter;
