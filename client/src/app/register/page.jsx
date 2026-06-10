@@ -52,17 +52,6 @@ function getApiMessage(error) {
   );
 }
 
-async function persistSupabaseSession(session) {
-  if (!session?.access_token || !session?.refresh_token) return;
-
-  const { error } = await supabase.auth.setSession({
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
-  });
-
-  if (error) throw error;
-}
-
 function GoogleMark() {
   return (
     <span className="grid size-5 place-items-center rounded-full bg-background text-xs font-semibold text-primary">
@@ -109,9 +98,8 @@ export default function RegisterPage() {
     setFormMessage("");
 
     try {
-      const response = await registerAccount(values);
-      await persistSupabaseSession(response?.session);
-      router.push("/");
+      await registerAccount(values);
+      router.push("/login");
       router.refresh();
     } catch (error) {
       const fields = error?.response?.data?.fields || {};

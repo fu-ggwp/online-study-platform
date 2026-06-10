@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { clearAuthCookies, saveAuthCookies } from "../lib/auth-cookies";
 import supabase from "../lib/supabaseClient";
 import { profileService } from "../services/profile.service";
 
@@ -15,40 +16,64 @@ export function useAuth() {
 
   const loadProfile = useCallback(async () => {
     try {
-      const { data } = await profileService.getMine();
+      const data = await profileService.getMine();
       setProfile(data);
+      return data;
     } catch {
       setProfile(null);
+      return null;
     }
   }, []);
+
+  const syncAuthCookies = useCallback(
+    async (currentSession) => {
+      if (!currentSession) {
+        clearAuthCookies();
+        return;
+      }
+
+      const data = await loadProfile();
+      saveAuthCookies({
+        session: currentSession,
+        role: data?.activeRole,
+      });
+    },
+    [loadProfile]
+  );
 
   useEffect(() => {
     let active = true;
 
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
-      setSession(data?.session ?? null);
+      const currentSession = data?.session ?? null;
+      setSession(currentSession);
       setLoading(false);
-      if (data?.session) loadProfile();
+      syncAuthCookies(currentSession);
     });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      if (newSession) loadProfile();
-      else setProfile(null);
-    });
+    const { data: subscription } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+        syncAuthCookies(newSession);
+      }
+    );
+
+    if (window.location.hash.includes("access_token=")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
 
     return () => {
       active = false;
       subscription?.subscription?.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [syncAuthCookies]);
 
   return {
     session,
     user: session?.user ?? null,
     profile,
-    role: profile?.role ?? null,
+    role: profile?.activeRole ?? null,
     isAuthenticated: !!session,
     loading,
     refreshProfile: loadProfile,

@@ -20,6 +20,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { saveAuthCookies } from "@/lib/auth-cookies";
 import supabase from "@/lib/supabaseClient";
 import { loginAccount } from "@/services/auth";
 
@@ -97,6 +98,10 @@ export default function LoginPage() {
     try {
       const response = await loginAccount(values);
       await persistSupabaseSession(response?.session);
+      saveAuthCookies({
+        session: response?.session,
+        role: response?.user?.activeRole,
+      });
       router.push("/");
       router.refresh();
     } catch (error) {
