@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import healthRouter from "./routes/health.routes.js";
 import authRouter from "./features/auth/auth.routes.js";
+import studySetsRouter from "./features/study-sets/study-sets.routes.js";
+import classesRouter from "./features/classes/classes.routes.js";
 import { swaggerSpec, swaggerUi } from "./config/swagger.js";
 
 const app = express();
@@ -16,5 +18,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/", healthRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/study-sets", studySetsRouter);
+app.use("/api/classes", classesRouter);
 
 export default app;
