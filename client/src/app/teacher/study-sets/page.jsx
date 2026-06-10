@@ -74,6 +74,30 @@ export default function TeacherStudySetsPage() {
   const [subject, setSubject] = useState("all");
   const [assignment, setAssignment] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 10;
+
+  const handleQueryChange = (val) => {
+    setQuery(val);
+    setCurrentPage(1);
+  };
+  const handleVisibilityChange = (val) => {
+    setVisibility(val);
+    setCurrentPage(1);
+  };
+  const handleSubjectChange = (val) => {
+    setSubject(val);
+    setCurrentPage(1);
+  };
+  const handleAssignmentChange = (val) => {
+    setAssignment(val);
+    setCurrentPage(1);
+  };
+  const handleSortChange = (val) => {
+    setSortBy(val);
+    setCurrentPage(1);
+  };
 
   const filteredStudySets = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -112,12 +136,21 @@ export default function TeacherStudySetsPage() {
       });
   }, [studySets, query, visibility, subject, assignment, sortBy]);
 
+  const totalPages = Math.ceil(filteredStudySets.length / ITEMS_PER_PAGE);
+  const activePage = Math.min(Math.max(1, currentPage), totalPages || 1);
+
+  const paginatedStudySets = useMemo(() => {
+    const startIndex = (activePage - 1) * ITEMS_PER_PAGE;
+    return filteredStudySets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredStudySets, activePage]);
+
   function resetFilters() {
     setQuery("");
     setVisibility("all");
     setSubject("all");
     setAssignment("all");
     setSortBy("latest");
+    setCurrentPage(1);
   }
 
   return (
@@ -127,12 +160,12 @@ export default function TeacherStudySetsPage() {
 
         <FilterBar
           assignment={assignment}
-          onAssignmentChange={setAssignment}
-          onQueryChange={setQuery}
+          onAssignmentChange={handleAssignmentChange}
+          onQueryChange={handleQueryChange}
           onReset={resetFilters}
-          onSortChange={setSortBy}
-          onSubjectChange={setSubject}
-          onVisibilityChange={setVisibility}
+          onSortChange={handleSortChange}
+          onSubjectChange={handleSubjectChange}
+          onVisibilityChange={handleVisibilityChange}
           query={query}
           sortBy={sortBy}
           subject={subject}
@@ -157,8 +190,14 @@ export default function TeacherStudySetsPage() {
           />
         ) : filteredStudySets.length ? (
           <>
-            <StudySetsTable studySets={filteredStudySets} />
-            <PaginationBar count={filteredStudySets.length} />
+            <StudySetsTable studySets={paginatedStudySets} />
+            <PaginationBar
+              count={filteredStudySets.length}
+              currentPage={activePage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={ITEMS_PER_PAGE}
+            />
           </>
         ) : (
           <StatePanel
@@ -406,19 +445,44 @@ function StatePanel({ action, description, icon, title }) {
   );
 }
 
-function PaginationBar({ count }) {
+function PaginationBar({ count, currentPage, totalPages, onPageChange, itemsPerPage = 10 }) {
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  const startItem = count === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, count);
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm">
-      <span className="font-semibold text-muted-foreground">Showing {count} study sets</span>
+      <span className="font-semibold text-muted-foreground">
+        Showing {startItem}–{endItem} of {count} study sets
+      </span>
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="secondary">
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+        >
           Previous
         </Button>
-        <Button size="sm">1</Button>
-        <Button size="sm" variant="secondary">
-          2
-        </Button>
-        <Button size="sm" variant="secondary">
+        
+        {pages.map((page) => (
+          <Button
+            key={page}
+            size="sm"
+            variant={page === currentPage ? "default" : "secondary"}
+            onClick={() => onPageChange(page)}
+          >
+            {page}
+          </Button>
+        ))}
+
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={currentPage === totalPages || totalPages === 0}
+          onClick={() => onPageChange(currentPage + 1)}
+        >
           Next
         </Button>
       </div>
