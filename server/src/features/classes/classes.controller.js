@@ -1,5 +1,15 @@
-// Cleared: previous scaffold targeted column names that don't exist on the
-// real `classes` table (e.g. `id`, `name`, `invite_code`, `is_archived`).
-// Rebuild against the actual columns: class_id, class_name, class_code,
-// invitation_token, learner_capacity, join_policy, status — plus the
-// related `class_members` and `class_join_requests` tables.
+import { listTeacherClasses } from "./classes.service.js";
+
+/**
+ * GET /api/classes
+ * Returns all classes belonging to the logged-in teacher.
+ */
+export async function getMyClasses(req, res) {
+  try {
+    const teacherId = req.user.id;
+    const classes = await listTeacherClasses(teacherId);
+    res.json({ ok: true, data: classes });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+}
