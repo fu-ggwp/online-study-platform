@@ -121,7 +121,7 @@ export default function TeacherStudySetsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader />
 
@@ -144,8 +144,11 @@ export default function TeacherStudySetsPage() {
         ) : error ? (
           <StatePanel
             action={
-              <Button onClick={reload} variant="secondary">
-                Try Again
+              <Button asChild>
+                <Link href="/teacher/study-sets/create">
+                  <Plus className="size-4" />
+                  Create Study Set
+                </Link>
               </Button>
             }
             icon={<AlertCircle className="size-5" />}
@@ -179,10 +182,10 @@ export default function TeacherStudySetsPage() {
 
 function PageHeader() {
   return (
-    <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div className="max-w-3xl">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-950">Study Sets</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Study Sets</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
           Manage study sets created from question banks, check visibility, assigned classes, and learner activity.
         </p>
       </div>
@@ -213,7 +216,7 @@ function FilterBar({
   visibility,
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
       <div className="space-y-4">
         <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr)_repeat(2,minmax(170px,220px))_auto]">
           <Field label="Search Study Sets">
@@ -281,10 +284,10 @@ function FilterBar({
 
 function StudySetsTable({ studySets }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+        <table className="min-w-full divide-y divide-border text-sm">
+          <thead className="bg-muted text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
             <tr>
               {["Study Set", "Source", "Visibility", "Questions", "Assigned Classes", "Learners", "Actions"].map(
                 (header) => (
@@ -296,28 +299,28 @@ function StudySetsTable({ studySets }) {
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {studySets.map((studySet) => {
               const id = getStudySetId(studySet);
               const assignedClasses = getAssignedClasses(studySet);
 
               return (
-                <tr className="align-top hover:bg-slate-50" key={id}>
+                <tr className="align-top hover:bg-muted/50" key={id}>
                   <td className="px-4 py-3">
-                    <p className="font-bold text-slate-950">{studySet.title}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-bold text-foreground">{studySet.title}</p>
+                    <p className="text-xs text-muted-foreground">
                       {studySet.subject || "No subject"} - {studySet.topic || "No topic"}
                     </p>
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{getSourceName(studySet)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{getSourceName(studySet)}</td>
                   <td className="px-4 py-3">
                     <VisibilityBadge visibility={studySet.visibility} />
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{getQuestionCount(studySet)}</td>
-                  <td className="px-4 py-3 text-slate-700">
+                  <td className="px-4 py-3 text-muted-foreground">{getQuestionCount(studySet)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {assignedClasses.length ? assignedClasses.join(", ") : "Not assigned"}
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{getLearnerCount(studySet)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{getLearnerCount(studySet)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       <Button asChild size="sm" variant="secondary">
@@ -352,7 +355,7 @@ function VisibilityBadge({ visibility }) {
         ? "bg-amber-50 text-amber-700 ring-amber-100"
         : normalized === "archived" || normalized === "hidden"
           ? "bg-rose-50 text-rose-700 ring-rose-100"
-          : "bg-slate-100 text-slate-700 ring-slate-200";
+          : "bg-muted text-muted-foreground ring-border";
 
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${toneClass}`}>
@@ -364,7 +367,7 @@ function VisibilityBadge({ visibility }) {
 function Field({ children, label }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-sm font-semibold text-slate-700">{label}</span>
+      <span className="text-sm font-semibold text-foreground">{label}</span>
       {children}
     </label>
   );
@@ -390,14 +393,14 @@ function SelectField({ label, onChange, options, value }) {
 
 function StatePanel({ action, description, icon, title }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
+    <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
       {icon ? (
-        <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+        <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
           {icon}
         </div>
       ) : null}
-      <h3 className="text-base font-bold text-slate-950">{title}</h3>
-      <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">{description}</p>
+      <h3 className="text-base font-bold text-foreground">{title}</h3>
+      <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
   );
@@ -405,8 +408,8 @@ function StatePanel({ action, description, icon, title }) {
 
 function PaginationBar({ count }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm">
-      <span className="font-semibold text-slate-600">Showing {count} study sets</span>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm">
+      <span className="font-semibold text-muted-foreground">Showing {count} study sets</span>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="secondary">
           Previous
