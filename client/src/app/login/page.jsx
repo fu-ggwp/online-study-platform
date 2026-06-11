@@ -32,12 +32,25 @@ const loginSchema = z.object({
   rememberMe: z.boolean().optional(),
 });
 
+const SAFE_LOGIN_MESSAGES = new Set([
+  "Please complete all required information.",
+  "Incorrect email or password. Please try again.",
+  "This account is not available. Please contact support.",
+]);
+
 function getApiMessage(error) {
-  return (
-    error?.response?.data?.message ||
-    error?.message ||
-    "Something went wrong. Please try again."
-  );
+  const message = error?.response?.data?.message;
+  const status = error?.response?.status;
+
+  if (SAFE_LOGIN_MESSAGES.has(message)) return message;
+  if (status === 401 || status === 404) {
+    return "Incorrect email or password. Please try again.";
+  }
+  if (status === 403) {
+    return "This account is not available. Please contact support.";
+  }
+
+  return "Login failed. Please try again.";
 }
 
 function GoogleMark() {
@@ -77,7 +90,7 @@ export default function LoginPage() {
       },
     });
 
-    if (error) setFormMessage(error.message);
+    if (error) setFormMessage("Google login failed. Please try again.");
   }
 
   async function onSubmit(values) {

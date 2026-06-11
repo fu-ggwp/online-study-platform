@@ -47,8 +47,7 @@ const registerSchema = z
 function getApiMessage(error) {
   return (
     error?.response?.data?.message ||
-    error?.message ||
-    "Something went wrong. Please try again."
+    "Registration failed. Please try again."
   );
 }
 
@@ -91,7 +90,7 @@ export default function RegisterPage() {
       },
     });
 
-    if (error) setFormMessage(error.message);
+    if (error) setFormMessage("Google registration failed. Please try again.");
   }
 
   async function onSubmit(values) {
