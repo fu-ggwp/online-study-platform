@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import supabase from "@/lib/supabaseClient";
-import { registerAccount } from "@/services/auth";
+import { authService } from "@/services/auth.service";
 
 const heroImage =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1100&q=80";
@@ -87,7 +87,7 @@ export default function RegisterPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -98,7 +98,7 @@ export default function RegisterPage() {
     setFormMessage("");
 
     try {
-      await registerAccount(values);
+      await authService.register(values);
       router.push("/login");
       router.refresh();
     } catch (error) {

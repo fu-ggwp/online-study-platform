@@ -20,9 +20,8 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { saveAuthCookies } from "@/lib/auth-cookies";
 import supabase from "@/lib/supabaseClient";
-import { loginAccount } from "@/services/auth";
+import { authService, completeLogin } from "@/services/auth.service";
 
 const heroImage =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1100&q=80";
@@ -39,17 +38,6 @@ function getApiMessage(error) {
     error?.message ||
     "Something went wrong. Please try again."
   );
-}
-
-async function persistSupabaseSession(session) {
-  if (!session?.access_token || !session?.refresh_token) return;
-
-  const { error } = await supabase.auth.setSession({
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
-  });
-
-  if (error) throw error;
 }
 
 function GoogleMark() {
@@ -85,7 +73,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -96,12 +84,8 @@ export default function LoginPage() {
     setFormMessage("");
 
     try {
-      const response = await loginAccount(values);
-      await persistSupabaseSession(response?.session);
-      saveAuthCookies({
-        session: response?.session,
-        role: response?.user?.activeRole,
-      });
+      const response = await authService.login(values);
+      await completeLogin(response?.session);
       router.push("/");
       router.refresh();
     } catch (error) {

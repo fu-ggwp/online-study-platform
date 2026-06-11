@@ -4,6 +4,7 @@ const guestRoutes = ["/login", "/register"];
 const publicRoutes = [
   "/",
   "/403",
+  "/auth/callback",
   "/forgot-password",
   "/reset-password",
 ];

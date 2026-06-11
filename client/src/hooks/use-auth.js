@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { clearAuthCookies, saveAuthCookies } from "../lib/auth-cookies";
 import supabase from "../lib/supabaseClient";
+import { completeLogin } from "../services/auth.service";
 import { profileService } from "../services/profile.service";
 
 /**
@@ -25,49 +25,30 @@ export function useAuth() {
     }
   }, []);
 
-  const syncAuthCookies = useCallback(
-    async (currentSession) => {
-      if (!currentSession) {
-        clearAuthCookies();
-        return;
-      }
-
-      const data = await loadProfile();
-      saveAuthCookies({
-        session: currentSession,
-        role: data?.activeRole,
-      });
-    },
-    [loadProfile]
-  );
-
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    completeLogin().then(({ session: currentSession, profile: data }) => {
       if (!active) return;
-      const currentSession = data?.session ?? null;
       setSession(currentSession);
+      setProfile(data);
       setLoading(false);
-      syncAuthCookies(currentSession);
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      async (_event, newSession) => {
         setSession(newSession);
-        syncAuthCookies(newSession);
+        const { profile: data } = await completeLogin();
+        if (!active) return;
+        setProfile(data);
       }
     );
-
-    if (window.location.hash.includes("access_token=")) {
-      window.history.replaceState(null, "", window.location.pathname);
-    }
 
     return () => {
       active = false;
       subscription?.subscription?.unsubscribe();
     };
-  }, [syncAuthCookies]);
+  }, []);
 
   return {
     session,
