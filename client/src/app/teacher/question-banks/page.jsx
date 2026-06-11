@@ -63,14 +63,17 @@ export default function QuestionBanksPage() {
   const [subjects, setSubjects] = useState([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [keyword, setKeyword] = useState("");
-  const [subject, setSubject] = useState("all");
-  const [status, setStatus] = useState("all");
+  const [draftKeyword, setDraftKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
+  const [draftSubject, setDraftSubject] = useState("all");
+  const [draftStatus, setDraftStatus] = useState("all");
+  const [appliedSubject, setAppliedSubject] = useState("all");
+  const [appliedStatus, setAppliedStatus] = useState("all");
   const [page, setPage] = useState(1);
 
   const params = useMemo(
-    () => buildParams({ keyword, page, status, subject }),
-    [keyword, page, status, subject]
+    () => buildParams({ keyword: appliedKeyword, page, status: appliedStatus, subject: appliedSubject }),
+    [appliedKeyword, appliedStatus, appliedSubject, page]
   );
 
   const fetchQuestionBanks = useCallback(async (activeParams, fallbackPage) => {
@@ -124,27 +127,42 @@ export default function QuestionBanksPage() {
   );
 
   function handleKeywordChange(event) {
-    setLoading(true);
-    setError(null);
-    setKeyword(event.target.value);
-    setPage(1);
+    setDraftKeyword(event.target.value);
   }
 
   function handleFilterChange(setter) {
     return (event) => {
-      setLoading(true);
-      setError(null);
       setter(event.target.value);
-      setPage(1);
     };
   }
 
-  function resetFilters() {
-    setLoading(true);
+  function applyFilters() {
+    const shouldFetch =
+      draftKeyword !== appliedKeyword || draftSubject !== appliedSubject || draftStatus !== appliedStatus || page !== 1;
+
+    if (shouldFetch) {
+      setLoading(true);
+    }
+
     setError(null);
-    setKeyword("");
-    setSubject("all");
-    setStatus("all");
+    setAppliedKeyword(draftKeyword);
+    setAppliedSubject(draftSubject);
+    setAppliedStatus(draftStatus);
+    setPage(1);
+  }
+
+  function resetFilters() {
+    const shouldFetch = appliedSubject !== "all" || appliedStatus !== "all" || page !== 1;
+
+    if (shouldFetch) {
+      setLoading(true);
+    }
+
+    setError(null);
+    setDraftSubject("all");
+    setDraftStatus("all");
+    setAppliedSubject("all");
+    setAppliedStatus("all");
     setPage(1);
   }
 
@@ -154,14 +172,15 @@ export default function QuestionBanksPage() {
         <PageHeader />
 
         <FilterBar
-          keyword={keyword}
+          keyword={draftKeyword}
+          onApply={applyFilters}
           onKeywordChange={handleKeywordChange}
           onReset={resetFilters}
-          onStatusChange={handleFilterChange(setStatus)}
-          onSubjectChange={handleFilterChange(setSubject)}
+          onStatusChange={handleFilterChange(setDraftStatus)}
+          onSubjectChange={handleFilterChange(setDraftSubject)}
           subjectOptions={subjectOptions}
-          status={status}
-          subject={subject}
+          status={draftStatus}
+          subject={draftSubject}
         />
 
         {loading ? (
@@ -229,6 +248,7 @@ function PageHeader() {
 
 function FilterBar({
   keyword,
+  onApply,
   onKeywordChange,
   onReset,
   onStatusChange,
@@ -239,7 +259,7 @@ function FilterBar({
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-      <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr)_repeat(2,minmax(150px,190px))_auto]">
+      <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr)_repeat(2,minmax(150px,190px))_auto_auto]">
         <Field label="Search Question Banks">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -249,6 +269,13 @@ function FilterBar({
 
         <SelectField label="Subject" onChange={onSubjectChange} options={subjectOptions} value={subject} />
         <SelectField label="Status" onChange={onStatusChange} options={statusOptions} value={status} />
+
+        <div className="flex items-end justify-end">
+          <Button onClick={onApply} type="button">
+            <Search className="size-4" />
+            Apply filter
+          </Button>
+        </div>
 
         <div className="flex items-end justify-end">
           <Button onClick={onReset} type="button" variant="ghost">
