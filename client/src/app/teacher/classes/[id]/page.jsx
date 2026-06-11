@@ -5,19 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import classesService from "../../../../services/classes.service";
 
-function StatusBadge({ status }) {
-  const colors = {
-    active: "bg-green-100 text-green-700",
-    inactive: "bg-neutral-100 text-neutral-500",
-    closed: "bg-red-100 text-red-600",
-    archived: "bg-yellow-100 text-yellow-700",
-  };
-  return (
-    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${colors[status] ?? "bg-neutral-100 text-neutral-500"}`}>
-      {status}
-    </span>
-  );
-}
 
 function InfoRow({ label, value }) {
   if (!value) return null;
@@ -110,10 +97,7 @@ export default function ClassDetailPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold">{cls.class_name}</h1>
-              <StatusBadge status={cls.status} />
-            </div>
+            <h1 className="text-2xl font-semibold">{cls.class_name}</h1>
             {cls.description && (
               <p className="text-sm text-neutral-500">{cls.description}</p>
             )}

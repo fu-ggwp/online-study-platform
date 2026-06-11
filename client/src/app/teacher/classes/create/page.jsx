@@ -10,20 +10,27 @@ const JOIN_POLICY_OPTIONS = [
   { value: "auto_approve", label: "Auto Approve (students join instantly)" },
 ];
 
+const GRADE_LEVEL_OPTIONS = [
+  { value: "", label: "Select grade level" },
+  { value: "Primary School", label: "Primary School" },
+  { value: "Secondary School", label: "Secondary School" },
+  { value: "High School", label: "High School" },
+  { value: "Undergraduate", label: "Undergraduate" },
+  { value: "Postgraduate", label: "Postgraduate" },
+  { value: "Others", label: "Others" },
+];
+
 export default function CreateClassPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     class_name: "",
-    subject: "",
     grade_level: "",
     academic_year: "",
     description: "",
     learner_capacity: 50,
     join_policy: "teacher_approval",
-    start_date: "",
-    end_date: "",
   });
 
   function handleChange(e) {
@@ -44,14 +51,11 @@ export default function CreateClassPage() {
     try {
       const newClass = await classesService.create({
         class_name: form.class_name.trim(),
-        subject: form.subject || undefined,
         grade_level: form.grade_level || undefined,
         academic_year: form.academic_year || undefined,
         description: form.description || undefined,
         learner_capacity: Number(form.learner_capacity) || 50,
         join_policy: form.join_policy,
-        start_date: form.start_date || undefined,
-        end_date: form.end_date || undefined,
       });
       router.push(`/teacher/classes/${newClass.class_id}`);
     } catch (err) {
@@ -92,28 +96,21 @@ export default function CreateClassPage() {
             />
           </div>
 
-          {/* Subject + Grade Level */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Subject</label>
-              <input
-                name="subject"
-                value={form.subject}
-                onChange={handleChange}
-                placeholder="e.g. Mathematics"
-                className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Grade Level</label>
-              <input
-                name="grade_level"
-                value={form.grade_level}
-                onChange={handleChange}
-                placeholder="e.g. Grade 10"
-                className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400"
-              />
-            </div>
+          {/* Grade Level */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Grade Level</label>
+            <select
+              name="grade_level"
+              value={form.grade_level}
+              onChange={handleChange}
+              className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400"
+            >
+              {GRADE_LEVEL_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Academic Year */}
@@ -168,32 +165,8 @@ export default function CreateClassPage() {
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
-              ))}
+            ))}
             </select>
-          </div>
-
-          {/* Start + End Date */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Start Date</label>
-              <input
-                name="start_date"
-                type="date"
-                value={form.start_date}
-                onChange={handleChange}
-                className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">End Date</label>
-              <input
-                name="end_date"
-                type="date"
-                value={form.end_date}
-                onChange={handleChange}
-                className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400"
-              />
-            </div>
           </div>
 
           {/* Error */}
