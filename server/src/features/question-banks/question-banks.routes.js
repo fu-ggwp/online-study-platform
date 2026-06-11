@@ -1,3 +1,13 @@
-// Cleared: previous scaffold relied on `question-bank.model.js`/`question.model.js`
-// whose column mappings need to be checked against the real `question_banks`,
-// `questions`, and `answer_options` tables before rebuilding this feature.
+import { Router } from "express";
+import { requireAuth } from "../../middlewares/auth.middleware.js";
+import { create, getById, list, remove, update } from "./question-banks.controller.js";
+
+const questionBanksRouter = Router();
+
+questionBanksRouter.get("/", requireAuth, list);
+questionBanksRouter.post("/", requireAuth, create);
+questionBanksRouter.get("/:id", requireAuth, getById);
+questionBanksRouter.patch("/:id", requireAuth, update);
+questionBanksRouter.delete("/:id", requireAuth, remove);
+
+export default questionBanksRouter;

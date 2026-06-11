@@ -1,9 +1,400 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertCircle, BookOpen, Eye, Plus, Search, SlidersHorizontal } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { questionBanksService } from "@/services/question-banks.service";
+
+const ITEMS_PER_PAGE = 10;
+
+const subjectOptions = [
+  { value: "all", label: "All subjects" },
+  { value: "Mathematics", label: "Mathematics" },
+  { value: "Physics", label: "Physics" },
+  { value: "Chemistry", label: "Chemistry" },
+  { value: "Biology", label: "Biology" },
+];
+
+const visibilityOptions = [
+  { value: "all", label: "All visibility" },
+  { value: "private", label: "Private" },
+  { value: "shared", label: "Shared" },
+  { value: "archived", label: "Archived" },
+];
+
+const statusOptions = [
+  { value: "all", label: "All status" },
+  { value: "draft", label: "Draft" },
+  { value: "reviewed", label: "Reviewed" },
+  { value: "archived", label: "Archived" },
+];
+
+function buildParams({ keyword, page, status, subject, visibility }) {
+  return {
+    keyword: keyword.trim() || undefined,
+    subject: subject === "all" ? undefined : subject,
+    visibility: visibility === "all" ? undefined : visibility,
+    status: status === "all" ? undefined : status,
+    page,
+    limit: ITEMS_PER_PAGE,
+    sortBy: "updated_at",
+    sortOrder: "desc",
+  };
+}
+
+function formatDate(value) {
+  if (!value) return "Not updated";
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function formatLabel(value) {
+  if (!value) return "None";
+  return value.charAt(0).toUpperCase() + value.slice(1).replaceAll("_", " ");
+}
+
 export default function QuestionBanksPage() {
+  const [questionBanks, setQuestionBanks] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: ITEMS_PER_PAGE, total: 0, totalPages: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [keyword, setKeyword] = useState("");
+  const [subject, setSubject] = useState("all");
+  const [visibility, setVisibility] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+
+  const params = useMemo(
+    () => buildParams({ keyword, page, status, subject, visibility }),
+    [keyword, page, status, subject, visibility]
+  );
+
+  const fetchQuestionBanks = useCallback(async (activeParams, fallbackPage) => {
+    try {
+      const data = await questionBanksService.listMine(activeParams);
+      setQuestionBanks(data?.items ?? []);
+      setPagination(data?.pagination ?? { page: fallbackPage, limit: ITEMS_PER_PAGE, total: 0, totalPages: 0 });
+      setError(null);
+    } catch (err) {
+      setQuestionBanks([]);
+      setPagination({ page: fallbackPage, limit: ITEMS_PER_PAGE, total: 0, totalPages: 0 });
+      setError(err.response?.data?.message || err.message || "Failed to load question banks.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadQuestionBanks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    await fetchQuestionBanks(params, page);
+  }, [fetchQuestionBanks, page, params]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchQuestionBanks(params, page);
+  }, [fetchQuestionBanks, page, params]);
+
+  function handleKeywordChange(event) {
+    setLoading(true);
+    setError(null);
+    setKeyword(event.target.value);
+    setPage(1);
+  }
+
+  function handleFilterChange(setter) {
+    return (event) => {
+      setLoading(true);
+      setError(null);
+      setter(event.target.value);
+      setPage(1);
+    };
+  }
+
+  function resetFilters() {
+    setLoading(true);
+    setError(null);
+    setKeyword("");
+    setSubject("all");
+    setVisibility("all");
+    setStatus("all");
+    setPage(1);
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-6">
-      <section className="w-full max-w-5xl">
-        <h1 className="text-3xl font-semibold">Question Banks</h1>
+    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl space-y-6">
+        <PageHeader />
+
+        <FilterBar
+          keyword={keyword}
+          onKeywordChange={handleKeywordChange}
+          onReset={resetFilters}
+          onStatusChange={handleFilterChange(setStatus)}
+          onSubjectChange={handleFilterChange(setSubject)}
+          onVisibilityChange={handleFilterChange(setVisibility)}
+          status={status}
+          subject={subject}
+          visibility={visibility}
+        />
+
+        {loading ? (
+          <StatePanel title="Loading question banks" description="Fetching your teacher repositories." />
+        ) : error ? (
+          <StatePanel
+            action={
+              <Button onClick={loadQuestionBanks} type="button">
+                Try Again
+              </Button>
+            }
+            icon={<AlertCircle className="size-5" />}
+            title="Unable to load question banks"
+            description={error}
+          />
+        ) : questionBanks.length ? (
+          <>
+            <QuestionBanksTable questionBanks={questionBanks} />
+            <PaginationBar
+              pagination={pagination}
+              onPageChange={(nextPage) => {
+                setLoading(true);
+                setError(null);
+                setPage(nextPage);
+              }}
+            />
+          </>
+        ) : (
+          <StatePanel
+            action={
+              <Button asChild>
+                <Link href="/teacher/question-banks/create">
+                  <Plus className="size-4" />
+                  Create Question Bank
+                </Link>
+              </Button>
+            }
+            icon={<BookOpen className="size-5" />}
+            title="No question banks found"
+            description="Create a repository before adding reusable questions."
+          />
+        )}
       </section>
     </main>
+  );
+}
+
+function PageHeader() {
+  return (
+    <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Question Banks</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Manage teacher-owned repositories for study sets and exams.</p>
+      </div>
+
+      <Button asChild>
+        <Link href="/teacher/question-banks/create">
+          <Plus className="size-4" />
+          Create Question Bank
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+function FilterBar({
+  keyword,
+  onKeywordChange,
+  onReset,
+  onStatusChange,
+  onSubjectChange,
+  onVisibilityChange,
+  status,
+  subject,
+  visibility,
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+      <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr)_repeat(3,minmax(150px,190px))_auto]">
+        <Field label="Search Question Banks">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-8" onChange={onKeywordChange} placeholder="Title, description, subject, topic" value={keyword} />
+          </div>
+        </Field>
+
+        <SelectField label="Subject" onChange={onSubjectChange} options={subjectOptions} value={subject} />
+        <SelectField label="Visibility" onChange={onVisibilityChange} options={visibilityOptions} value={visibility} />
+        <SelectField label="Status" onChange={onStatusChange} options={statusOptions} value={status} />
+
+        <div className="flex items-end justify-end">
+          <Button onClick={onReset} type="button" variant="ghost">
+            <SlidersHorizontal className="size-4" />
+            Reset
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuestionBanksTable({ questionBanks }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-border text-sm">
+          <thead className="bg-muted text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <tr>
+              {[
+                "Question Bank",
+                "Subject",
+                "Visibility",
+                "Status",
+                "Questions",
+                "Updated",
+                "Actions",
+              ].map((header) => (
+                <th className="px-4 py-3" key={header}>
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-border">
+            {questionBanks.map((bank) => (
+              <tr className="align-top hover:bg-muted/50" key={bank.question_bank_id}>
+                <td className="px-4 py-3">
+                  <p className="font-bold text-foreground">{bank.title}</p>
+                  <p className="max-w-xl text-xs text-muted-foreground">{bank.description || "No description"}</p>
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  <p>{bank.subject || "No subject"}</p>
+                  <p className="text-xs">{bank.topic || "No topic"}</p>
+                </td>
+                <td className="px-4 py-3">
+                  <Badge tone={bank.visibility === "shared" ? "green" : bank.visibility === "archived" ? "red" : "neutral"}>
+                    {formatLabel(bank.visibility)}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3">
+                  <Badge tone={bank.status === "reviewed" ? "green" : bank.status === "archived" ? "red" : "amber"}>
+                    {formatLabel(bank.status)}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">{bank.questionCount ?? 0}</td>
+                <td className="px-4 py-3 text-muted-foreground">{formatDate(bank.updated_at || bank.created_at)}</td>
+                <td className="px-4 py-3">
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={`/teacher/question-banks/${bank.question_bank_id}`}>
+                      <Eye className="size-4" />
+                      Open
+                    </Link>
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Badge({ children, tone }) {
+  const toneClass =
+    tone === "green"
+      ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+      : tone === "amber"
+        ? "bg-amber-50 text-amber-700 ring-amber-100"
+        : tone === "red"
+          ? "bg-rose-50 text-rose-700 ring-rose-100"
+          : "bg-muted text-muted-foreground ring-border";
+
+  return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${toneClass}`}>{children}</span>;
+}
+
+function Field({ children, label }) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-sm font-semibold text-foreground">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function SelectField({ label, onChange, options, value }) {
+  return (
+    <Field label={label}>
+      <select
+        className="h-8 w-full rounded-2xl border border-transparent bg-input/50 px-2.5 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+        onChange={onChange}
+        value={value}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
+
+function StatePanel({ action, description, icon, title }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
+      {icon ? (
+        <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          {icon}
+        </div>
+      ) : null}
+      <h3 className="text-base font-bold text-foreground">{title}</h3>
+      <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{description}</p>
+      {action ? <div className="mt-5">{action}</div> : null}
+    </div>
+  );
+}
+
+function PaginationBar({ onPageChange, pagination }) {
+  const totalPages = pagination.totalPages || 0;
+  const currentPage = pagination.page || 1;
+  const count = pagination.total || 0;
+  const startItem = count === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, count);
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  if (totalPages <= 1) {
+    return (
+      <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground">
+        Showing {count} question banks
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm">
+      <span className="font-semibold text-muted-foreground">
+        Showing {startItem}-{endItem} of {count} question banks
+      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)} size="sm" variant="secondary">
+          Previous
+        </Button>
+        {pages.map((page) => (
+          <Button key={page} onClick={() => onPageChange(page)} size="sm" variant={page === currentPage ? "default" : "secondary"}>
+            {page}
+          </Button>
+        ))}
+        <Button disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)} size="sm" variant="secondary">
+          Next
+        </Button>
+      </div>
+    </div>
   );
 }
