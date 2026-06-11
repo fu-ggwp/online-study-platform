@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import supabase from "@/lib/supabaseClient";
-import { registerAccount } from "@/services/auth";
+import { authService } from "@/services/auth.service";
 
 const heroImage =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1100&q=80";
@@ -47,20 +47,8 @@ const registerSchema = z
 function getApiMessage(error) {
   return (
     error?.response?.data?.message ||
-    error?.message ||
-    "Something went wrong. Please try again."
+    "Registration failed. Please try again."
   );
-}
-
-async function persistSupabaseSession(session) {
-  if (!session?.access_token || !session?.refresh_token) return;
-
-  const { error } = await supabase.auth.setSession({
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
-  });
-
-  if (error) throw error;
 }
 
 function GoogleMark() {
@@ -98,20 +86,19 @@ export default function RegisterPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
-    if (error) setFormMessage(error.message);
+    if (error) setFormMessage("Google registration failed. Please try again.");
   }
 
   async function onSubmit(values) {
     setFormMessage("");
 
     try {
-      const response = await registerAccount(values);
-      await persistSupabaseSession(response?.session);
-      router.push("/");
+      await authService.register(values);
+      router.push("/login");
       router.refresh();
     } catch (error) {
       const fields = error?.response?.data?.fields || {};

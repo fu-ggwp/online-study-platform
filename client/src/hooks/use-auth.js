@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import supabase from "../lib/supabaseClient";
+import { completeLogin } from "../services/auth.service";
 import { profileService } from "../services/profile.service";
 
 /**
@@ -15,40 +16,45 @@ export function useAuth() {
 
   const loadProfile = useCallback(async () => {
     try {
-      const { data } = await profileService.getMine();
+      const data = await profileService.getMine();
       setProfile(data);
+      return data;
     } catch {
       setProfile(null);
+      return null;
     }
   }, []);
 
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    completeLogin().then(({ session: currentSession, profile: data }) => {
       if (!active) return;
-      setSession(data?.session ?? null);
+      setSession(currentSession);
+      setProfile(data);
       setLoading(false);
-      if (data?.session) loadProfile();
     });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      if (newSession) loadProfile();
-      else setProfile(null);
-    });
+    const { data: subscription } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        setSession(newSession);
+        const { profile: data } = await completeLogin();
+        if (!active) return;
+        setProfile(data);
+      }
+    );
 
     return () => {
       active = false;
       subscription?.subscription?.unsubscribe();
     };
-  }, [loadProfile]);
+  }, []);
 
   return {
     session,
     user: session?.user ?? null,
     profile,
-    role: profile?.role ?? null,
+    role: profile?.activeRole ?? null,
     isAuthenticated: !!session,
     loading,
     refreshProfile: loadProfile,
