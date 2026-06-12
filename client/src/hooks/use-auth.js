@@ -28,19 +28,28 @@ export function useAuth() {
   useEffect(() => {
     let active = true;
 
-    completeLogin().then(({ session: currentSession, profile: data }) => {
-      if (!active) return;
-      setSession(currentSession);
-      setProfile(data);
-      setLoading(false);
-    });
+    async function syncAuthState(sessionToSync) {
+      try {
+        const { session: currentSession, profile: data } = await completeLogin(
+          sessionToSync
+        );
+        if (!active) return;
+        setSession(currentSession);
+        setProfile(data);
+      } catch {
+        if (!active) return;
+        setSession(null);
+        setProfile(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    syncAuthState();
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
-        setSession(newSession);
-        const { profile: data } = await completeLogin();
-        if (!active) return;
-        setProfile(data);
+        await syncAuthState(newSession);
       }
     );
 

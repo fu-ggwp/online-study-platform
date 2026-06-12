@@ -48,6 +48,7 @@ async function getProfileWithRetry() {
       return await profileService.getMine();
     } catch (error) {
       const status = error?.response?.status;
+      if (status === 401) return null;
       if (status !== 404 || attempt === 2) throw error;
       await wait(300);
     }
@@ -88,12 +89,33 @@ export async function completeLogin(session = null) {
   }
 
   const profile = await getProfileWithRetry();
+
+  if (!profile) {
+    await supabase.auth.signOut();
+    clearAuthCookies();
+    return { session: null, profile: null };
+  }
+
   saveAuthCookies({
     session: currentSession,
     role: profile?.activeRole,
   });
 
   return { session: currentSession, profile };
+}
+
+export async function completeLogout() {
+  try {
+    await authService.logout();
+  } catch {
+    // Local sign-out should still happen if the backend session is already gone.
+  }
+
+  try {
+    await supabase.auth.signOut();
+  } finally {
+    clearAuthCookies();
+  }
 }
 
 export function cleanOAuthHash() {
