@@ -1,19 +1,33 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, Folder, BookOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Folder, BookOpen, AlertTriangle } from "lucide-react";
 import api from "@/services/api";
 import { Button } from "@/components/ui/button";
 
-export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) {
+export default function QuestionBankSelector({ 
+  onQuestionsSelected, 
+  onCancel, 
+  lockedBankId = null, 
+  onResetBank,
+  alreadyImportedIds = [] 
+}) {
   const [banks, setBanks] = useState([]);
-  const [selectedBankId, setSelectedBankId] = useState("");
+  const [selectedBankId, setSelectedBankId] = useState(lockedBankId || "");
   const [questions, setQuestions] = useState([]);
   const [groupedQuestions, setGroupedQuestions] = useState({});
   const [selectedQIds, setSelectedQIds] = useState(new Set());
   const [expandedTopics, setExpandedTopics] = useState({});
   const [expandedChapters, setExpandedChapters] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showConfirmSwitch, setShowConfirmSwitch] = useState(false);
+
+  const importedSet = new Set(alreadyImportedIds);
+
+  // Sync state if lockedBankId changes dynamically
+  useEffect(() => {
+    setSelectedBankId(lockedBankId || "");
+  }, [lockedBankId]);
 
   // 1. Fetch Question Banks on component mount
   useEffect(() => {
@@ -108,6 +122,7 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
 
   // Handle individual question checkbox toggle
   const handleSelectQuestion = (qId) => {
+    if (importedSet.has(qId)) return;
     setSelectedQIds((prev) => {
       const next = new Set(prev);
       if (next.has(qId)) {
@@ -125,6 +140,7 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
     setSelectedQIds((prev) => {
       const next = new Set(prev);
       chapterQs.forEach((q) => {
+        if (importedSet.has(q.question_id)) return;
         if (checked) {
           next.add(q.question_id);
         } else {
@@ -141,6 +157,7 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
     setSelectedQIds((prev) => {
       const next = new Set(prev);
       topicQs.forEach((q) => {
+        if (importedSet.has(q.question_id)) return;
         if (checked) {
           next.add(q.question_id);
         } else {
@@ -173,13 +190,26 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
 
       {/* Select Question Bank Dropdown */}
       <div className="mb-6">
-        <label className="block text-sm font-semibold text-foreground mb-2">
-          Select Question Bank
+        <label className="flex items-center justify-between text-sm font-semibold text-foreground mb-2">
+          <span>
+            Select Question Bank
+            {lockedBankId && <span className="text-xs text-muted-foreground font-normal ml-2">(Locked to selected bank)</span>}
+          </span>
+          {lockedBankId && onResetBank && (
+            <button
+              type="button"
+              onClick={() => setShowConfirmSwitch(true)}
+              className="text-xs text-rose-600 hover:text-rose-700 hover:underline font-bold"
+            >
+              Switch Bank
+            </button>
+          )}
         </label>
         <select
-          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-ring"
+          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-ring disabled:opacity-60 disabled:cursor-not-allowed"
           value={selectedBankId}
           onChange={(e) => setSelectedBankId(e.target.value)}
+          disabled={!!lockedBankId}
         >
           <option value="">-- Select Question Bank --</option>
           {banks.map((bank) => (
@@ -201,9 +231,10 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
             <div className="space-y-4">
               {Object.keys(groupedQuestions).map((topic) => {
                 const topicQs = getQuestionsInTopic(topic);
-                const isTopicChecked = topicQs.every((q) => selectedQIds.has(q.question_id));
+                const isTopicChecked = topicQs.every((q) => importedSet.has(q.question_id) || selectedQIds.has(q.question_id));
                 const isTopicIndeterminate =
                   topicQs.some((q) => selectedQIds.has(q.question_id)) && !isTopicChecked;
+                const isTopicDisabled = topicQs.every((q) => importedSet.has(q.question_id));
 
                 return (
                   <div key={topic} className="space-y-1">
@@ -218,8 +249,9 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
                       </button>
                       <input
                         type="checkbox"
-                        className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer"
+                        className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         checked={isTopicChecked}
+                        disabled={isTopicDisabled}
                         ref={(el) => {
                           if (el) el.indeterminate = isTopicIndeterminate;
                         }}
@@ -238,9 +270,10 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
                         {Object.keys(groupedQuestions[topic]).map((chapter) => {
                           const chapterKey = `${topic}::${chapter}`;
                           const chapterQs = getQuestionsInChapter(topic, chapter);
-                          const isChapterChecked = chapterQs.every((q) => selectedQIds.has(q.question_id));
+                          const isChapterChecked = chapterQs.every((q) => importedSet.has(q.question_id) || selectedQIds.has(q.question_id));
                           const isChapterIndeterminate =
                             chapterQs.some((q) => selectedQIds.has(q.question_id)) && !isChapterChecked;
+                          const isChapterDisabled = chapterQs.every((q) => importedSet.has(q.question_id));
 
                           return (
                             <div key={chapter} className="space-y-1">
@@ -255,8 +288,9 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
                                 </button>
                                 <input
                                   type="checkbox"
-                                  className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer"
+                                  className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                   checked={isChapterChecked}
+                                  disabled={isChapterDisabled}
                                   ref={(el) => {
                                     if (el) el.indeterminate = isChapterIndeterminate;
                                   }}
@@ -276,12 +310,20 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
                                     <div key={q.question_id} className="flex items-start gap-3 p-2 hover:bg-muted/80 rounded-lg">
                                       <input
                                         type="checkbox"
-                                        className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer mt-0.5"
-                                        checked={selectedQIds.has(q.question_id)}
+                                        className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer mt-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        checked={importedSet.has(q.question_id) || selectedQIds.has(q.question_id)}
                                         onChange={() => handleSelectQuestion(q.question_id)}
+                                        disabled={importedSet.has(q.question_id)}
                                       />
                                       <div className="flex-1 text-sm">
-                                        <p className="text-foreground leading-relaxed font-normal">{q.question_text}</p>
+                                        <div className="flex items-start gap-2">
+                                          <p className="text-foreground leading-relaxed font-normal">{q.question_text}</p>
+                                          {importedSet.has(q.question_id) && (
+                                            <span className="shrink-0 text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-md font-semibold border border-emerald-100">
+                                              Added
+                                            </span>
+                                          )}
+                                        </div>
                                         <p className="text-xs text-muted-foreground mt-1 font-semibold">
                                           Difficulty: <span className="capitalize">{q.difficulty || "medium"}</span>
                                         </p>
@@ -321,6 +363,40 @@ export default function QuestionBankSelector({ onQuestionsSelected, onCancel }) 
           </Button>
         </div>
       </div>
+
+      {/* Switch Bank Confirmation Popup Modal */}
+      {showConfirmSwitch && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card rounded-2xl border border-border shadow-2xl p-6 w-full max-w-md space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-rose-600">
+              <AlertTriangle className="size-6 shrink-0" />
+              <h3 className="text-lg font-bold text-foreground">Switch Question Bank?</h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Switching the question bank will remove all questions imported from the current bank. This action cannot be undone. Do you want to proceed?
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowConfirmSwitch(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  onResetBank();
+                  setShowConfirmSwitch(false);
+                }}
+              >
+                Yes, Switch Bank
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

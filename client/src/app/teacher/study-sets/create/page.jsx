@@ -38,7 +38,7 @@ export default function CreateStudySetPage() {
 
   // --- 3. UI STATE FOR MODALS/PANELS ---
   const [showQBSelector, setShowQBSelector] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
   // --- 4. MANUAL DRAFT MANIPULATION ---
@@ -63,7 +63,42 @@ export default function CreateStudySetPage() {
 
   // Delete a question card
   const deleteQuestion = (qIndex) => {
-    setQuestions((prev) => prev.filter((_, idx) => idx !== qIndex));
+    setQuestions((prev) => {
+      const updated = prev.filter((_, idx) => idx !== qIndex);
+      // If no questions left have a source_question_id, release the lock on the question bank
+      const hasImported = updated.some(q => q.source_question_id);
+      if (!hasImported) {
+        setQuestionBankId(null);
+      }
+      return updated;
+    });
+
+    setErrors((prev) => {
+      const next = {};
+      Object.keys(prev).forEach((key) => {
+        const match = key.match(/^q_(\d+)_(.+)$/);
+        if (match) {
+          const idx = parseInt(match[1], 10);
+          const suffix = match[2];
+          if (idx === qIndex) {
+            // Delete errors for this deleted question card
+            return;
+          } else if (idx > qIndex) {
+            // Shift index down by 1 since questions shifted
+            next[`q_${idx - 1}_${suffix}`] = prev[key];
+          } else {
+            // Keep unchanged
+            next[key] = prev[key];
+          }
+        } else {
+          // Keep other errors like title, questions, but clear submit
+          if (key !== "submit") {
+            next[key] = prev[key];
+          }
+        }
+      });
+      return next;
+    });
   };
 
   // Update question text, explanation, difficulty, etc.
@@ -72,6 +107,13 @@ export default function CreateStudySetPage() {
       const updated = [...prev];
       updated[qIndex] = { ...updated[qIndex], [field]: value };
       return updated;
+    });
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[`q_${qIndex}_text`];
+      delete next[`q_${qIndex}_difficulty`];
+      delete next.submit;
+      return next;
     });
   };
 
@@ -87,6 +129,12 @@ export default function CreateStudySetPage() {
           : q
       )
     );
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[`q_${qIndex}_options`];
+      delete next.submit;
+      return next;
+    });
   };
 
   // Delete an option from a specific question
@@ -101,6 +149,12 @@ export default function CreateStudySetPage() {
           : q
       )
     );
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[`q_${qIndex}_options`];
+      delete next.submit;
+      return next;
+    });
   };
 
   // Update option text or toggle correct status
@@ -117,6 +171,12 @@ export default function CreateStudySetPage() {
           : q
       )
     );
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[`q_${qIndex}_options`];
+      delete next.submit;
+      return next;
+    });
   };
 
   // --- 5. QUESTION BANK IMPORT CALLBACK ---
@@ -143,6 +203,11 @@ export default function CreateStudySetPage() {
     setShowQBSelector(false); // Hide the QB selector panel
   };
 
+  const handleResetQuestionBank = () => {
+    setQuestions((prev) => prev.filter((q) => !q.source_question_id));
+    setQuestionBankId(null);
+  };
+
   const handleExcelQuestionsImported = (importedQs) => {
     const formattedQs = importedQs.map((q) => ({
       question_text: q.question_text,
@@ -162,49 +227,44 @@ export default function CreateStudySetPage() {
   // --- 6. SAVE STUDY SET TO DATABASE ---
   const handleSave = async (e) => {
     e.preventDefault();
-    setErrorMsg("");
+    setErrors({});
+
+    const newErrors = {};
 
     // A. Validate basic details
     if (!title.trim()) {
-      setErrorMsg("Study set title is required.");
-      return;
+      newErrors.title = "Study set title is required.";
     }
     if (questions.length === 0) {
-      setErrorMsg("A study set must contain at least one question.");
-      return;
+      newErrors.questions = "A study set must contain at least one question.";
     }
 
     // B. Validate draft questions
-    for (let i = 0; i < questions.length; i++) {
-      const qNum = i + 1;
-      const q = questions[i];
-
+    questions.forEach((q, idx) => {
       if (!q.question_text.trim()) {
-        setErrorMsg(`Question #${qNum} text cannot be empty.`);
-        return;
+        newErrors[`q_${idx}_text`] = "Question prompt cannot be empty.";
       }
       if (!q.difficulty) {
-        setErrorMsg(`Please select a difficulty level for Question #${qNum}.`);
-        return;
+        newErrors[`q_${idx}_difficulty`] = "Please select a difficulty level.";
       }
       if (q.options.length < 2) {
-        setErrorMsg(`Question #${qNum} must have at least 2 options.`);
-        return;
+        newErrors[`q_${idx}_options`] = "Question must have at least 2 options.";
+      } else {
+        const hasEmptyOpt = q.options.some((opt) => !opt.option_text.trim());
+        if (hasEmptyOpt) {
+          newErrors[`q_${idx}_options`] = "All options must be filled out.";
+        } else {
+          const hasCorrect = q.options.some((opt) => opt.is_correct);
+          if (!hasCorrect) {
+            newErrors[`q_${idx}_options`] = "At least one correct option must be selected.";
+          }
+        }
       }
+    });
 
-      // Check if all options have text filled in
-      const hasEmptyOpt = q.options.some((opt) => !opt.option_text.trim());
-      if (hasEmptyOpt) {
-        setErrorMsg(`All options in Question #${qNum} must be filled out.`);
-        return;
-      }
-
-      // Check if at least one option is marked correct
-      const hasCorrect = q.options.some((opt) => opt.is_correct);
-      if (!hasCorrect) {
-        setErrorMsg(`Question #${qNum} must have at least one correct option selected.`);
-        return;
-      }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
     }
 
     // C. Send POST request
@@ -223,7 +283,9 @@ export default function CreateStudySetPage() {
       router.push("/teacher/study-sets");
     } catch (err) {
       console.error("Failed to create study set:", err);
-      setErrorMsg(err.response?.data?.error || "Failed to create study set. Please try again.");
+      setErrors({
+        submit: err.response?.data?.error || "Failed to create study set. Please try again."
+      });
     } finally {
       setSaving(false);
     }
@@ -246,9 +308,9 @@ export default function CreateStudySetPage() {
           </div>
         </div>
 
-        {errorMsg && (
+        {errors.submit && (
           <div className="bg-rose-50 text-rose-800 p-4 rounded-xl border border-rose-100 text-sm font-semibold">
-            {errorMsg}
+            {errors.submit}
           </div>
         )}
 
@@ -259,13 +321,18 @@ export default function CreateStudySetPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-sm font-semibold text-foreground">Title *</label>
+                <label className="text-sm font-semibold text-foreground">Title <span className="text-rose-500"> *</span></label>
                 <Input
                   placeholder="e.g. Midterm Physics Review"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setErrors((prev) => ({ ...prev, title: null }));
+                  }}
                 />
+                {errors.title && (
+                  <p className="text-xs font-semibold text-rose-500 mt-1">{errors.title}</p>
+                )}
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
@@ -337,6 +404,12 @@ export default function CreateStudySetPage() {
               </div>
             </div>
 
+            {errors.questions && (
+              <div className="bg-rose-50/50 text-rose-600 border border-rose-100 px-4 py-3 rounded-xl text-sm font-semibold">
+                {errors.questions}
+              </div>
+            )}
+
             {/* Questions drafting list */}
             <div className="space-y-6">
               {questions.map((q, qIndex) => (
@@ -360,14 +433,17 @@ export default function CreateStudySetPage() {
 
                   {/* Question text */}
                   <div className="space-y-1.5">
-                    <label className="text-sm font-semibold text-foreground">Question Prompt *</label>
+                    <label className="text-sm font-semibold text-foreground">Question
+                      <span className="text-rose-500"> *</span></label>
                     <textarea
                       className="min-h-[60px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       placeholder="Enter the question text"
                       value={q.question_text}
                       onChange={(e) => handleQuestionFieldChange(qIndex, "question_text", e.target.value)}
-                      required
                     />
+                    {errors[`q_${qIndex}_text`] && (
+                      <p className="text-xs font-semibold text-rose-500 mt-0.5">{errors[`q_${qIndex}_text`]}</p>
+                    )}
                   </div>
 
                   {/* Question metadata */}
@@ -383,6 +459,9 @@ export default function CreateStudySetPage() {
                         <option value="medium">Medium</option>
                         <option value="hard">Hard</option>
                       </select>
+                      {errors[`q_${qIndex}_difficulty`] && (
+                        <p className="text-xs font-semibold text-rose-500 mt-0.5">{errors[`q_${qIndex}_difficulty`]}</p>
+                      )}
                     </div>
 
                     <div className="space-y-1.5">
@@ -437,7 +516,6 @@ export default function CreateStudySetPage() {
                             placeholder={`Option ${optIndex + 1}`}
                             value={opt.option_text}
                             onChange={(e) => handleOptionChange(qIndex, optIndex, "option_text", e.target.value)}
-                            required
                           />
 
                           {q.options.length > 2 && (
@@ -454,6 +532,9 @@ export default function CreateStudySetPage() {
                         </div>
                       ))}
                     </div>
+                    {errors[`q_${qIndex}_options`] && (
+                      <p className="text-xs font-semibold text-rose-500 mt-1">{errors[`q_${qIndex}_options`]}</p>
+                    )}
                   </div>
 
                   {/* Explanation */}
@@ -494,7 +575,7 @@ export default function CreateStudySetPage() {
             </Button>
             <Button type="submit" disabled={saving} className="gap-2">
               <Save size={16} />
-              {saving ? "Saving..." : "Save Study Set"}
+              {saving ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
@@ -507,6 +588,9 @@ export default function CreateStudySetPage() {
             <QuestionBankSelector
               onQuestionsSelected={handleQBQuestionsImported}
               onCancel={() => setShowQBSelector(false)}
+              lockedBankId={questionBankId}
+              onResetBank={handleResetQuestionBank}
+              alreadyImportedIds={questions.map((q) => q.source_question_id).filter(Boolean)}
             />
           </div>
         </div>
