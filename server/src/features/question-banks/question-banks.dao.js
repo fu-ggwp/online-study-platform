@@ -84,13 +84,18 @@ export function update(questionBankId, teacherId, changes) {
     .maybeSingle();
 }
 
-export function softDelete(questionBankId, teacherId) {
+export function archive(questionBankId, teacherId) {
+  const now = new Date().toISOString();
+
   return update(questionBankId, teacherId, {
     status: "archived",
-    deleted_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    visibility: "archived",
+    deleted_at: now,
+    updated_at: now,
   });
 }
+
+export const softDelete = archive;
 
 export async function countQuestions(questionBankId) {
   const { count, error } = await db

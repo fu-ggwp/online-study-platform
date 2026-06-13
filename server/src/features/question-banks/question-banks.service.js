@@ -5,7 +5,7 @@ import * as questionBanksDao from "./question-banks.dao.js";
 const db = supabaseAdmin || supabase;
 const userModel = createUserModel(db);
 
-const allowedStatus = new Set(["private", "assigned", "archived"]);
+const allowedStatus = new Set(["draft", "reviewed", "archived"]);
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function serviceError(message, statusCode = 400, fields) {
@@ -44,12 +44,12 @@ function normalizeText(value) {
   return String(value).trim();
 }
 
-function validateEnum(value, allowedValues, fieldName, errors) {
+function validateStatusFilter(value, errors) {
   if (value === undefined || value === null || value === "") return undefined;
-  const normalized = String(value).trim().toLowerCase();
 
-  if (!allowedValues.has(normalized)) {
-    errors[fieldName] = "The information is invalid. Please check and try again.";
+  const normalized = String(value).trim().toLowerCase();
+  if (!allowedStatus.has(normalized)) {
+    errors.status = "The information is invalid. Please check and try again.";
   }
 
   return normalized;
@@ -61,50 +61,9 @@ function validateQuestionBankId(questionBankId) {
   }
 }
 
-function buildQuestionBankPayload(payload = {}, { partial = false } = {}) {
-  const errors = {};
-  const title = normalizeText(payload.title);
-  const description = normalizeText(payload.description);
-  const subject = normalizeText(payload.subject);
-  const topic = normalizeText(payload.topic);
-  const status = validateEnum(payload.status, allowedStatus, "status", errors);
-  const changes = {};
-
-  if (!partial || title !== undefined) {
-    if (!title) {
-      errors.title = "Please complete all required information.";
-    } else {
-      changes.title = title;
-    }
-  }
-
-  if (description !== undefined) changes.description = description || null;
-  if (subject !== undefined) changes.subject = subject || null;
-  if (topic !== undefined) changes.topic = topic || null;
-  if (status !== undefined) changes.status = status;
-
-  if (!partial) {
-    changes.status = changes.status || "private";
-  }
-
-  if (Object.keys(errors).length > 0) {
-    const message = errors.title
-      ? "Please complete all required information."
-      : "The information is invalid. Please check and try again.";
-    throw serviceError(message, 400, errors);
-  }
-
-  if (partial && Object.keys(changes).length === 0) {
-    throw serviceError("No valid question bank fields were provided.", 400);
-  }
-
-  changes.updated_at = new Date().toISOString();
-  return changes;
-}
-
 function normalizeListFilters(query = {}) {
   const errors = {};
-  const status = validateEnum(query.status, allowedStatus, "status", errors);
+  const status = validateStatusFilter(query.status, errors);
 
   if (Object.keys(errors).length > 0) {
     throw serviceError("The information is invalid. Please check and try again.", 400, errors);
@@ -187,9 +146,8 @@ export async function getQuestionBank(userId, questionBankId) {
 export async function createQuestionBank(userId, payload) {
   await requireActiveTeacher(userId);
 
-  const changes = buildQuestionBankPayload(payload);
   const { data, error } = await questionBanksDao.create({
-    ...changes,
+    ...payload,
     teacher_id: userId,
   });
 
@@ -203,11 +161,10 @@ export async function createQuestionBank(userId, payload) {
   };
 }
 
-export async function updateQuestionBank(userId, questionBankId, payload) {
+export async function updateQuestionBank(userId, questionBankId, changes) {
   await requireActiveTeacher(userId);
   validateQuestionBankId(questionBankId);
 
-  const changes = buildQuestionBankPayload(payload, { partial: true });
   const { data, error } = await questionBanksDao.update(questionBankId, userId, changes);
 
   if (error) {
@@ -221,18 +178,14 @@ export async function updateQuestionBank(userId, questionBankId, payload) {
   return attachQuestionCount(data);
 }
 
-export async function deleteQuestionBank(userId, questionBankId) {
+export async function archiveQuestionBank(userId, questionBankId) {
   await requireActiveTeacher(userId);
   validateQuestionBankId(questionBankId);
 
-  const { data, error } = await questionBanksDao.softDelete(questionBankId, userId);
+  const { data, error } = await questionBanksDao.archive(questionBankId, userId);
 
   if (error) {
-    throw serviceError(
-      error.message ||
-        "This question bank cannot be permanently deleted because it is linked to existing records. You may archive or hide it instead.",
-      400
-    );
+    throw serviceError(error.message || "Question bank could not be archived.", 400);
   }
 
   if (!data) {
@@ -241,3 +194,5 @@ export async function deleteQuestionBank(userId, questionBankId) {
 
   return data;
 }
+
+export const deleteQuestionBank = archiveQuestionBank;

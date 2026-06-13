@@ -1,4 +1,4 @@
-// Mirrors the `question_banks` table — a teacher's reusable question repository.
+// Mirrors the `question_banks` table - a teacher's reusable question repository.
 // (The earlier scaffold used a `name` column; the real column is `title`.)
 export const QUESTION_BANK_TABLE = "question_banks";
 
@@ -9,8 +9,8 @@ export const QuestionBankVisibility = Object.freeze({
 });
 
 export const QuestionBankStatus = Object.freeze({
-  PRIVATE: "private",
-  ASSIGNED: "assigned",
+  DRAFT: "draft",
+  REVIEWED: "reviewed",
   ARCHIVED: "archived",
 });
 
@@ -23,7 +23,7 @@ export const QuestionBankStatus = Object.freeze({
  * @property {string} [subject]
  * @property {string} [topic]
  * @property {"private"|"shared"|"archived"} visibility
- * @property {"private"|"assigned"|"archived"} status
+ * @property {"draft"|"reviewed"|"archived"} status
  * @property {string} created_at
  * @property {string} updated_at
  * @property {string} [deleted_at]
