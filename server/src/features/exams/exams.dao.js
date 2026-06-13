@@ -1,5 +1,8 @@
 import supabase, { supabaseAdmin } from "../../config/supabase.js";
-import { EXAM_SESSION_TABLE } from "../../models/exam.model.js";
+import { CLASS_TABLE } from "../../models/class.model.js";
+import { EXAM_QUESTION_TABLE, EXAM_SESSION_TABLE } from "../../models/exam.model.js";
+import { QUESTION_TABLE } from "../../models/question.model.js";
+import { QUESTION_BANK_TABLE } from "../../models/question-bank.model.js";
 
 const db = supabaseAdmin ?? supabase;
 
@@ -147,4 +150,114 @@ export async function listTeacherExamSessions(teacherId, filters = {}) {
     totalPages,
     classes: buildClassOptions(allItems),
   };
+}
+
+export async function findManagedActiveClass(classId, teacherId) {
+  const { data, error } = await db
+    .from(CLASS_TABLE)
+    .select("class_id, teacher_id, class_name, status")
+    .eq("class_id", classId)
+    .eq("teacher_id", teacherId)
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function findOwnedQuestionBank(questionBankId, teacherId) {
+  const { data, error } = await db
+    .from(QUESTION_BANK_TABLE)
+    .select("question_bank_id, teacher_id, title, status, subject, topic")
+    .eq("question_bank_id", questionBankId)
+    .eq("teacher_id", teacherId)
+    .is("deleted_at", null)
+    .neq("status", "archived")
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function listQuestionBankSourceQuestions(questionBankId) {
+  const { data, error } = await db
+    .from(QUESTION_TABLE)
+    .select(`
+      question_id,
+      question_text,
+      question_type,
+      score,
+      explanation,
+      subject,
+      topic,
+      chapter,
+      lesson,
+      difficulty,
+      answer_options:answer_options (
+        answer_option_id,
+        option_text,
+        is_correct,
+        display_order
+      )
+    `)
+    .eq("question_bank_id", questionBankId)
+    .is("study_set_id", null)
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+export async function insertExamSession(payload) {
+  const { data, error } = await db
+    .from(EXAM_SESSION_TABLE)
+    .insert(payload)
+    .select(EXAM_SESSION_SELECT)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function insertExamQuestions(rows) {
+  if (!rows.length) {
+    return [];
+  }
+
+  const { data, error } = await db
+    .from(EXAM_QUESTION_TABLE)
+    .insert(rows)
+    .select("*");
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+export async function deleteExamSession(examSessionId) {
+  const { error } = await db
+    .from(EXAM_SESSION_TABLE)
+    .delete()
+    .eq("exam_session_id", examSessionId);
+
+  if (error) {
+    throw error;
+  }
 }

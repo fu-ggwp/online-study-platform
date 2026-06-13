@@ -6,5 +6,6 @@ import * as examsController from "./exams.controller.js";
 const router = Router();
 
 router.get("/", requireAuth, asyncHandler(examsController.listMine));
+router.post("/", requireAuth, asyncHandler(examsController.create));
 
 export default router;
