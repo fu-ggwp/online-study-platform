@@ -92,3 +92,69 @@ export function recordAnswer(payload) {
 export function listAnswersByAttempt(attemptId) {
   return supabase.from(ATTEMPT_ANSWER_TABLE).select("*").eq("practice_attempt_id", attemptId);
 }
+<<<<<<< Updated upstream
+=======
+
+//List dsach ngân hàng câu hỏi của gvien
+export function listQuestionBankByTeacher(teacherId) {
+  return supabase.from(QUESTION_BANK_TABLE).select("*").eq("teacher_id", teacherId).is("deleted_at", null).order("created_at", { ascending: false });
+}
+
+// List dsach ques và ans trong nghang câu hỏi
+export function listQuestionByBank(questionBankId) {
+  return supabase
+    .from(QUESTION_TABLE)
+    .select(`
+      *,
+      answer_options:${ANSWER_OPTION_TABLE} (
+        answer_option_id,
+        question_id,
+        option_text,
+        is_correct,
+        display_order
+      )
+    `)
+    .eq("question_bank_id", questionBankId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+}
+
+//Check tkhoan premium
+export function checkPremium(userId) {
+  return supabase.from(USER_TABLE).select("is_premium").eq("user_id", userId).single();
+}
+
+//Thêm câu hỏi
+export function creationQuestions(questionPayload) {
+  return supabase.from(QUESTION_TABLE).insert(questionPayload).select();
+}
+
+//Thêm đáp án
+export function createOptions(optionsPayload) {
+  return supabase.from(ANSWER_OPTION_TABLE).insert(optionsPayload)
+}
+
+//Update slg câu hỏi
+export function updateQuestionCount(studysetId, count) {
+  return supabase.from(STUDY_SET_TABLE).update({ question_count: count }).eq("study_set_id", studysetId);
+}
+
+//Lấy full ques và ans trong study set
+export function listQuestionByStudySet(studysetId) {
+  return supabase
+    .from(QUESTION_TABLE)
+    .select(`
+      *,
+      answer_options:${ANSWER_OPTION_TABLE} (
+        answer_option_id,
+        question_id,
+        option_text,
+        is_correct,
+        display_order
+      )
+    `)
+    .eq("study_set_id", studysetId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+}
+>>>>>>> Stashed changes
