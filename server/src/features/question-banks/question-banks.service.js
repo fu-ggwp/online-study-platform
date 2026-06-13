@@ -5,8 +5,7 @@ import * as questionBanksDao from "./question-banks.dao.js";
 const db = supabaseAdmin || supabase;
 const userModel = createUserModel(db);
 
-const allowedVisibility = new Set(["private", "shared", "archived"]);
-const allowedStatus = new Set(["draft", "reviewed", "archived"]);
+const allowedStatus = new Set(["private", "assigned", "archived"]);
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function serviceError(message, statusCode = 400, fields) {
@@ -58,9 +57,7 @@ function validateEnum(value, allowedValues, fieldName, errors) {
 
 function validateQuestionBankId(questionBankId) {
   if (!uuidRegex.test(String(questionBankId || ""))) {
-    throw serviceError("The information is invalid. Please check and try again.", 400, {
-      id: "Question bank id is invalid.",
-    });
+    throw serviceError("Question bank not found.", 404);
   }
 }
 
@@ -70,7 +67,6 @@ function buildQuestionBankPayload(payload = {}, { partial = false } = {}) {
   const description = normalizeText(payload.description);
   const subject = normalizeText(payload.subject);
   const topic = normalizeText(payload.topic);
-  const visibility = validateEnum(payload.visibility, allowedVisibility, "visibility", errors);
   const status = validateEnum(payload.status, allowedStatus, "status", errors);
   const changes = {};
 
@@ -85,12 +81,10 @@ function buildQuestionBankPayload(payload = {}, { partial = false } = {}) {
   if (description !== undefined) changes.description = description || null;
   if (subject !== undefined) changes.subject = subject || null;
   if (topic !== undefined) changes.topic = topic || null;
-  if (visibility !== undefined) changes.visibility = visibility;
   if (status !== undefined) changes.status = status;
 
   if (!partial) {
-    changes.visibility = changes.visibility || "private";
-    changes.status = changes.status || "draft";
+    changes.status = changes.status || "private";
   }
 
   if (Object.keys(errors).length > 0) {
@@ -110,7 +104,6 @@ function buildQuestionBankPayload(payload = {}, { partial = false } = {}) {
 
 function normalizeListFilters(query = {}) {
   const errors = {};
-  const visibility = validateEnum(query.visibility, allowedVisibility, "visibility", errors);
   const status = validateEnum(query.status, allowedStatus, "status", errors);
 
   if (Object.keys(errors).length > 0) {
@@ -120,7 +113,6 @@ function normalizeListFilters(query = {}) {
   return {
     keyword: normalizeText(query.keyword) || "",
     subject: normalizeText(query.subject) || "",
-    visibility,
     status,
     page: query.page,
     limit: query.limit,

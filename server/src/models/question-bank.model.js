@@ -9,8 +9,8 @@ export const QuestionBankVisibility = Object.freeze({
 });
 
 export const QuestionBankStatus = Object.freeze({
-  DRAFT: "draft",
-  REVIEWED: "reviewed",
+  PRIVATE: "private",
+  ASSIGNED: "assigned",
   ARCHIVED: "archived",
 });
 
@@ -23,7 +23,7 @@ export const QuestionBankStatus = Object.freeze({
  * @property {string} [subject]
  * @property {string} [topic]
  * @property {"private"|"shared"|"archived"} visibility
- * @property {"draft"|"reviewed"|"archived"} status
+ * @property {"private"|"assigned"|"archived"} status
  * @property {string} created_at
  * @property {string} updated_at
  * @property {string} [deleted_at]
