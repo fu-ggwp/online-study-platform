@@ -2,6 +2,10 @@ import supabase from "../../config/supabase.js";
 import { STUDY_SET_TABLE } from "../../models/study-set.model.js";
 import { PRACTICE_ATTEMPT_TABLE } from "../../models/practice-attempt.model.js";
 import { ATTEMPT_ANSWER_TABLE } from "../../models/attempt-answer.model.js";
+import { QUESTION_BANK_TABLE } from "../../models/question-bank.model.js";
+import { QUESTION_TABLE } from "../../models/question.model.js";
+import { ANSWER_OPTION_TABLE } from "../../models/answer-option.model.js";
+import { USER_TABLE } from "../../models/user.model.js";
 
 // Tìm theo gv sở hữu là teacher_id
 export function findByTeacher(teacherId) {
@@ -92,8 +96,6 @@ export function recordAnswer(payload) {
 export function listAnswersByAttempt(attemptId) {
   return supabase.from(ATTEMPT_ANSWER_TABLE).select("*").eq("practice_attempt_id", attemptId);
 }
-<<<<<<< Updated upstream
-=======
 
 //List dsach ngân hàng câu hỏi của gvien
 export function listQuestionBankByTeacher(teacherId) {
@@ -131,7 +133,7 @@ export function creationQuestions(questionPayload) {
 
 //Thêm đáp án
 export function createOptions(optionsPayload) {
-  return supabase.from(ANSWER_OPTION_TABLE).insert(optionsPayload)
+  return supabase.from(ANSWER_OPTION_TABLE).insert(optionsPayload);
 }
 
 //Update slg câu hỏi
@@ -157,4 +159,3 @@ export function listQuestionByStudySet(studysetId) {
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
 }
->>>>>>> Stashed changes
