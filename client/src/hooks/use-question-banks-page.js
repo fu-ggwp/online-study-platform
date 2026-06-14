@@ -12,20 +12,16 @@ export function useQuestionBanksPage() {
   const [questionBanks, setQuestionBanks] = useState([]);
   const [pagination, setPagination] = useState(defaultPagination(1));
   const [loading, setLoading] = useState(true);
-  const [subjects, setSubjects] = useState([]);
-  const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [draftKeyword, setDraftKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [draftSubject, setDraftSubject] = useState("all");
   const [draftStatus, setDraftStatus] = useState("all");
-  const [appliedSubject, setAppliedSubject] = useState("all");
   const [appliedStatus, setAppliedStatus] = useState("all");
   const [page, setPage] = useState(1);
 
   const params = useMemo(
-    () => buildQuestionBankParams({ keyword: appliedKeyword, page, status: appliedStatus, subject: appliedSubject }),
-    [appliedKeyword, appliedStatus, appliedSubject, page]
+    () => buildQuestionBankParams({ keyword: appliedKeyword, page, status: appliedStatus }),
+    [appliedKeyword, appliedStatus, page]
   );
 
   const fetchQuestionBanks = useCallback(async (activeParams, fallbackPage) => {
@@ -49,48 +45,17 @@ export function useQuestionBanksPage() {
     await fetchQuestionBanks(params, page);
   }, [fetchQuestionBanks, page, params]);
 
-  const fetchSubjects = useCallback(async () => {
-    try {
-      const data = await questionBanksService.listSubjects();
-      setSubjects(data ?? []);
-    } catch {
-      setSubjects([]);
-    } finally {
-      setSubjectsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchQuestionBanks(params, page);
   }, [fetchQuestionBanks, page, params]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchSubjects();
-  }, [fetchSubjects]);
-
-  const subjectOptions = useMemo(
-    () => [
-      { value: "all", label: subjectsLoading ? "Loading subjects" : "All subjects" },
-      ...subjects.map((value) => ({ value, label: value })),
-    ],
-    [subjects, subjectsLoading]
-  );
-
   function handleKeywordChange(event) {
     setDraftKeyword(event.target.value);
   }
 
-  function handleFilterChange(setter) {
-    return (event) => {
-      setter(event.target.value);
-    };
-  }
-
   function applyFilters() {
-    const shouldFetch =
-      draftKeyword !== appliedKeyword || draftSubject !== appliedSubject || draftStatus !== appliedStatus || page !== 1;
+    const shouldFetch = draftKeyword !== appliedKeyword || draftStatus !== appliedStatus || page !== 1;
 
     if (shouldFetch) {
       setLoading(true);
@@ -98,22 +63,19 @@ export function useQuestionBanksPage() {
 
     setError(null);
     setAppliedKeyword(draftKeyword);
-    setAppliedSubject(draftSubject);
     setAppliedStatus(draftStatus);
     setPage(1);
   }
 
   function resetFilters() {
-    const shouldFetch = appliedSubject !== "all" || appliedStatus !== "all" || page !== 1;
+    const shouldFetch = appliedStatus !== "all" || page !== 1;
 
     if (shouldFetch) {
       setLoading(true);
     }
 
     setError(null);
-    setDraftSubject("all");
     setDraftStatus("all");
-    setAppliedSubject("all");
     setAppliedStatus("all");
     setPage(1);
   }
@@ -127,7 +89,6 @@ export function useQuestionBanksPage() {
   return {
     draftKeyword,
     draftStatus,
-    draftSubject,
     error,
     handleKeywordChange,
     loading,
@@ -135,10 +96,8 @@ export function useQuestionBanksPage() {
     onApplyFilters: applyFilters,
     onPageChange: changePage,
     onResetFilters: resetFilters,
-    onStatusChange: handleFilterChange(setDraftStatus),
-    onSubjectChange: handleFilterChange(setDraftSubject),
+    onStatusChange: (event) => setDraftStatus(event.target.value),
     pagination,
     questionBanks,
-    subjectOptions,
   };
 }

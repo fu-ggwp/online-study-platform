@@ -13,13 +13,11 @@ export function formatLabel(value) {
 }
 
 export function formatBankStatus(value) {
-  if (value === "draft") return "Private";
-  if (value === "reviewed") return "Assigned";
   return formatLabel(value);
 }
 
 export function getStatusTone(value) {
-  if (value === "reviewed") return "green";
+  if (value === "assigned") return "green";
   if (value === "archived") return "red";
   return "neutral";
 }

@@ -3,8 +3,8 @@
 export const QUESTION_BANK_TABLE = "question_banks";
 
 export const QuestionBankStatus = Object.freeze({
-  DRAFT: "private",
-  REVIEWED: "assigned",
+  PRIVATE: "private",
+  ASSIGNED: "assigned",
   ARCHIVED: "archived",
 });
 

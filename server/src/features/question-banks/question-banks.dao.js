@@ -5,15 +5,7 @@ import { getPagination } from "../../utils/pagination.js";
 
 const db = supabaseAdmin || supabase;
 
-const sortableColumns = new Set([
-  "title",
-  "subject",
-  "topic",
-  "visibility",
-  "status",
-  "created_at",
-  "updated_at",
-]);
+const sortableColumns = new Set(["title", "topic", "status", "created_at", "updated_at"]);
 
 function cleanKeyword(value = "") {
   return String(value).trim().replace(/[,()]/g, " ").replace(/\s+/g, " ");
@@ -32,13 +24,9 @@ export function listByTeacher(teacherId, filters = {}) {
     .is("deleted_at", null);
 
   if (keyword) {
-    query = query.or(
-      `title.ilike.%${keyword}%,description.ilike.%${keyword}%,subject.ilike.%${keyword}%,topic.ilike.%${keyword}%`
-    );
+    query = query.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%,topic.ilike.%${keyword}%`);
   }
 
-  if (filters.subject) query = query.eq("subject", filters.subject);
-  if (filters.visibility) query = query.eq("visibility", filters.visibility);
   if (filters.status) query = query.eq("status", filters.status);
 
   return query.order(sortBy, { ascending }).range(from, to).then((result) => ({
@@ -46,17 +34,6 @@ export function listByTeacher(teacherId, filters = {}) {
     page,
     limit,
   }));
-}
-
-export function listSubjectsByTeacher(teacherId) {
-  return db
-    .from(QUESTION_BANK_TABLE)
-    .select("subject")
-    .eq("teacher_id", teacherId)
-    .is("deleted_at", null)
-    .not("subject", "is", null)
-    .neq("subject", "")
-    .order("subject", { ascending: true });
 }
 
 export function findOwnedById(questionBankId, teacherId) {
@@ -89,7 +66,6 @@ export function archive(questionBankId, teacherId) {
 
   return update(questionBankId, teacherId, {
     status: "archived",
-    visibility: "archived",
     deleted_at: now,
     updated_at: now,
   });

@@ -11,22 +11,18 @@ export function QuestionBanksFilterBar({
   onKeywordChange,
   onReset,
   onStatusChange,
-  onSubjectChange,
-  subjectOptions,
   status,
-  subject,
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-      <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr)_repeat(2,minmax(150px,190px))_auto_auto]">
+      <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr)_minmax(150px,190px)_auto_auto]">
         <Field label="Search Question Banks">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-8" onChange={onKeywordChange} placeholder="Title, description, subject, topic" value={keyword} />
+            <Input className="pl-8" onChange={onKeywordChange} placeholder="Title, description, or topic" value={keyword} />
           </div>
         </Field>
 
-        <SelectField label="Subject" onChange={onSubjectChange} options={subjectOptions} value={subject} />
         <SelectField label="Status" onChange={onStatusChange} options={statusOptions} value={status} />
 
         <div className="flex items-end justify-end">

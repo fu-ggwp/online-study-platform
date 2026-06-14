@@ -2,13 +2,12 @@ import {
   archiveQuestionBank,
   createQuestionBank,
   getQuestionBank,
-  listQuestionBankSubjects,
   listQuestionBanks,
   updateQuestionBank,
 } from "./question-banks.service.js";
 
 const savedMessage = "Question bank information has been saved successfully.";
-const allowedEditableStatus = new Set(["draft", "reviewed"]);
+const allowedEditableStatus = new Set(["private", "assigned"]);
 
 function getUserId(req) {
   return req.user?.id || req.user?.user_id;
@@ -78,10 +77,8 @@ function validateCreatePayload(body = {}) {
   return {
     title,
     description: normalizeNullableText(body.description),
-    subject: normalizeNullableText(body.subject),
     topic: normalizeNullableText(body.topic),
-    status: status || "draft",
-    visibility: "private",
+    status: status || "private",
     updated_at: new Date().toISOString(),
   };
 }
@@ -91,7 +88,6 @@ function validateUpdatePayload(body = {}) {
   const changes = {};
   const title = normalizeText(body.title);
   const description = normalizeNullableText(body.description);
-  const subject = normalizeNullableText(body.subject);
   const topic = normalizeNullableText(body.topic);
   const status = validateEnum(body.status, allowedEditableStatus, "status", errors);
 
@@ -104,7 +100,6 @@ function validateUpdatePayload(body = {}) {
   }
 
   if (description !== undefined) changes.description = description;
-  if (subject !== undefined) changes.subject = subject;
   if (topic !== undefined) changes.topic = topic;
   if (status !== undefined) changes.status = status;
 
@@ -121,15 +116,6 @@ function validateUpdatePayload(body = {}) {
 export async function list(req, res) {
   try {
     const data = await listQuestionBanks(getUserId(req), req.query);
-    return res.status(200).json({ data });
-  } catch (error) {
-    return sendError(res, error);
-  }
-}
-
-export async function listSubjects(req, res) {
-  try {
-    const data = await listQuestionBankSubjects(getUserId(req));
     return res.status(200).json({ data });
   } catch (error) {
     return sendError(res, error);

@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const statusOptions = [
-  { value: "draft", label: "Private" },
-  { value: "reviewed", label: "Assigned" },
+  { value: "private", label: "Private" },
+  { value: "assigned", label: "Assigned" },
 ];
 
 export function QuestionBankForm({
@@ -65,25 +65,14 @@ export function QuestionBankForm({
               value={form.description}
             />
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <TextField
-                error={fieldErrors.subject}
-                label="Subject"
-                name="subject"
-                onChange={onChange}
-                placeholder="e.g. Mathematics"
-                value={form.subject}
-              />
-
-              <TextField
-                error={fieldErrors.topic}
-                label="Topic"
-                name="topic"
-                onChange={onChange}
-                placeholder="e.g. Linear equations"
-                value={form.topic}
-              />
-            </div>
+            <TextField
+              error={fieldErrors.topic}
+              label="Topic"
+              name="topic"
+              onChange={onChange}
+              placeholder="e.g. Linear equations"
+              value={form.topic}
+            />
 
             <SelectField
               description="Private banks are being prepared. Assigned banks are ready for class and exam workflows."

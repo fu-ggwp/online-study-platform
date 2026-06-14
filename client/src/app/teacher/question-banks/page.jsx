@@ -16,7 +16,6 @@ export default function QuestionBanksPage() {
   const {
     draftKeyword,
     draftStatus,
-    draftSubject,
     error,
     handleKeywordChange,
     loading,
@@ -25,10 +24,8 @@ export default function QuestionBanksPage() {
     onPageChange,
     onResetFilters,
     onStatusChange,
-    onSubjectChange,
     pagination,
     questionBanks,
-    subjectOptions,
   } = useQuestionBanksPage();
 
   return (
@@ -42,10 +39,7 @@ export default function QuestionBanksPage() {
           onKeywordChange={handleKeywordChange}
           onReset={onResetFilters}
           onStatusChange={onStatusChange}
-          onSubjectChange={onSubjectChange}
-          subjectOptions={subjectOptions}
           status={draftStatus}
-          subject={draftSubject}
         />
 
         {loading ? (

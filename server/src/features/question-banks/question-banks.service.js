@@ -5,7 +5,7 @@ import * as questionBanksDao from "./question-banks.dao.js";
 const db = supabaseAdmin || supabase;
 const userModel = createUserModel(db);
 
-const allowedStatus = new Set(["draft", "reviewed", "archived"]);
+const allowedStatus = new Set(["private", "assigned", "archived"]);
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function serviceError(message, statusCode = 400, fields) {
@@ -71,7 +71,6 @@ function normalizeListFilters(query = {}) {
 
   return {
     keyword: normalizeText(query.keyword) || "",
-    subject: normalizeText(query.subject) || "",
     status,
     page: query.page,
     limit: query.limit,
@@ -114,20 +113,6 @@ export async function listQuestionBanks(userId, query) {
   };
 }
 
-export async function listQuestionBankSubjects(userId) {
-  await requireActiveTeacher(userId);
-
-  const { data, error } = await questionBanksDao.listSubjectsByTeacher(userId);
-  handleLoadError(error);
-
-  return Array.from(
-    new Set(
-      (data || [])
-        .map((row) => normalizeText(row.subject))
-        .filter(Boolean)
-    )
-  ).sort((a, b) => a.localeCompare(b));
-}
 
 export async function getQuestionBank(userId, questionBankId) {
   await requireActiveTeacher(userId);

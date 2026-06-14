@@ -1,9 +1,8 @@
 import { ITEMS_PER_PAGE } from "./question-banks.constants";
 
-export function buildQuestionBankParams({ keyword, page, status, subject }) {
+export function buildQuestionBankParams({ keyword, page, status }) {
   return {
     keyword: keyword.trim() || undefined,
-    subject: subject === "all" ? undefined : subject,
     status: status === "all" ? undefined : status,
     page,
     limit: ITEMS_PER_PAGE,

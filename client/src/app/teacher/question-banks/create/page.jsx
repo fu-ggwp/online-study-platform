@@ -10,16 +10,14 @@ import { QuestionBankForm } from "../_components/question-bank-form";
 const initialForm = {
   title: "",
   description: "",
-  subject: "",
   topic: "",
-  status: "draft",
+  status: "private",
 };
 
 function buildPayload(form) {
   return {
     title: form.title.trim(),
     description: form.description.trim() || null,
-    subject: form.subject.trim() || null,
     topic: form.topic.trim() || null,
     status: form.status,
   };

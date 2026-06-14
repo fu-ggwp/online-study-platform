@@ -14,9 +14,8 @@ function toFormValues(questionBank) {
   return {
     title: questionBank?.title || "",
     description: questionBank?.description || "",
-    subject: questionBank?.subject || "",
     topic: questionBank?.topic || "",
-    status: questionBank?.status === "reviewed" ? "reviewed" : "draft",
+    status: questionBank?.status === "assigned" ? "assigned" : "private",
   };
 }
 
@@ -24,7 +23,6 @@ function buildPayload(form) {
   return {
     title: form.title.trim(),
     description: form.description.trim() || null,
-    subject: form.subject.trim() || null,
     topic: form.topic.trim() || null,
     status: form.status,
   };
