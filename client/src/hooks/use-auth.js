@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import supabase from "../lib/supabaseClient";
 import { completeLogin } from "../services/auth.service";
 import { profileService } from "../services/profile.service";
@@ -13,6 +13,7 @@ export function useAuth() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const syncIdRef = useRef(0);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -28,28 +29,29 @@ export function useAuth() {
   useEffect(() => {
     let active = true;
 
-    async function syncAuthState(sessionToSync) {
+    async function syncAuthState() {
+      const syncId = syncIdRef.current + 1;
+      syncIdRef.current = syncId;
+
       try {
-        const { session: currentSession, profile: data } = await completeLogin(
-          sessionToSync
-        );
-        if (!active) return;
+        const { session: currentSession, profile: data } = await completeLogin();
+        if (!active || syncId !== syncIdRef.current) return;
         setSession(currentSession);
         setProfile(data);
       } catch {
-        if (!active) return;
+        if (!active || syncId !== syncIdRef.current) return;
         setSession(null);
         setProfile(null);
       } finally {
-        if (active) setLoading(false);
+        if (active && syncId === syncIdRef.current) setLoading(false);
       }
     }
 
     syncAuthState();
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        await syncAuthState(newSession);
+      async () => {
+        await syncAuthState();
       }
     );
 
