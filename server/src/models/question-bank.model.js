@@ -2,15 +2,9 @@
 // (The earlier scaffold used a `name` column; the real column is `title`.)
 export const QUESTION_BANK_TABLE = "question_banks";
 
-export const QuestionBankVisibility = Object.freeze({
-  PRIVATE: "private",
-  SHARED: "shared",
-  ARCHIVED: "archived",
-});
-
 export const QuestionBankStatus = Object.freeze({
-  DRAFT: "draft",
-  REVIEWED: "reviewed",
+  DRAFT: "private",
+  REVIEWED: "assigned",
   ARCHIVED: "archived",
 });
 
@@ -20,10 +14,8 @@ export const QuestionBankStatus = Object.freeze({
  * @property {string} teacher_id   - FK -> users.user_id
  * @property {string} title
  * @property {string} [description]
- * @property {string} [subject]
  * @property {string} [topic]
- * @property {"private"|"shared"|"archived"} visibility
- * @property {"draft"|"reviewed"|"archived"} status
+ * @property {"private"|"assigned"|"archived"} status
  * @property {string} created_at
  * @property {string} updated_at
  * @property {string} [deleted_at]
