@@ -1,14 +1,13 @@
 // The earlier scaffold assumed a single `exams` table — the real schema splits
 // this into `exam_sessions` (the scheduled exam) and `exam_questions` (a frozen
 // snapshot of each question used in that session, including the answer options
-// as JSON so edits to the source question don't change a published exam).
+// as JSON so edits to the source question don't change an active exam).
 // Learner attempts live in `exam_attempts` — see exam-attempt.model.js.
 export const EXAM_SESSION_TABLE = "exam_sessions";
 export const EXAM_QUESTION_TABLE = "exam_questions";
 
 export const ExamSessionStatus = Object.freeze({
   DRAFT: "draft",
-  PUBLISHED: "published",
   ACTIVE: "active",
   CLOSED: "closed",
   ARCHIVED: "archived",
@@ -22,6 +21,7 @@ export const ExamResultVisibility = Object.freeze({
 export const ExamSessionConfigFields = Object.freeze({
   TITLE: "title",
   DESCRIPTION: "description",
+  STATUS: "status",
   START_AT: "start_at",
   END_AT: "end_at",
   DURATION_MINUTES: "duration_minutes",
@@ -45,7 +45,7 @@ export const EXAM_SESSION_CONFIG_COLUMNS = Object.freeze(
  * @property {string} question_bank_id   - FK -> question_banks.question_bank_id
  * @property {string} title
  * @property {string} [description]
- * @property {"draft"|"published"|"active"|"closed"|"archived"} status
+ * @property {"draft"|"active"|"closed"|"archived"} status
  * @property {string} [start_at]
  * @property {string} [end_at]
  * @property {number} duration_minutes

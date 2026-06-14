@@ -11,10 +11,15 @@ import {
 } from "./exams.dao.js";
 
 const savedMessage = "Exam settings have been updated successfully.";
-const invalidSettingsMessage =
-  "The exam session cannot be published. Please complete the required configuration.";
+const invalidSettingsMessage = "The exam settings are invalid. Please check and try again.";
+const invalidActivationMessage =
+  "The exam session cannot be activated. Please complete the required configuration.";
 const invalidInfoMessage = "The information is invalid. Please check and try again.";
 const resultVisibilityValues = new Set(Object.values(ExamResultVisibility));
+const editableStatusValues = new Set([
+  ExamSessionStatus.DRAFT,
+  ExamSessionStatus.ACTIVE,
+]);
 
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -48,11 +53,9 @@ function ensureEditableExamSession(exam) {
   const now = Date.now();
   const startTime = exam.start_at ? new Date(exam.start_at).getTime() : null;
   const endTime = exam.end_at ? new Date(exam.end_at).getTime() : null;
-  const statusLocked = [
-    ExamSessionStatus.ACTIVE,
-    ExamSessionStatus.CLOSED,
-    ExamSessionStatus.ARCHIVED,
-  ].includes(exam.status);
+  const statusLocked = [ExamSessionStatus.CLOSED, ExamSessionStatus.ARCHIVED].includes(
+    exam.status
+  );
   const timeLocked =
     (Number.isFinite(startTime) && startTime <= now) ||
     (Number.isFinite(endTime) && endTime <= now);
@@ -156,6 +159,18 @@ function addResultVisibilityField(changes, errors, payload) {
   changes.result_visibility = value;
 }
 
+function addStatusField(changes, errors, payload) {
+  if (payload.status === undefined) return;
+
+  const value = String(payload.status || "").trim();
+  if (!editableStatusValues.has(value)) {
+    errors.status = "Status can only be changed to draft or active before the exam starts.";
+    return;
+  }
+
+  changes.status = value;
+}
+
 function validateSubmittedTimeWindow(changes, errors) {
   if (!changes.start_at || !changes.end_at) return;
 
@@ -180,6 +195,7 @@ function buildExamSettingsChanges(payload = {}) {
   addBooleanField(changes, errors, payload, "randomize_questions");
   addBooleanField(changes, errors, payload, "randomize_answers");
   addResultVisibilityField(changes, errors, payload);
+  addStatusField(changes, errors, payload);
   validateSubmittedTimeWindow(changes, errors);
 
   if (Object.keys(errors).length > 0) {
@@ -188,6 +204,60 @@ function buildExamSettingsChanges(payload = {}) {
   }
 
   return changes;
+}
+
+function getNextValue(exam, changes, field) {
+  return resolveNextValue(changes, field, exam[field]);
+}
+
+function isPositiveInteger(value) {
+  return Number.isInteger(Number(value)) && Number(value) > 0;
+}
+
+function ensureActivatableExamSession(exam, changes) {
+  const nextStatus = getNextValue(exam, changes, "status");
+  if (nextStatus !== ExamSessionStatus.ACTIVE) {
+    return;
+  }
+
+  const errors = {};
+  const nextTitle = String(getNextValue(exam, changes, "title") || "").trim();
+  const nextStartAt = getNextValue(exam, changes, "start_at");
+  const nextEndAt = getNextValue(exam, changes, "end_at");
+  const nextDuration = getNextValue(exam, changes, "duration_minutes");
+  const nextAttemptLimit = getNextValue(exam, changes, "attempt_limit");
+  const nextQuestionCount = getNextValue(exam, changes, "question_count");
+  const nextVisibility = getNextValue(exam, changes, "result_visibility");
+
+  if (!exam.class_id) errors.class_id = "Please select a class before activating.";
+  if (!exam.question_bank_id) {
+    errors.question_bank_id = "Please select a question bank before activating.";
+  }
+  if (!nextTitle) errors.title = "Please complete all required information.";
+  if (!nextStartAt) errors.start_at = "Start time is required before activating.";
+  if (!nextEndAt) errors.end_at = "End time is required before activating.";
+  if (!isPositiveInteger(nextDuration)) errors.duration_minutes = invalidInfoMessage;
+  if (!isPositiveInteger(nextAttemptLimit)) errors.attempt_limit = invalidInfoMessage;
+  if (!isPositiveInteger(nextQuestionCount)) errors.question_count = invalidInfoMessage;
+  if (!resultVisibilityValues.has(nextVisibility)) errors.result_visibility = invalidInfoMessage;
+
+  if (nextStartAt && nextEndAt) {
+    const startTime = new Date(nextStartAt).getTime();
+    const endTime = new Date(nextEndAt).getTime();
+
+    if (
+      Number.isNaN(startTime) ||
+      Number.isNaN(endTime) ||
+      endTime <= startTime
+    ) {
+      errors.start_at = "End time must be later than start time.";
+      errors.end_at = "End time must be later than start time.";
+    }
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw validationError(invalidActivationMessage, errors);
+  }
 }
 
 function normalizeConfigChanges(changes = {}) {
@@ -246,16 +316,21 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
   }
 
   ensureValidTimeWindow(exam, normalizedChanges);
+  ensureActivatableExamSession(exam, normalizedChanges);
 
-  if (normalizedChanges.question_count !== undefined) {
+  const isActivating =
+    normalizedChanges.status === ExamSessionStatus.ACTIVE &&
+    exam.status !== ExamSessionStatus.ACTIVE;
+  if (normalizedChanges.question_count !== undefined || isActivating) {
     const { count: availableCount, error } = await countActiveQuestionsInBank(
       exam.question_bank_id,
       teacherId
     );
     handleDaoError(error);
 
-    if (normalizedChanges.question_count > availableCount) {
-      throw serviceError(invalidSettingsMessage, 400, {
+    const nextQuestionCount = Number(getNextValue(exam, normalizedChanges, "question_count"));
+    if (nextQuestionCount > availableCount) {
+      throw serviceError(isActivating ? invalidActivationMessage : invalidSettingsMessage, 400, {
         question_count: `Only ${availableCount} active questions are available in the selected question bank.`,
       });
     }
