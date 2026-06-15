@@ -11,7 +11,7 @@ export const INITIAL_FILTERS = {
 export const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
   { value: "draft", label: "Draft" },
-  { value: "active", label: "Active" },
+  { value: "active", label: "Open" },
   { value: "closed", label: "Closed" },
   { value: "archived", label: "Archived" },
 ];
@@ -37,7 +37,7 @@ const STATUS_STYLES = {
 };
 
 const STATUS_LABELS = {
-  active: "active",
+  active: "open",
   draft: "draft",
   closed: "closed",
   archived: "archived",

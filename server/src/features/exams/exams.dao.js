@@ -1,6 +1,8 @@
 import supabase, { supabaseAdmin } from "../../config/supabase.js";
-import { EXAM_SESSION_TABLE } from "../../models/exam.model.js";
+import { CLASS_TABLE } from "../../models/class.model.js";
+import { EXAM_QUESTION_TABLE, EXAM_SESSION_TABLE } from "../../models/exam.model.js";
 import { QUESTION_TABLE } from "../../models/question.model.js";
+import { QUESTION_BANK_TABLE } from "../../models/question-bank.model.js";
 
 const db = supabaseAdmin ?? supabase;
 
@@ -25,7 +27,6 @@ const EXAM_SESSION_SELECT = `
   updated_at,
   classes:classes (
     class_id,
-    teacher_id,
     class_name,
     subject,
     status
@@ -116,9 +117,6 @@ function buildClassOptions(items) {
   );
 }
 
-/**
- * Get exam sessions created by a teacher, with class and question bank context.
- */
 export async function listTeacherExamSessions(teacherId, filters = {}) {
   const { page, pageSize } = normalizePagination(filters);
   const sort = SORTS[filters.sortBy] ?? SORTS.latest;
@@ -156,45 +154,118 @@ export async function listTeacherExamSessions(teacherId, filters = {}) {
   };
 }
 
-/**
- * Get a single teacher-owned exam session by id.
- */
-export function findTeacherExamSession(examSessionId, teacherId) {
+export function findManagedActiveClass(classId, teacherId) {
   return db
-    .from(EXAM_SESSION_TABLE)
-    .select(EXAM_SESSION_SELECT)
-    .eq("exam_session_id", examSessionId)
+    .from(CLASS_TABLE)
+    .select("class_id, teacher_id, class_name, status")
+    .eq("class_id", classId)
     .eq("teacher_id", teacherId)
+    .eq("status", "active")
     .is("deleted_at", null)
     .maybeSingle();
 }
 
-/**
- * Update configurable columns for a teacher-owned exam session.
- */
-export function updateTeacherExamSessionConfig(examSessionId, teacherId, changes) {
+export function findOwnedQuestionBank(questionBankId, teacherId) {
   return db
-    .from(EXAM_SESSION_TABLE)
-    .update(changes)
-    .eq("exam_session_id", examSessionId)
+    .from(QUESTION_BANK_TABLE)
+    .select("question_bank_id, teacher_id, title, status, topic")
+    .eq("question_bank_id", questionBankId)
     .eq("teacher_id", teacherId)
     .is("deleted_at", null)
-    .select(EXAM_SESSION_SELECT)
+    .neq("status", "archived")
     .maybeSingle();
 }
 
-/**
- * Count active source questions available in the selected teacher question bank.
- */
-export async function countActiveQuestionsInBank(questionBankId, teacherId) {
-  const { count, error } = await db
+export function listQuestionBankSourceQuestions(questionBankId) {
+  return db
     .from(QUESTION_TABLE)
-    .select("question_id", { count: "exact", head: true })
+    .select(`
+      question_id,
+      question_text,
+      question_type,
+      score,
+      explanation,
+      subject,
+      topic,
+      chapter,
+      lesson,
+      difficulty,
+      answer_options:answer_options (
+        answer_option_id,
+        option_text,
+        is_correct,
+        display_order
+      )
+    `)
+    .eq("question_bank_id", questionBankId)
+    .is("study_set_id", null)
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+}
+
+export function insertExamSession(payload) {
+  return db
+    .from(EXAM_SESSION_TABLE)
+    .insert(payload)
+    .select(EXAM_SESSION_SELECT)
+    .single();
+}
+
+export function insertExamQuestions(rows) {
+  if (!rows.length) {
+    return Promise.resolve({ data: [], error: null });
+  }
+
+  return db
+    .from(EXAM_QUESTION_TABLE)
+    .insert(rows)
+    .select("*");
+}
+
+export function deleteExamSession(examSessionId) {
+  return db
+    .from(EXAM_SESSION_TABLE)
+    .delete()
+    .eq("exam_session_id", examSessionId);
+}
+
+export async function countExamReadyQuestionsInBank(questionBankId, teacherId) {
+  const { data, error } = await db
+    .from(QUESTION_TABLE)
+    .select(`
+      question_id,
+      question_type,
+      answer_options:answer_options (
+        is_correct,
+        display_order
+      )
+    `)
     .eq("question_bank_id", questionBankId)
     .eq("owner_id", teacherId)
-    .eq("status", "active")
     .is("study_set_id", null)
-    .is("deleted_at", null);
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
 
-  return { count: count ?? 0, error };
+  if (error) {
+    return { count: 0, error };
+  }
+
+  const count = (data ?? []).filter((question) => {
+    const options = question.answer_options ?? [];
+    const correctCount = options.filter((option) => option.is_correct).length;
+
+    if (question.question_type === "multiple_choice") {
+      return options.length >= 2 && correctCount >= 1;
+    }
+
+    if (question.question_type === "true_false") {
+      return options.length === 2 && correctCount === 1;
+    }
+
+    return false;
+  }).length;
+
+  return { count, error: null };
 }

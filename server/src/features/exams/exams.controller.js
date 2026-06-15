@@ -1,7 +1,6 @@
 import {
-  getExamDetail as getExamDetailService,
+  createExamSession as createExamSessionService,
   listTeacherExamSessions,
-  updateExamSettings as updateExamSettingsService,
 } from "./exams.service.js";
 
 function getUserId(req) {
@@ -22,31 +21,7 @@ function sendError(res, error) {
  */
 export async function getMyExamSessions(req, res) {
   try {
-    const exams = await listTeacherExamSessions(getUserId(req), req.query);
-    res.json({ ok: true, data: exams });
-  } catch (error) {
-    sendError(res, error);
-  }
-}
-
-/**
- * GET /api/exams/:id
- */
-export async function getExamDetail(req, res) {
-  try {
-    const exam = await getExamDetailService(req.params.id, getUserId(req));
-    res.json({ ok: true, data: exam });
-  } catch (error) {
-    sendError(res, error);
-  }
-}
-
-/**
- * PATCH /api/exams/:id
- */
-export async function updateExam(req, res) {
-  try {
-    const data = await updateExamSettingsService(req.params.id, getUserId(req), req.body);
+    const data = await listTeacherExamSessions(getUserId(req), req.query);
     res.json({ ok: true, data });
   } catch (error) {
     sendError(res, error);
@@ -54,8 +29,14 @@ export async function updateExam(req, res) {
 }
 
 /**
- * PATCH /api/exams/:id/settings
+ * POST /api/exams
+ * Creates a new teacher-owned exam session and snapshots its questions.
  */
-export async function updateExamSettings(req, res) {
-  return updateExam(req, res);
+export async function createExamSession(req, res) {
+  try {
+    const data = await createExamSessionService(getUserId(req), req.body);
+    res.status(201).json({ ok: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
 }
