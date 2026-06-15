@@ -104,6 +104,69 @@ function sortQuestionAnswerOptions(question) {
   };
 }
 
+function optionUpdateError(error) {
+  if (!error) return;
+
+  throw serviceError(
+    error.message || "Question answer options could not be updated.",
+    400,
+  );
+}
+
+function buildQuestionChanges(currentQuestion, changes) {
+  return {
+    ...changes,
+    status: changes.status || currentQuestion.status || QuestionStatus.ACTIVE,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function normalizeDesiredAnswerOptions(answerOptions) {
+  return answerOptions.map((option, index) => ({
+    option_text: option.option_text,
+    is_correct: option.is_correct,
+    display_order: index + 1,
+  }));
+}
+
+async function syncQuestionAnswerOptions(questionId, currentOptions, answerOptions) {
+  const current = [...(currentOptions || [])].sort(
+    (left, right) => left.display_order - right.display_order,
+  );
+  const desired = normalizeDesiredAnswerOptions(answerOptions);
+  const missingRows = desired.slice(current.length).map((option) => ({
+    question_id: questionId,
+    ...option,
+  }));
+
+  const insertResult = await questionBanksDao.insertAnswerOptions(missingRows);
+  optionUpdateError(insertResult.error);
+
+  const available = [...current, ...(insertResult.data || [])].sort(
+    (left, right) => left.display_order - right.display_order,
+  );
+  const retained = available.slice(0, desired.length);
+
+  for (let index = 0; index < retained.length; index += 1) {
+    const updateResult = await questionBanksDao.updateAnswerOption(
+      retained[index].answer_option_id,
+      questionId,
+      desired[index],
+    );
+
+    optionUpdateError(updateResult.error);
+  }
+
+  const surplusIds = available
+    .slice(desired.length)
+    .map((option) => option.answer_option_id);
+  const deleteResult = await questionBanksDao.deleteAnswerOptionsByIds(
+    questionId,
+    surplusIds,
+  );
+  optionUpdateError(deleteResult.error);
+}
+
 function handleLoadError(error) {
   if (error) {
     throw serviceError(
@@ -203,49 +266,43 @@ export async function updateQuestion(userId, questionId, payload) {
   }
 
   const { answer_options: answerOptions, ...changes } = payload;
-  const { data, error } = await questionBanksDao.updateQuestion(
-    questionId,
-    userId,
-    {
-      ...changes,
-      status: changes.status || current.data.status || QuestionStatus.ACTIVE,
+  const questionChanges = buildQuestionChanges(current.data, changes);
+  const currentQuestionType = current.data.question_type;
+  const nextQuestionType = questionChanges.question_type;
+  const shouldUpdateTypeBeforeOptions =
+    currentQuestionType === "true_false" &&
+    nextQuestionType === "multiple_choice";
+
+  async function updateQuestionFields(changesToApply = questionChanges) {
+    const { data, error } = await questionBanksDao.updateQuestion(
+      questionId,
+      userId,
+      changesToApply,
+    );
+
+    if (error) {
+      throw serviceError(error.message || "Question could not be updated.", 400);
+    }
+
+    if (!data) {
+      throw serviceError("Question not found.", 404);
+    }
+  }
+
+  if (shouldUpdateTypeBeforeOptions) {
+    await updateQuestionFields({
+      question_type: nextQuestionType,
       updated_at: new Date().toISOString(),
-    },
-  );
-
-  if (error) {
-    throw serviceError(error.message || "Question could not be updated.", 400);
+    });
   }
 
-  if (!data) {
-    throw serviceError("Question not found.", 404);
-  }
-
-  const deleteResult = await questionBanksDao.deleteAnswerOptionsByQuestion(
+  await syncQuestionAnswerOptions(
     questionId,
+    current.data.answer_options,
+    answerOptions,
   );
 
-  if (deleteResult.error) {
-    throw serviceError(
-      deleteResult.error.message || "Question answer options could not be updated.",
-      400,
-    );
-  }
-
-  const rows = answerOptions.map((option, index) => ({
-    question_id: questionId,
-    option_text: option.option_text,
-    is_correct: option.is_correct,
-    display_order: index + 1,
-  }));
-  const insertResult = await questionBanksDao.insertAnswerOptions(rows);
-
-  if (insertResult.error) {
-    throw serviceError(
-      insertResult.error.message || "Question answer options could not be updated.",
-      400,
-    );
-  }
+  await updateQuestionFields();
 
   return getQuestion(userId, questionId);
 }

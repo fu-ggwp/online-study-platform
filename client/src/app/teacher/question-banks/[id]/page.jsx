@@ -253,9 +253,11 @@ function QuestionCard({ index, isRevealed, onToggleReveal, question }) {
             >
               {isRevealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </Button>
-            <Button onClick={() => {}} size="sm" title="Edit question coming soon" type="button" variant="outline">
-              <Edit3 className="size-4" />
-              Edit Question
+            <Button asChild size="sm" title="Edit question" variant="outline">
+              <Link href={`/teacher/question-banks/${question.question_bank_id}/questions/${question.question_id}/edit`}>
+                <Edit3 className="size-4" />
+                Edit Question
+              </Link>
             </Button>
           </div>
         </div>

@@ -207,7 +207,34 @@ export function deleteAnswerOptionsByQuestion(questionId) {
   return db.from(ANSWER_OPTION_TABLE).delete().eq("question_id", questionId);
 }
 
+export function updateAnswerOption(answerOptionId, questionId, changes) {
+  return db
+    .from(ANSWER_OPTION_TABLE)
+    .update(changes)
+    .eq("answer_option_id", answerOptionId)
+    .eq("question_id", questionId)
+    .select("answer_option_id, question_id, option_text, is_correct, display_order, created_at")
+    .maybeSingle();
+}
+
+export function deleteAnswerOptionsByIds(questionId, answerOptionIds) {
+  if (!answerOptionIds.length) {
+    return Promise.resolve({ data: [], error: null });
+  }
+
+  return db
+    .from(ANSWER_OPTION_TABLE)
+    .delete()
+    .eq("question_id", questionId)
+    .in("answer_option_id", answerOptionIds)
+    .select("answer_option_id");
+}
+
 export function insertAnswerOptions(rows) {
+  if (!rows.length) {
+    return Promise.resolve({ data: [], error: null });
+  }
+
   return db
     .from(ANSWER_OPTION_TABLE)
     .insert(rows)
