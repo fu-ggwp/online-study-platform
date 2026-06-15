@@ -1,4 +1,5 @@
 import supabase, { supabaseAdmin } from "../../config/supabase.js";
+import { QuestionStatus } from "../../models/question.model.js";
 import { createUserModel } from "../../models/user.model.js";
 import * as questionBanksDao from "./question-banks.dao.js";
 
@@ -170,6 +171,83 @@ export async function listQuestionBankQuestions(userId, questionBankId) {
   handleLoadError(error);
 
   return (data || []).map(sortQuestionAnswerOptions);
+}
+
+export async function getQuestion(userId, questionId) {
+  await requireActiveTeacher(userId);
+
+  const { data, error } = await questionBanksDao.findOwnedQuestionById(
+    questionId,
+    userId,
+  );
+  handleLoadError(error);
+
+  if (!data) {
+    throw serviceError("Question not found.", 404);
+  }
+
+  return sortQuestionAnswerOptions(data);
+}
+
+export async function updateQuestion(userId, questionId, payload) {
+  await requireActiveTeacher(userId);
+
+  const current = await questionBanksDao.findOwnedQuestionById(
+    questionId,
+    userId,
+  );
+  handleLoadError(current.error);
+
+  if (!current.data) {
+    throw serviceError("Question not found.", 404);
+  }
+
+  const { answer_options: answerOptions, ...changes } = payload;
+  const { data, error } = await questionBanksDao.updateQuestion(
+    questionId,
+    userId,
+    {
+      ...changes,
+      status: changes.status || current.data.status || QuestionStatus.ACTIVE,
+      updated_at: new Date().toISOString(),
+    },
+  );
+
+  if (error) {
+    throw serviceError(error.message || "Question could not be updated.", 400);
+  }
+
+  if (!data) {
+    throw serviceError("Question not found.", 404);
+  }
+
+  const deleteResult = await questionBanksDao.deleteAnswerOptionsByQuestion(
+    questionId,
+  );
+
+  if (deleteResult.error) {
+    throw serviceError(
+      deleteResult.error.message || "Question answer options could not be updated.",
+      400,
+    );
+  }
+
+  const rows = answerOptions.map((option, index) => ({
+    question_id: questionId,
+    option_text: option.option_text,
+    is_correct: option.is_correct,
+    display_order: index + 1,
+  }));
+  const insertResult = await questionBanksDao.insertAnswerOptions(rows);
+
+  if (insertResult.error) {
+    throw serviceError(
+      insertResult.error.message || "Question answer options could not be updated.",
+      400,
+    );
+  }
+
+  return getQuestion(userId, questionId);
 }
 
 export async function createQuestionBank(userId, payload) {

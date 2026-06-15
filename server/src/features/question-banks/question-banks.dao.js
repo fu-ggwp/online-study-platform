@@ -135,3 +135,81 @@ export function listQuestionsByBank(questionBankId, teacherId) {
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
 }
+
+export function findOwnedQuestionById(questionId, teacherId) {
+  return db
+    .from(QUESTION_TABLE)
+    .select(`
+      question_id,
+      question_bank_id,
+      study_set_id,
+      source_question_id,
+      owner_id,
+      question_text,
+      question_type,
+      score,
+      explanation,
+      subject,
+      topic,
+      chapter,
+      lesson,
+      difficulty,
+      status,
+      created_at,
+      updated_at,
+      answer_options:${ANSWER_OPTION_TABLE} (
+        answer_option_id,
+        question_id,
+        option_text,
+        is_correct,
+        display_order,
+        created_at
+      )
+    `)
+    .eq("question_id", questionId)
+    .eq("owner_id", teacherId)
+    .is("study_set_id", null)
+    .is("deleted_at", null)
+    .maybeSingle();
+}
+
+export function updateQuestion(questionId, teacherId, changes) {
+  return db
+    .from(QUESTION_TABLE)
+    .update(changes)
+    .eq("question_id", questionId)
+    .eq("owner_id", teacherId)
+    .is("study_set_id", null)
+    .is("deleted_at", null)
+    .select(`
+      question_id,
+      question_bank_id,
+      study_set_id,
+      source_question_id,
+      owner_id,
+      question_text,
+      question_type,
+      score,
+      explanation,
+      subject,
+      topic,
+      chapter,
+      lesson,
+      difficulty,
+      status,
+      created_at,
+      updated_at
+    `)
+    .maybeSingle();
+}
+
+export function deleteAnswerOptionsByQuestion(questionId) {
+  return db.from(ANSWER_OPTION_TABLE).delete().eq("question_id", questionId);
+}
+
+export function insertAnswerOptions(rows) {
+  return db
+    .from(ANSWER_OPTION_TABLE)
+    .insert(rows)
+    .select("answer_option_id, question_id, option_text, is_correct, display_order, created_at");
+}
