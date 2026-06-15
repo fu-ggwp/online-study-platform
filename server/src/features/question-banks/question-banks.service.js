@@ -6,8 +6,6 @@ const db = supabaseAdmin || supabase;
 const userModel = createUserModel(db);
 
 const allowedStatus = new Set(["Private", "Assigned"]);
-const uuidRegex =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function serviceError(message, statusCode = 400, fields) {
   const error = new Error(message);
@@ -63,12 +61,6 @@ function validateStatusFilter(value, errors) {
   }
 
   return normalized;
-}
-
-function validateQuestionBankId(questionBankId) {
-  if (!uuidRegex.test(String(questionBankId || ""))) {
-    throw serviceError("Question bank not found.", 404);
-  }
 }
 
 function normalizeListFilters(query = {}) {
@@ -135,7 +127,6 @@ export async function listQuestionBanks(userId, query) {
 
 export async function getQuestionBank(userId, questionBankId) {
   await requireActiveTeacher(userId);
-  validateQuestionBankId(questionBankId);
 
   const { data, error } = await questionBanksDao.findOwnedById(
     questionBankId,
@@ -173,7 +164,6 @@ export async function createQuestionBank(userId, payload) {
 
 export async function updateQuestionBank(userId, questionBankId, changes) {
   await requireActiveTeacher(userId);
-  validateQuestionBankId(questionBankId);
 
   const { data, error } = await questionBanksDao.update(
     questionBankId,
@@ -197,7 +187,6 @@ export async function updateQuestionBank(userId, questionBankId, changes) {
 
 export async function archiveQuestionBank(userId, questionBankId) {
   await requireActiveTeacher(userId);
-  validateQuestionBankId(questionBankId);
 
   const { data, error } = await questionBanksDao.archive(
     questionBankId,
