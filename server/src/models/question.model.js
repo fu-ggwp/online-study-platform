@@ -10,17 +10,6 @@ export const QuestionType = Object.freeze({
   TRUE_FALSE: "true_false",
 });
 
-export const QuestionDifficulty = Object.freeze({
-  EASY: "easy",
-  MEDIUM: "medium",
-  HARD: "hard",
-});
-
-export const QuestionStatus = Object.freeze({
-  ACTIVE: "active",
-  HIDDEN: "hidden",
-  ARCHIVED: "archived",
-});
 
 /**
  * @typedef {Object} Question
@@ -36,9 +25,6 @@ export const QuestionStatus = Object.freeze({
  * @property {string} [subject]
  * @property {string} [topic]
  * @property {string} [chapter]
- * @property {string} [lesson]
- * @property {"easy"|"medium"|"hard"} difficulty
- * @property {"active"|"hidden"|"archived"} status
  * @property {string} created_at
  * @property {string} updated_at
  * @property {string} [deleted_at]

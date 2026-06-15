@@ -204,8 +204,6 @@ function toExamQuestionRows(examSessionId, questions, randomizeAnswers) {
       subject: question.subject || null,
       topic: question.topic || null,
       chapter: question.chapter || null,
-      lesson: question.lesson || null,
-      difficulty: question.difficulty || null,
       answer_options_json: orderedOptions.map((option, optionIndex) => ({
         index: optionIndex,
         text: option.option_text,
