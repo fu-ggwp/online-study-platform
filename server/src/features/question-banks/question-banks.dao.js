@@ -29,7 +29,6 @@ export function listByTeacher(teacherId, filters = {}) {
     .from(QUESTION_BANK_TABLE)
     .select("*", { count: "exact" })
     .eq("teacher_id", teacherId)
-    .is("deleted_at", null)
     .neq("status", "Deleted");
 
   if (keyword) {
@@ -56,7 +55,6 @@ export function findOwnedById(questionBankId, teacherId) {
     .select("*")
     .eq("question_bank_id", questionBankId)
     .eq("teacher_id", teacherId)
-    .is("deleted_at", null)
     .neq("status", "Deleted")
     .maybeSingle();
 }
@@ -71,7 +69,6 @@ export function update(questionBankId, teacherId, changes) {
     .update(changes)
     .eq("question_bank_id", questionBankId)
     .eq("teacher_id", teacherId)
-    .is("deleted_at", null)
     .neq("status", "Deleted")
     .select("*")
     .maybeSingle();
