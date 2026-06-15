@@ -1,4 +1,6 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 
 import {
   formatDateTime,
@@ -27,22 +29,20 @@ function VisibilityBadge({ visibility }) {
   );
 }
 
-function ActionLink({ href, children, primary = false }) {
-  return (
-    <Link
-      href={href}
-      className={`inline-flex h-8 min-w-[72px] items-center justify-center rounded-md border px-3 text-sm font-bold transition ${
-        primary
-          ? "border-auth-action bg-auth-action text-auth-action-foreground hover:bg-[color-mix(in_oklch,var(--auth-action),var(--foreground)_10%)]"
-          : "border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground"
-      }`}
-    >
-      {children}
-    </Link>
-  );
-}
-
 export function ExamSessionsTable({ exams }) {
+  const router = useRouter();
+
+  function goToExamDetail(examId) {
+    router.push(`/teacher/exams/${examId}`);
+  }
+
+  function handleRowKeyDown(event, examId) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      goToExamDetail(examId);
+    }
+  }
+
   return (
     <section className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
       <div className="overflow-x-auto">
@@ -54,12 +54,18 @@ export function ExamSessionsTable({ exams }) {
               <th className="w-[14%] px-4 py-3">Start Time</th>
               <th className="w-[11%] px-4 py-3">Status</th>
               <th className="w-[13%] px-4 py-3">Visibility</th>
-              <th className="w-[16%] px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {exams.map((exam) => (
-              <tr key={exam.exam_session_id} className="align-middle transition hover:bg-muted/40">
+              <tr
+                key={exam.exam_session_id}
+                className="align-middle transition hover:bg-muted/40"
+                role="button"
+                tabIndex={0}
+                onClick={() => goToExamDetail(exam.exam_session_id)}
+                onKeyDown={(event) => handleRowKeyDown(event, exam.exam_session_id)}
+              >
                 <td className="px-4 py-4">
                   <div className="truncate font-bold text-foreground">{exam.title}</div>
                   <div className="mt-1 line-clamp-2 text-xs font-medium leading-5 text-muted-foreground">
@@ -77,18 +83,6 @@ export function ExamSessionsTable({ exams }) {
                 </td>
                 <td className="px-4 py-4">
                   <VisibilityBadge visibility={exam.result_visibility} />
-                </td>
-                <td className="px-4 py-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <ActionLink href={`/teacher/exams/${exam.exam_session_id}`}>Info</ActionLink>
-                    <ActionLink href={`/teacher/exams/${exam.exam_session_id}/settings`}>
-                      Configure
-                    </ActionLink>
-                    <ActionLink href={`/teacher/analytics?exam=${exam.exam_session_id}`}>Report</ActionLink>
-                    <ActionLink href={`/teacher/exams/${exam.exam_session_id}/monitor`} primary>
-                      Monitor
-                    </ActionLink>
-                  </div>
                 </td>
               </tr>
             ))}

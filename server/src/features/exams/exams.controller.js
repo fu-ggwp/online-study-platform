@@ -1,6 +1,8 @@
-import {
+﻿import {
   createExamSession as createExamSessionService,
+  getExamDetail as getExamDetailService,
   listTeacherExamSessions,
+  updateExamSettings as updateExamSettingsService,
 } from "./exams.service.js";
 
 function getUserId(req) {
@@ -39,4 +41,35 @@ export async function createExamSession(req, res) {
   } catch (error) {
     sendError(res, error);
   }
+}
+
+/**
+ * GET /api/exams/:id
+ */
+export async function getExamDetail(req, res) {
+  try {
+    const exam = await getExamDetailService(req.params.id, getUserId(req));
+    res.json({ ok: true, data: exam });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+/**
+ * PATCH /api/exams/:id
+ */
+export async function updateExam(req, res) {
+  try {
+    const data = await updateExamSettingsService(req.params.id, getUserId(req), req.body);
+    res.json({ ok: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+/**
+ * PATCH /api/exams/:id/settings
+ */
+export async function updateExamSettings(req, res) {
+  return updateExam(req, res);
 }

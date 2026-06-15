@@ -1,4 +1,4 @@
-import supabase, { supabaseAdmin } from "../../config/supabase.js";
+﻿import supabase, { supabaseAdmin } from "../../config/supabase.js";
 import { CLASS_TABLE } from "../../models/class.model.js";
 import { EXAM_QUESTION_TABLE, EXAM_SESSION_TABLE } from "../../models/exam.model.js";
 import { QUESTION_TABLE } from "../../models/question.model.js";
@@ -27,6 +27,7 @@ const EXAM_SESSION_SELECT = `
   updated_at,
   classes:classes (
     class_id,
+    teacher_id,
     class_name,
     subject,
     status
@@ -117,6 +118,9 @@ function buildClassOptions(items) {
   );
 }
 
+/**
+ * Get exam sessions created by a teacher, with class and question bank context.
+ */
 export async function listTeacherExamSessions(teacherId, filters = {}) {
   const { page, pageSize } = normalizePagination(filters);
   const sort = SORTS[filters.sortBy] ?? SORTS.latest;
@@ -152,6 +156,33 @@ export async function listTeacherExamSessions(teacherId, filters = {}) {
     },
     error: null,
   };
+}
+
+/**
+ * Get a single teacher-owned exam session by id.
+ */
+export function findTeacherExamSession(examSessionId, teacherId) {
+  return db
+    .from(EXAM_SESSION_TABLE)
+    .select(EXAM_SESSION_SELECT)
+    .eq("exam_session_id", examSessionId)
+    .eq("teacher_id", teacherId)
+    .is("deleted_at", null)
+    .maybeSingle();
+}
+
+/**
+ * Update configurable columns for a teacher-owned exam session.
+ */
+export function updateTeacherExamSessionConfig(examSessionId, teacherId, changes) {
+  return db
+    .from(EXAM_SESSION_TABLE)
+    .update(changes)
+    .eq("exam_session_id", examSessionId)
+    .eq("teacher_id", teacherId)
+    .is("deleted_at", null)
+    .select(EXAM_SESSION_SELECT)
+    .maybeSingle();
 }
 
 export function findManagedActiveClass(classId, teacherId) {

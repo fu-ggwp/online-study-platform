@@ -1,4 +1,4 @@
-export const PAGE_SIZE = 5;
+﻿export const PAGE_SIZE = 5;
 
 export const INITIAL_FILTERS = {
   search: "",
@@ -11,7 +11,7 @@ export const INITIAL_FILTERS = {
 export const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
   { value: "draft", label: "Draft" },
-  { value: "active", label: "Open" },
+  { value: "active", label: "Active" },
   { value: "closed", label: "Closed" },
   { value: "archived", label: "Archived" },
 ];
@@ -37,7 +37,7 @@ const STATUS_STYLES = {
 };
 
 const STATUS_LABELS = {
-  active: "open",
+  active: "active",
   draft: "draft",
   closed: "closed",
   archived: "archived",
