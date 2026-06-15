@@ -1,8 +1,8 @@
-// The earlier scaffold assumed a single `exams` table — the real schema splits
+﻿// The earlier scaffold assumed a single `exams` table - the real schema splits
 // this into `exam_sessions` (the scheduled exam) and `exam_questions` (a frozen
 // snapshot of each question used in that session, including the answer options
 // as JSON so edits to the source question don't change an existing exam).
-// Learner attempts live in `exam_attempts` — see exam-attempt.model.js.
+// Learner attempts live in `exam_attempts` - see exam-attempt.model.js.
 export const EXAM_SESSION_TABLE = "exam_sessions";
 export const EXAM_QUESTION_TABLE = "exam_questions";
 
@@ -17,6 +17,25 @@ export const ExamResultVisibility = Object.freeze({
   COMPLETION_ONLY: "completion_only",
   SCORE_ONLY: "score_only",
 });
+
+export const ExamSessionConfigFields = Object.freeze({
+  TITLE: "title",
+  DESCRIPTION: "description",
+  STATUS: "status",
+  START_AT: "start_at",
+  END_AT: "end_at",
+  DURATION_MINUTES: "duration_minutes",
+  ATTEMPT_LIMIT: "attempt_limit",
+  QUESTION_COUNT: "question_count",
+  RANDOMIZE_QUESTIONS: "randomize_questions",
+  RANDOMIZE_ANSWERS: "randomize_answers",
+  RESULT_VISIBILITY: "result_visibility",
+  ACCESS_CODE: "access_code",
+});
+
+export const EXAM_SESSION_CONFIG_COLUMNS = Object.freeze(
+  Object.values(ExamSessionConfigFields)
+);
 
 /**
  * @typedef {Object} ExamSession
