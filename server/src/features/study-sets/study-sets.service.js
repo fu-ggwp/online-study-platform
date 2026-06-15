@@ -73,9 +73,6 @@ export async function create(teacherId, { title, description, visibility, classI
       subject: q.subject || studySet.subject || null,
       topic: q.topic || studySet.topic || null,
       chapter: q.chapter || null,
-      lesson: q.lesson || null,
-      difficulty: q.difficulty,
-      status: "active",
       source_question_id: q.source_question_id || null,
     }));
 

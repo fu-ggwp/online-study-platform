@@ -114,9 +114,6 @@ export function listQuestionsByBank(questionBankId, teacherId) {
       subject,
       topic,
       chapter,
-      lesson,
-      difficulty,
-      status,
       created_at,
       updated_at,
       answer_options:${ANSWER_OPTION_TABLE} (
@@ -131,7 +128,6 @@ export function listQuestionsByBank(questionBankId, teacherId) {
     .eq("question_bank_id", questionBankId)
     .eq("owner_id", teacherId)
     .is("study_set_id", null)
-    .eq("status", "active")
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
 }
@@ -152,9 +148,6 @@ export function findOwnedQuestionById(questionId, teacherId) {
       subject,
       topic,
       chapter,
-      lesson,
-      difficulty,
-      status,
       created_at,
       updated_at,
       answer_options:${ANSWER_OPTION_TABLE} (
@@ -194,9 +187,6 @@ export function updateQuestion(questionId, teacherId, changes) {
       subject,
       topic,
       chapter,
-      lesson,
-      difficulty,
-      status,
       created_at,
       updated_at
     `)

@@ -1,5 +1,4 @@
 import supabase, { supabaseAdmin } from "../../config/supabase.js";
-import { QuestionStatus } from "../../models/question.model.js";
 import { createUserModel } from "../../models/user.model.js";
 import * as questionBanksDao from "./question-banks.dao.js";
 
@@ -113,10 +112,9 @@ function optionUpdateError(error) {
   );
 }
 
-function buildQuestionChanges(currentQuestion, changes) {
+function buildQuestionChanges(changes) {
   return {
     ...changes,
-    status: changes.status || currentQuestion.status || QuestionStatus.ACTIVE,
     updated_at: new Date().toISOString(),
   };
 }
@@ -266,7 +264,7 @@ export async function updateQuestion(userId, questionId, payload) {
   }
 
   const { answer_options: answerOptions, ...changes } = payload;
-  const questionChanges = buildQuestionChanges(current.data, changes);
+  const questionChanges = buildQuestionChanges(changes);
   const currentQuestionType = current.data.question_type;
   const nextQuestionType = questionChanges.question_type;
   const shouldUpdateTypeBeforeOptions =

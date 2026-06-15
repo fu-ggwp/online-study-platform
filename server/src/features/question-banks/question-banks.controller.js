@@ -9,16 +9,12 @@ import {
   updateQuestionBank,
 } from "./question-banks.service.js";
 import {
-  QuestionDifficulty,
-  QuestionStatus,
   QuestionType,
 } from "../../models/question.model.js";
 
 const savedMessage = "Question bank information has been saved successfully.";
 const allowedEditableStatus = new Set(["Private", "Assigned"]);
 const allowedQuestionTypes = new Set(Object.values(QuestionType));
-const allowedQuestionDifficulties = new Set(Object.values(QuestionDifficulty));
-const allowedQuestionStatuses = new Set(Object.values(QuestionStatus));
 
 function getUserId(req) {
   return req.user?.id || req.user?.user_id;
@@ -184,18 +180,6 @@ function validateQuestionPayload(body = {}) {
     "question_type",
     errors,
   ) || QuestionType.MULTIPLE_CHOICE;
-  const difficulty = validateEnum(
-    body.difficulty || QuestionDifficulty.MEDIUM,
-    allowedQuestionDifficulties,
-    "difficulty",
-    errors,
-  ) || QuestionDifficulty.MEDIUM;
-  const status = validateEnum(
-    body.status,
-    allowedQuestionStatuses,
-    "status",
-    errors,
-  );
   const score = normalizeScore(body.score, errors);
   const answerOptions = validateAnswerOptions(
     body.answer_options,
@@ -217,9 +201,6 @@ function validateQuestionPayload(body = {}) {
     subject: normalizeNullableText(body.subject),
     topic: normalizeNullableText(body.topic),
     chapter: normalizeNullableText(body.chapter),
-    lesson: normalizeNullableText(body.lesson),
-    difficulty,
-    ...(status ? { status } : {}),
     answer_options: answerOptions,
   };
 }

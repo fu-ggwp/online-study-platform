@@ -225,17 +225,15 @@ function QuestionCard({ index, isRevealed, onToggleReveal, question }) {
 
           <div className="flex flex-wrap gap-2">
             <QuestionMetaBadge>{formatQuestionType(question.question_type)}</QuestionMetaBadge>
-            <QuestionMetaBadge>{question.difficulty || "medium"}</QuestionMetaBadge>
             <QuestionMetaBadge>
               {formatScore(question.score)} point{Number(question.score ?? 1) === 1 ? "" : "s"}
             </QuestionMetaBadge>
           </div>
         </div>
 
-        <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+        <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
           <p>Topic: <span className="font-semibold text-foreground">{question.topic || "None"}</span></p>
           <p>Chapter: <span className="font-semibold text-foreground">{question.chapter || "None"}</span></p>
-          <p>Lesson: <span className="font-semibold text-foreground">{question.lesson || "None"}</span></p>
         </div>
       </div>
 

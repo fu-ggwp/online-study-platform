@@ -24,18 +24,6 @@ const questionTypes = [
   { value: "true_false", label: "True/False" },
 ];
 
-const difficultyOptions = [
-  { value: "easy", label: "Easy" },
-  { value: "medium", label: "Medium" },
-  { value: "hard", label: "Hard" },
-];
-
-const statusOptions = [
-  { value: "active", label: "Active" },
-  { value: "hidden", label: "Hidden" },
-  { value: "archived", label: "Archived" },
-];
-
 function normalizeParamId(value) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -120,9 +108,6 @@ function toFormValues(question) {
     subject: question?.subject || "",
     topic: question?.topic || "",
     chapter: question?.chapter || "",
-    lesson: question?.lesson || "",
-    difficulty: question?.difficulty || "medium",
-    status: question?.status || "active",
     answer_options:
       questionType === "true_false"
         ? normalizeTrueFalseOptions(options)
@@ -141,9 +126,6 @@ function buildPayload(form) {
     subject: form.subject.trim() || null,
     topic: form.topic.trim() || null,
     chapter: form.chapter.trim() || null,
-    lesson: form.lesson.trim() || null,
-    difficulty: form.difficulty,
-    status: form.status,
     answer_options: form.answer_options.map((option) => ({
       option_text: option.option_text.trim(),
       is_correct: Boolean(option.is_correct),
@@ -485,25 +467,7 @@ export default function EditQuestionPage() {
               </div>
             </div>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <SelectField
-                error={fieldErrors.difficulty}
-                label="Difficulty"
-                name="difficulty"
-                onChange={(event) =>
-                  updateField("difficulty", event.target.value)
-                }
-                options={difficultyOptions}
-                value={form.difficulty}
-              />
-              <SelectField
-                error={fieldErrors.status}
-                label="Status"
-                name="status"
-                onChange={(event) => updateField("status", event.target.value)}
-                options={statusOptions}
-                value={form.status}
-              />
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <TextField
                 error={fieldErrors.subject}
                 label="Subject"
@@ -527,14 +491,6 @@ export default function EditQuestionPage() {
                 onChange={(event) => updateField("chapter", event.target.value)}
                 placeholder="e.g. Chapter 2"
                 value={form.chapter}
-              />
-              <TextField
-                error={fieldErrors.lesson}
-                label="Lesson"
-                name="lesson"
-                onChange={(event) => updateField("lesson", event.target.value)}
-                placeholder="e.g. Linear equations"
-                value={form.lesson}
               />
             </div>
           </section>

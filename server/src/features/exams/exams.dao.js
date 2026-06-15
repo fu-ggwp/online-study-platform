@@ -188,8 +188,6 @@ export function listQuestionBankSourceQuestions(questionBankId) {
       subject,
       topic,
       chapter,
-      lesson,
-      difficulty,
       answer_options:answer_options (
         answer_option_id,
         option_text,
@@ -199,7 +197,6 @@ export function listQuestionBankSourceQuestions(questionBankId) {
     `)
     .eq("question_bank_id", questionBankId)
     .is("study_set_id", null)
-    .eq("status", "active")
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
 }
@@ -244,7 +241,6 @@ export async function countExamReadyQuestionsInBank(questionBankId, teacherId) {
     .eq("question_bank_id", questionBankId)
     .eq("owner_id", teacherId)
     .is("study_set_id", null)
-    .eq("status", "active")
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
