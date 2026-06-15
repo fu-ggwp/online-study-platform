@@ -1,4 +1,4 @@
-﻿import supabase, { supabaseAdmin } from "../../config/supabase.js";
+import supabase, { supabaseAdmin } from "../../config/supabase.js";
 import { CLASS_TABLE } from "../../models/class.model.js";
 import { EXAM_QUESTION_TABLE, EXAM_SESSION_TABLE } from "../../models/exam.model.js";
 import { QUESTION_TABLE } from "../../models/question.model.js";
@@ -180,6 +180,29 @@ export function updateTeacherExamSessionConfig(examSessionId, teacherId, changes
     .update(changes)
     .eq("exam_session_id", examSessionId)
     .eq("teacher_id", teacherId)
+    .is("deleted_at", null)
+    .select(EXAM_SESSION_SELECT)
+    .maybeSingle();
+}
+
+export function closeExpiredTeacherExamSessions(teacherId, nowIso) {
+  return db
+    .from(EXAM_SESSION_TABLE)
+    .update({ status: "closed", updated_at: nowIso })
+    .eq("teacher_id", teacherId)
+    .eq("status", "active")
+    .lte("end_at", nowIso)
+    .is("deleted_at", null);
+}
+
+export function closeTeacherExamSession(examSessionId, teacherId, nowIso) {
+  return db
+    .from(EXAM_SESSION_TABLE)
+    .update({ status: "closed", updated_at: nowIso })
+    .eq("exam_session_id", examSessionId)
+    .eq("teacher_id", teacherId)
+    .eq("status", "active")
+    .lte("end_at", nowIso)
     .is("deleted_at", null)
     .select(EXAM_SESSION_SELECT)
     .maybeSingle();

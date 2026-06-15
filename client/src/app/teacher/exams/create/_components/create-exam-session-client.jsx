@@ -146,8 +146,7 @@ export function CreateExamSessionClient() {
         randomize_answers: form.randomize_answers,
       });
 
-      const exam = response?.data ?? response;
-      router.push(`/teacher/classes/${exam.class_id}`);
+      router.push("/teacher/exams");
     } catch (err) {
       setError(getErrorMessage(err));
       setFieldErrors(err?.response?.data?.fields ?? {});

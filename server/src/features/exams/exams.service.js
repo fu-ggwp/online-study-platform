@@ -1,4 +1,4 @@
-﻿import { randomBytes } from "crypto";
+import { randomBytes } from "crypto";
 
 import supabase, { supabaseAdmin } from "../../config/supabase.js";
 import {
@@ -8,6 +8,8 @@ import {
 } from "../../models/exam.model.js";
 import { createUserModel } from "../../models/user.model.js";
 import {
+  closeExpiredTeacherExamSessions,
+  closeTeacherExamSession,
   countExamReadyQuestionsInBank,
   deleteExamSession,
   findManagedActiveClass,
@@ -185,6 +187,15 @@ function normalizeResultVisibility(value, errors) {
 function buildAccessCode(value) {
   const normalized = normalizeText(value).toUpperCase().replace(/[^A-Z0-9-]/g, "");
   return normalized || `EXAM-${randomBytes(4).toString("hex").toUpperCase()}`;
+}
+
+function isExpiredActiveExam(exam, now = Date.now()) {
+  if (exam?.status !== ExamSessionStatus.ACTIVE || !exam.end_at) {
+    return false;
+  }
+
+  const endTime = new Date(exam.end_at).getTime();
+  return Number.isFinite(endTime) && endTime <= now;
 }
 
 function assertValidTimeWindow({ status, startAt, endAt, errors }) {
@@ -528,6 +539,10 @@ function normalizeCreatePayload(payload = {}) {
 export async function listTeacherExamSessions(teacherId, filters = {}) {
   requireTeacherId(teacherId);
 
+  const nowIso = new Date().toISOString();
+  const { error: closeError } = await closeExpiredTeacherExamSessions(teacherId, nowIso);
+  handleDaoError(closeError);
+
   const { data, error } = await listTeacherExamSessionsDao(teacherId, filters);
   handleDaoError(error);
 
@@ -546,6 +561,16 @@ export async function getExamDetail(examSessionId, teacherId) {
 
   if (!data) {
     throw serviceError("Exam session not found.", 404);
+  }
+
+  if (isExpiredActiveExam(data)) {
+    const { data: closedExam, error: closeError } = await closeTeacherExamSession(
+      examSessionId,
+      teacherId,
+      new Date().toISOString()
+    );
+    handleDaoError(closeError);
+    return closedExam ?? { ...data, status: ExamSessionStatus.CLOSED };
   }
 
   return data;
@@ -569,6 +594,10 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
   const isActivating =
     normalizedChanges.status === ExamSessionStatus.ACTIVE &&
     exam.status !== ExamSessionStatus.ACTIVE;
+  if (isActivating && !normalizeText(getNextValue(exam, normalizedChanges, "access_code"))) {
+    normalizedChanges.access_code = buildAccessCode();
+  }
+
   if (normalizedChanges.question_count !== undefined || isActivating) {
     const { count: availableCount, error } = await countExamReadyQuestionsInBank(
       exam.question_bank_id,

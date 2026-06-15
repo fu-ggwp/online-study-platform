@@ -1,7 +1,6 @@
 import {
   RESULT_VISIBILITY_OPTIONS,
   formatDateTime,
-  formatVisibility,
   getStatusLabel,
 } from "../../../_components/exam-session-options";
 import { editableStatusOptions } from "./exam-settings-utils";
@@ -134,7 +133,6 @@ export function ExamSessionSettingsSection({
           error={fieldErrors.access_code}
           onChange={onFieldChange}
         />
-        <ReadOnlyField label="Current Visibility" value={formatVisibility(exam.result_visibility)} />
       </div>
 
       <label className="mt-4 block space-y-2 text-sm font-bold text-foreground">
