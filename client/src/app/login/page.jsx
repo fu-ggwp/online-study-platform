@@ -101,13 +101,20 @@ export default function LoginPage() {
     if (error) setFormMessage("Google login failed. Please try again.");
   }
 
+  const roleHome = {
+    admin: "/admin/dashboard",
+    teacher: "/teacher/dashboard",
+    learner: "/learner/dashboard",
+  };
+
   async function onSubmit(values) {
     setFormMessage("");
 
     try {
       const response = await authService.login(values);
-      await completeLogin(response?.session);
-      router.push("/");
+      const { profile } = await completeLogin(response?.session);
+      const destination = roleHome[profile?.activeRole] ?? "/";
+      router.push(destination);
       router.refresh();
     } catch (error) {
       const fields = error?.response?.data?.fields || {};
