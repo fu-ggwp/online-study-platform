@@ -2,6 +2,7 @@ import {
   archiveQuestionBank,
   createQuestionBank,
   getQuestionBank,
+  listQuestionBankQuestions,
   listQuestionBanks,
   updateQuestionBank,
 } from "./question-banks.service.js";
@@ -125,6 +126,15 @@ export async function list(req, res) {
 export async function getById(req, res) {
   try {
     const data = await getQuestionBank(getUserId(req), req.params.id);
+    return res.status(200).json({ data });
+  } catch (error) {
+    return sendError(res, error);
+  }
+}
+
+export async function listQuestions(req, res) {
+  try {
+    const data = await listQuestionBankQuestions(getUserId(req), req.params.id);
     return res.status(200).json({ data });
   } catch (error) {
     return sendError(res, error);

@@ -94,6 +94,15 @@ async function attachQuestionCount(questionBank) {
   };
 }
 
+function sortQuestionAnswerOptions(question) {
+  return {
+    ...question,
+    answer_options: [...(question.answer_options || [])].sort(
+      (left, right) => left.display_order - right.display_order,
+    ),
+  };
+}
+
 function handleLoadError(error) {
   if (error) {
     throw serviceError(
@@ -139,6 +148,28 @@ export async function getQuestionBank(userId, questionBankId) {
   }
 
   return attachQuestionCount(data);
+}
+
+export async function listQuestionBankQuestions(userId, questionBankId) {
+  await requireActiveTeacher(userId);
+
+  const bankResult = await questionBanksDao.findOwnedById(
+    questionBankId,
+    userId,
+  );
+  handleLoadError(bankResult.error);
+
+  if (!bankResult.data) {
+    throw serviceError("Question bank not found.", 404);
+  }
+
+  const { data, error } = await questionBanksDao.listQuestionsByBank(
+    questionBankId,
+    userId,
+  );
+  handleLoadError(error);
+
+  return (data || []).map(sortQuestionAnswerOptions);
 }
 
 export async function createQuestionBank(userId, payload) {

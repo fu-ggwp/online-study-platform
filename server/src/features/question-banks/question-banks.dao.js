@@ -1,4 +1,5 @@
 import supabase, { supabaseAdmin } from "../../config/supabase.js";
+import { ANSWER_OPTION_TABLE } from "../../models/answer-option.model.js";
 import { QUESTION_BANK_TABLE } from "../../models/question-bank.model.js";
 import { QUESTION_TABLE } from "../../models/question.model.js";
 import { getPagination } from "../../utils/pagination.js";
@@ -95,4 +96,42 @@ export async function countQuestions(questionBankId) {
 
   if (error) throw error;
   return count || 0;
+}
+
+export function listQuestionsByBank(questionBankId, teacherId) {
+  return db
+    .from(QUESTION_TABLE)
+    .select(`
+      question_id,
+      question_bank_id,
+      study_set_id,
+      source_question_id,
+      owner_id,
+      question_text,
+      question_type,
+      score,
+      explanation,
+      subject,
+      topic,
+      chapter,
+      lesson,
+      difficulty,
+      status,
+      created_at,
+      updated_at,
+      answer_options:${ANSWER_OPTION_TABLE} (
+        answer_option_id,
+        question_id,
+        option_text,
+        is_correct,
+        display_order,
+        created_at
+      )
+    `)
+    .eq("question_bank_id", questionBankId)
+    .eq("owner_id", teacherId)
+    .is("study_set_id", null)
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
 }
