@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,13 +26,19 @@ export function QuestionBankForm({
   submitting,
   title,
 }) {
+  const params = useParams();
+  const questionBankId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const backHref = questionBankId
+    ? `/teacher/question-banks/${questionBankId}`
+    : "/teacher/question-banks";
+
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl space-y-6">
         <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <Button asChild size="sm" variant="ghost" className="mb-3 -ml-3">
-              <Link href="/teacher/question-banks">
+              <Link href={backHref}>
                 <ArrowLeft className="size-4" />
                 Back
               </Link>
@@ -88,7 +95,7 @@ export function QuestionBankForm({
 
             <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-end">
               <Button asChild variant="outline">
-                <Link href="/teacher/question-banks">Cancel</Link>
+                <Link href={backHref}>Cancel</Link>
               </Button>
               <Button disabled={submitting} type="submit">
                 {submitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}

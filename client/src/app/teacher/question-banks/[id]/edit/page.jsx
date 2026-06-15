@@ -151,6 +151,7 @@ export default function EditQuestionBankPage() {
           {archiving ? "Deleting..." : "Delete"}
         </Button>
       }
+      backHref={`/teacher/question-banks/${questionBankId}`}
       description="Update metadata teachers use to find, assign, and reuse this question bank."
       error={error}
       fieldErrors={fieldErrors}
