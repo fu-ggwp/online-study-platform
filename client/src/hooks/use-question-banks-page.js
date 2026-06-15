@@ -68,16 +68,9 @@ export function useQuestionBanksPage() {
   }
 
   function resetFilters() {
-    const shouldFetch = appliedStatus !== "all" || page !== 1;
-
-    if (shouldFetch) {
-      setLoading(true);
-    }
-
     setError(null);
+    setPendingKeyword("");
     setPendingStatus("all");
-    setAppliedStatus("all");
-    setPage(1);
   }
 
   function changePage(nextPage) {
