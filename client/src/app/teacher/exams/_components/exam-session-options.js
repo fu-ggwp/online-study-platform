@@ -71,9 +71,6 @@ export function formatVisibility(value) {
   return VISIBILITY_LABELS[value] ?? "Not set";
 }
 
-export function getVisiblePages(totalPages) {
-  return Array.from({ length: totalPages }, (_, index) => index + 1).slice(0, 5);
-}
 
 export function getStatusLabel(status) {
   return STATUS_LABELS[status] ?? status;
