@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -39,17 +39,17 @@ export function Navbar() {
 
     try {
       await completeLogout();
-      router.replace("/?logout=success");
-      router.refresh();
-    } catch {
-      setLogoutMessage("Logout failed. Please try again.");
+    } catch (error) {
+      console.error("Logout failed after clearing local auth", error);
     } finally {
+      router.replace("/login");
+      router.refresh();
       setIsLoggingOut(false);
     }
   }
 
   return (
-    <header className="border-b border-border bg-background/95">
+    <header className="shrink-0 border-b border-border bg-background/95">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="text-lg font-bold text-foreground">
           Smart Quiz Platform
@@ -64,15 +64,23 @@ export function Navbar() {
           </Button>
 
           {!loading && isAuthenticated ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-            >
-              <LogOut data-icon="inline-start" />
-              {isLoggingOut ? "Logging out..." : "Logout"}
-            </Button>
+            <>
+              <Button asChild variant="ghost">
+                <Link href="/profile">
+                  <User data-icon="inline-start" />
+                  Profile
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+              >
+                <LogOut data-icon="inline-start" />
+                {isLoggingOut ? "Logging out..." : "Logout"}
+              </Button>
+            </>
           ) : null}
 
           {!loading && !isAuthenticated ? (

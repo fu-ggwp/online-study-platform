@@ -6,14 +6,11 @@ import {
   BarChart3,
   BookOpen,
   Building2,
-  CreditCard,
   GraduationCap,
   Home,
   LibraryBig,
-  Search,
   Settings,
   ShieldCheck,
-  User,
   Users,
 } from "lucide-react";
 
@@ -62,12 +59,6 @@ const roleConfig = {
   },
 };
 
-const secondaryNav = [
-  { label: "Explore", href: "/search", icon: Search },
-  { label: "Profile", href: "/profile", icon: User },
-  { label: "Plans", href: "/plans", icon: CreditCard },
-];
-
 function SidebarLink({ item, pathname }) {
   const Icon = item.icon;
   const isActive =
@@ -89,15 +80,13 @@ function SidebarLink({ item, pathname }) {
   );
 }
 
-export function AppSidebar({ role, profile }) {
+export function AppSidebar({ role }) {
   const pathname = usePathname();
   const config = roleConfig[role] ?? roleConfig.learner;
   const RoleIcon = config.icon;
-  const displayName =
-    profile?.fullName || profile?.username || "Smart Quiz user";
 
   return (
-    <aside className="w-full shrink-0 border-b border-border bg-background text-foreground md:h-screen md:w-72 md:overflow-y-auto md:border-b-0 md:border-r">
+    <aside className="w-full shrink-0 border-b border-border bg-background text-foreground md:h-full md:w-72 md:overflow-y-auto md:border-b-0 md:border-r">
       <div className="flex h-full flex-col gap-5 p-4">
         <Link
           href={config.homeHref}
@@ -120,11 +109,7 @@ export function AppSidebar({ role, profile }) {
           ))}
         </nav>
 
-        <div className="mt-auto grid gap-1 border-t border-border pt-4">
-          {secondaryNav.map((item) => (
-            <SidebarLink item={item} key={item.href} pathname={pathname} />
-          ))}
-        </div>
+        <div className="mt-auto" />
       </div>
     </aside>
   );

@@ -2,8 +2,8 @@ import supabase from "@/lib/supabaseClient";
 import { profileService } from "@/services/profile.service";
 
 const ACCESS_TOKEN_COOKIE = "access_token";
-const LEGACY_AUTH_TOKEN_COOKIE = "auth_token";
 const ROLE_COOKIE = "role";
+export const AUTH_SESSION_CHANGED_EVENT = "smart-quiz-auth-session-changed";
 
 function getCookieMaxAge(session) {
   if (!session?.expires_at) return 60 * 60;
@@ -27,7 +27,6 @@ function saveAuthCookies({ session, role }) {
   }
 
   const maxAge = getCookieMaxAge(session);
-  deleteCookie(LEGACY_AUTH_TOKEN_COOKIE);
   setCookie(ACCESS_TOKEN_COOKIE, session.access_token, maxAge);
   setCookie(ROLE_COOKIE, role, maxAge);
 }
@@ -36,12 +35,21 @@ function clearAuthCookies() {
   if (typeof document === "undefined") return;
 
   deleteCookie(ACCESS_TOKEN_COOKIE);
-  deleteCookie(LEGACY_AUTH_TOKEN_COOKIE);
   deleteCookie(ROLE_COOKIE);
+}
+
+function notifyAuthSessionChanged() {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
 }
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withTimeout(promise, ms) {
+  return Promise.race([promise, wait(ms)]);
 }
 
 async function getProfileWithRetry() {
@@ -151,11 +159,13 @@ export async function completeLogin(session = null) {
 
 export async function completeLogout() {
   clearAuthCookies();
+  notifyAuthSessionChanged();
 
   try {
-    await authService.logout();
+    await withTimeout(authService.logout(), 1500);
   } finally {
     clearAuthCookies();
+    notifyAuthSessionChanged();
   }
 }
 
