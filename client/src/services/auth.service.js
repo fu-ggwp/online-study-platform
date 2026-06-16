@@ -2,6 +2,7 @@ import supabase from "@/lib/supabaseClient";
 import { profileService } from "@/services/profile.service";
 
 const ACCESS_TOKEN_COOKIE = "access_token";
+const LEGACY_AUTH_TOKEN_COOKIE = "auth_token";
 const ROLE_COOKIE = "role";
 
 function getCookieMaxAge(session) {
@@ -26,6 +27,7 @@ function saveAuthCookies({ session, role }) {
   }
 
   const maxAge = getCookieMaxAge(session);
+  deleteCookie(LEGACY_AUTH_TOKEN_COOKIE);
   setCookie(ACCESS_TOKEN_COOKIE, session.access_token, maxAge);
   setCookie(ROLE_COOKIE, role, maxAge);
 }
@@ -34,6 +36,7 @@ function clearAuthCookies() {
   if (typeof document === "undefined") return;
 
   deleteCookie(ACCESS_TOKEN_COOKIE);
+  deleteCookie(LEGACY_AUTH_TOKEN_COOKIE);
   deleteCookie(ROLE_COOKIE);
 }
 
@@ -88,8 +91,10 @@ export const authService = {
     return data;
   },
 
-  async logout() {
-    const { error } = await supabase.auth.signOut();
+  async logout(options = {}) {
+    const { error } = await supabase.auth.signOut({
+      scope: options.scope ?? "local",
+    });
     if (error) throw error;
   },
 
@@ -145,6 +150,8 @@ export async function completeLogin(session = null) {
 }
 
 export async function completeLogout() {
+  clearAuthCookies();
+
   try {
     await authService.logout();
   } finally {

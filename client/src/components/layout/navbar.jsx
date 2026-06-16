@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -13,14 +13,36 @@ export function Navbar() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutMessage, setLogoutMessage] = useState(() => {
+    if (typeof window === "undefined") return "";
+
+    return new URLSearchParams(window.location.search).get("logout") ===
+      "success"
+      ? "Logged out successfully."
+      : "";
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("logout") !== "success") return;
+
+    params.delete("logout");
+
+    const query = params.toString();
+    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, []);
 
   async function handleLogout() {
     setIsLoggingOut(true);
 
     try {
       await completeLogout();
-      router.push("/");
+      router.replace("/?logout=success");
       router.refresh();
+    } catch {
+      setLogoutMessage("Logout failed. Please try again.");
     } finally {
       setIsLoggingOut(false);
     }
@@ -64,6 +86,12 @@ export function Navbar() {
             </>
           ) : null}
         </nav>
+
+        {logoutMessage ? (
+          <p className="w-full text-sm font-medium text-primary" role="status">
+            {logoutMessage}
+          </p>
+        ) : null}
       </div>
     </header>
   );
