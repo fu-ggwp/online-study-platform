@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
-import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, Download } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, Download, FileCheck, FileX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ExcelImporter({ onQuestionsImported, onCancel }) {
@@ -18,6 +18,8 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
       setFile(selectedFile);
       processExcel(selectedFile);
     }
+    // Reset file input value to allow uploading the same file again
+    e.target.value = "";
   };
 
   const triggerFileSelect = () => {
@@ -192,6 +194,25 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
     }
   };
 
+  const hasErrors = errors.length > 0;
+  
+  // Dynamic styling based on upload state
+  let uploadIcon = <Upload className="size-6" />;
+  let iconBgClass = "bg-muted text-primary";
+  let uploadBorderClass = "border-border hover:border-ring bg-muted/20";
+  
+  if (file) {
+    if (hasErrors) {
+      uploadIcon = <FileX className="size-6 text-rose-600" />;
+      iconBgClass = "bg-rose-100";
+      uploadBorderClass = "border-rose-300 hover:border-rose-400 bg-rose-50/10";
+    } else {
+      uploadIcon = <FileCheck className="size-6 text-emerald-600" />;
+      iconBgClass = "bg-emerald-100";
+      uploadBorderClass = "border-emerald-300 hover:border-emerald-400 bg-emerald-50/10";
+    }
+  }
+
   return (
     <div className="w-full rounded-2xl border border-border bg-card p-6 shadow-lg">
       <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
@@ -208,7 +229,7 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
 
       <div 
         onClick={triggerFileSelect}
-        className="border-2 border-dashed border-border hover:border-ring rounded-2xl p-8 text-center cursor-pointer bg-muted/20 transition mb-6"
+        className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition mb-6 ${uploadBorderClass}`}
       >
         <input 
           type="file" 
@@ -218,8 +239,8 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
           onChange={handleFileChange}
         />
         <div className="flex flex-col items-center gap-3">
-          <div className="bg-muted p-3 rounded-full text-primary">
-            <Upload className="size-6" />
+          <div className={`p-3 rounded-full transition-all duration-300 ${iconBgClass}`}>
+            {uploadIcon}
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
