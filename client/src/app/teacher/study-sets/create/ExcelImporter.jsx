@@ -48,7 +48,7 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
         "Paris",
         "Rome",
         "",
-        3,
+        "3",
         "Paris is the capital of France.",
         "Geography",
         "Europe"
@@ -60,10 +60,22 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
         "",
         "",
         "",
-        1,
+        "1",
         "It is a scientific fact.",
         "Science",
         "Physics"
+      ],
+      [
+        "Which of the following are prime numbers?",
+        "2",
+        "4",
+        "5",
+        "8",
+        "9",
+        "1, 3",
+        "Both 2 and 5 are prime numbers. For questions with multiple correct options, enter their indexes separated by commas (e.g., '1, 3').",
+        "Math",
+        "Number Theory"
       ]
     ];
 
@@ -131,8 +143,10 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
             return;
           }
 
+          const correctStr = String(row[correctIdx] || "").trim();
+          const correctVals = correctStr.split(/[\s,;]+/).map(v => parseInt(v.trim(), 10)).filter(v => !isNaN(v));
+
           const qText = String(row[textIdx] || "").trim();
-          const correctVal = parseInt(row[correctIdx], 10);
           const explanation = row[explanationIdx] ? String(row[explanationIdx]).trim() : "";
           const topic = row[topicIdx] ? String(row[topicIdx]).trim() : "";
           const chapter = row[chapterIdx] ? String(row[chapterIdx]).trim() : "";
@@ -154,14 +168,32 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
             errorList.push({ row: rowNum, message: "A question must have at least 2 non-empty options." });
             return;
           }
-          if (isNaN(correctVal) || correctVal < 1 || correctVal > options.length) {
-            errorList.push({ 
-              row: rowNum, 
-              message: `Invalid 'Correct Option' value: '${row[correctIdx] || ""}'. It must be a number between 1 and ${options.length}.` 
+          if (correctVals.length === 0) {
+            errorList.push({
+              row: rowNum,
+              message: `Missing or invalid 'Correct Option' value: '${row[correctIdx] || ""}'.`
             });
             return;
           }
-          options[correctVal - 1].is_correct = true;
+
+          let hasInvalidIndex = false;
+          correctVals.forEach(val => {
+            if (val < 1 || val > options.length) {
+              hasInvalidIndex = true;
+            }
+          });
+
+          if (hasInvalidIndex) {
+            errorList.push({ 
+              row: rowNum, 
+              message: `Invalid 'Correct Option' value: '${correctStr}'. It must be numbers between 1 and ${options.length} (e.g. '1, 3').` 
+            });
+            return;
+          }
+          
+          correctVals.forEach(val => {
+            options[val - 1].is_correct = true;
+          });
 
           validList.push({
             question_text: qText,
