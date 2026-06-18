@@ -207,3 +207,30 @@ export async function insertJoinRequest(payload) {
 
   return { data, error };
 }
+
+/**
+ * Get a single class_members row by its ID.
+ */
+export async function getClassMemberById(classMemberId) {
+  const { data, error } = await supabaseAdmin
+    .from(CLASS_MEMBER_TABLE)
+    .select("*")
+    .eq("class_member_id", classMemberId)
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Soft-remove a member: set status to "removed" and stamp removed_at.
+ */
+export async function removeClassMember(classMemberId) {
+  const { data, error } = await supabaseAdmin
+    .from(CLASS_MEMBER_TABLE)
+    .update({ status: "removed", removed_at: new Date().toISOString() })
+    .eq("class_member_id", classMemberId)
+    .select()
+    .single();
+
+  return { data, error };
+}

@@ -14,6 +14,8 @@ import {
   findExistingJoinRequest,
   insertJoinRequest,
   getJoinedClasses,
+  getClassMemberById,
+  removeClassMember,
 } from "./classes.dao.js";
 import { ClassJoinPolicy } from "../../models/class.model.js";
 import { JoinRequestStatus, ClassMemberStatus } from "../../models/join-request.model.js";
@@ -187,6 +189,36 @@ export async function listJoinedClasses(learnerId) {
     joined_at: row.joined_at,
     member_count: row.class?.member_count?.[0]?.count ?? 0,
   }));
+}
+
+/**
+ * Remove a member from a class (ownership-gated).
+ * Soft-deletes the class_members row (status -> "removed").
+ */
+export async function removeMember(classId, memberId, teacherId) {
+  // Ownership check — throws 404/403 if not the owning teacher.
+  await getClassDetail(classId, teacherId);
+
+  const { data: member, error } = await getClassMemberById(memberId);
+  if (error || !member) {
+    const err = new Error("Member not found.");
+    err.status = 404;
+    throw err;
+  }
+  if (member.class_id !== classId) {
+    const err = new Error("Member not found in this class.");
+    err.status = 404;
+    throw err;
+  }
+  if (member.status === ClassMemberStatus.REMOVED) {
+    const err = new Error("Member has already been removed.");
+    err.status = 409;
+    throw err;
+  }
+
+  const { data: updated, error: updateError } = await removeClassMember(memberId);
+  if (updateError) throw new Error(updateError.message);
+  return updated;
 }
 
 /**
