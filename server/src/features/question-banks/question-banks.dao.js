@@ -113,6 +113,7 @@ export async function countQuestions(questionBankId) {
     .from(QUESTION_TABLE)
     .select("question_id", { count: "exact", head: true })
     .eq("question_bank_id", questionBankId)
+    .is("study_set_id", null)
     .is("deleted_at", null);
 
   if (error) throw error;
@@ -212,6 +213,47 @@ export function updateQuestion(questionId, teacherId, changes) {
       updated_at
     `)
     .maybeSingle();
+}
+
+export function createQuestion(payload) {
+  return db
+    .from(QUESTION_TABLE)
+    .insert(payload)
+    .select(`
+      question_id,
+      question_bank_id,
+      study_set_id,
+      source_question_id,
+      owner_id,
+      question_text,
+      question_type,
+      score,
+      explanation,
+      subject,
+      topic,
+      chapter,
+      created_at,
+      updated_at
+    `)
+    .single();
+}
+
+export function softDeleteQuestionsByIds(questionBankId, teacherId, questionIds) {
+  if (!questionIds.length) {
+    return Promise.resolve({ data: [], error: null });
+  }
+
+  const now = new Date().toISOString();
+
+  return db
+    .from(QUESTION_TABLE)
+    .update({ deleted_at: now, updated_at: now })
+    .eq("question_bank_id", questionBankId)
+    .eq("owner_id", teacherId)
+    .is("study_set_id", null)
+    .is("deleted_at", null)
+    .in("question_id", questionIds)
+    .select("question_id");
 }
 
 export function deleteAnswerOptionsByQuestion(questionId) {

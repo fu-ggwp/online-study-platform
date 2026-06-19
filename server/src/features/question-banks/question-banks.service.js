@@ -119,6 +119,23 @@ function buildQuestionChanges(changes) {
   };
 }
 
+function buildNewQuestion(questionBankId, teacherId, payload) {
+  return {
+    question_bank_id: questionBankId,
+    study_set_id: null,
+    source_question_id: payload.source_question_id || null,
+    owner_id: teacherId,
+    question_text: payload.question_text,
+    question_type: payload.question_type,
+    score: payload.score,
+    explanation: payload.explanation,
+    subject: payload.subject,
+    topic: payload.topic,
+    chapter: payload.chapter,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 function normalizeDesiredAnswerOptions(answerOptions) {
   return answerOptions.map((option, index) => ({
     option_text: option.option_text,
@@ -345,6 +362,72 @@ export async function updateQuestion(userId, questionId, payload) {
   return getQuestion(userId, questionId);
 }
 
+async function createQuestionInBank(userId, questionBankId, payload) {
+  const { answer_options: answerOptions, ...questionFields } = payload;
+  const { data, error } = await questionBanksDao.createQuestion(
+    buildNewQuestion(questionBankId, userId, questionFields),
+  );
+
+  if (error) {
+    throw serviceError(error.message || "Question could not be created.", 400);
+  }
+
+  await syncQuestionAnswerOptions(data.question_id, [], answerOptions);
+  return getQuestion(userId, data.question_id);
+}
+
+async function updateQuestionInBank(userId, questionBankId, payload) {
+  const { question_id: questionId, ...questionPayload } = payload;
+  const current = await questionBanksDao.findOwnedQuestionById(
+    questionId,
+    userId,
+  );
+  handleLoadError(current.error);
+
+  if (!current.data || current.data.question_bank_id !== questionBankId) {
+    throw serviceError("Question not found.", 404);
+  }
+
+  return updateQuestion(userId, questionId, questionPayload);
+}
+
+async function syncQuestionBankQuestions(userId, questionBankId, questions) {
+  if (!Array.isArray(questions)) return;
+
+  const existingResult = await questionBanksDao.listQuestionsByBank(
+    questionBankId,
+    userId,
+  );
+  handleLoadError(existingResult.error);
+
+  const existingIds = new Set(
+    (existingResult.data || []).map((question) => question.question_id),
+  );
+  const retainedIds = new Set();
+
+  for (const question of questions) {
+    if (question.question_id) {
+      const updated = await updateQuestionInBank(userId, questionBankId, question);
+      retainedIds.add(updated.question_id);
+      continue;
+    }
+
+    const created = await createQuestionInBank(userId, questionBankId, question);
+    retainedIds.add(created.question_id);
+  }
+
+  const removedIds = [...existingIds].filter((questionId) => !retainedIds.has(questionId));
+  const deleteResult = await questionBanksDao.softDeleteQuestionsByIds(
+    questionBankId,
+    userId,
+    removedIds,
+  );
+
+  if (deleteResult.error) {
+    throw serviceError(deleteResult.error.message || "Questions could not be deleted.", 400);
+  }
+}
+
 export async function createQuestionBank(userId, payload) {
   await requireActiveTeacher(userId);
 
@@ -369,22 +452,35 @@ export async function createQuestionBank(userId, payload) {
 export async function updateQuestionBank(userId, questionBankId, changes) {
   await requireActiveTeacher(userId);
 
-  const { data, error } = await questionBanksDao.update(
-    questionBankId,
-    userId,
-    changes,
-  );
+  const { questions, ...metadataChanges } = changes;
+  let data;
 
-  if (error) {
-    throw serviceError(
-      error.message || "Question bank could not be updated.",
-      400,
+  if (Object.keys(metadataChanges).length > 0) {
+    const updateResult = await questionBanksDao.update(
+      questionBankId,
+      userId,
+      metadataChanges,
     );
+
+    if (updateResult.error) {
+      throw serviceError(
+        updateResult.error.message || "Question bank could not be updated.",
+        400,
+      );
+    }
+
+    data = updateResult.data;
+  } else {
+    const findResult = await questionBanksDao.findOwnedById(questionBankId, userId);
+    handleLoadError(findResult.error);
+    data = findResult.data;
   }
 
   if (!data) {
     throw serviceError("Question bank not found.", 404);
   }
+
+  await syncQuestionBankQuestions(userId, questionBankId, questions);
 
   return attachQuestionCount(data);
 }

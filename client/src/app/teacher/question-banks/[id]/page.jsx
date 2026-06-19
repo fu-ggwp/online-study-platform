@@ -153,7 +153,7 @@ export default function QuestionBankDetailPage() {
           <Button asChild size="sm">
             <Link href={`/teacher/question-banks/${questionBank.question_bank_id}/edit`}>
               <Edit3 className="size-4" />
-              Edit Metadata
+              Edit Question Bank
             </Link>
           </Button>
         </header>
@@ -180,7 +180,7 @@ export default function QuestionBankDetailPage() {
           <QuestionBanksStatePanel
             icon={<BookOpen className="size-5" />}
             title="No questions yet"
-            description="This question bank does not contain active questions. Add and import flows will be handled in a later step."
+            description="Open edit mode to add reusable questions to this bank."
           />
         ) : (
           <div className="space-y-4">
@@ -250,12 +250,6 @@ function QuestionCard({ index, isRevealed, onToggleReveal, question }) {
               variant="ghost"
             >
               {isRevealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </Button>
-            <Button asChild size="sm" title="Edit question" variant="outline">
-              <Link href={`/teacher/question-banks/${question.question_bank_id}/questions/${question.question_id}/edit`}>
-                <Edit3 className="size-4" />
-                Edit Question
-              </Link>
             </Button>
           </div>
         </div>

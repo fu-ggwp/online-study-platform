@@ -112,13 +112,19 @@ function validateUpdatePayload(body = {}) {
   if (topic !== undefined) changes.topic = topic;
   if (status !== undefined) changes.status = status;
 
+  if (body.questions !== undefined) {
+    changes.questions = validateQuestionsPayload(body.questions, errors);
+  }
+
   throwIfInvalid(errors);
 
   if (Object.keys(changes).length === 0) {
     throw requestError("No valid question bank fields were provided.");
   }
 
-  changes.updated_at = new Date().toISOString();
+  if (title !== undefined || description !== undefined || topic !== undefined || status !== undefined) {
+    changes.updated_at = new Date().toISOString();
+  }
   return changes;
 }
 
@@ -205,6 +211,39 @@ function validateQuestionPayload(body = {}) {
     chapter: normalizeNullableText(body.chapter),
     answer_options: answerOptions,
   };
+}
+
+function validateQuestionsPayload(questions, errors) {
+  if (!Array.isArray(questions)) {
+    errors.questions = "The information is invalid. Please check and try again.";
+    return [];
+  }
+
+  return questions.map((question, index) => {
+    try {
+      const payload = validateQuestionPayload({
+        ...question,
+        answer_options: question?.answer_options || question?.options,
+      });
+
+      if (question?.question_id) payload.question_id = String(question.question_id).trim();
+      if (question?.source_question_id) payload.source_question_id = String(question.source_question_id).trim();
+
+      return payload;
+    } catch (error) {
+      const fieldErrors = error.fields || {};
+
+      Object.entries(fieldErrors).forEach(([field, message]) => {
+        errors[`questions.${index}.${field}`] = message;
+      });
+
+      if (Object.keys(fieldErrors).length === 0) {
+        errors[`questions.${index}`] = error.message;
+      }
+
+      return null;
+    }
+  }).filter(Boolean);
 }
 
 export async function list(req, res) {
