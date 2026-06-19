@@ -117,12 +117,19 @@ export async function create(
     studySet.question_count = insertedQuestions.length;
   }
 
-  if (classId) {
-    const { error: assignError } = await dao.assignToClass({
+  const targetClassIds = Array.isArray(classId)
+    ? classId
+    : classId
+      ? [classId]
+      : [];
+
+  if (targetClassIds.length > 0) {
+    const assignments = targetClassIds.map((cid) => ({
       study_set_id: studySet.study_set_id,
-      class_id: classId,
+      class_id: cid,
       assigned_by: teacherId,
-    });
+    }));
+    const { error: assignError } = await dao.assignToClass(assignments);
     if (assignError) {
       throw dbError(assignError);
     }

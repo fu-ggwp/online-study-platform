@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import QuestionCardEditor from "@/components/question-creator/QuestionCardEditor";
 import ExcelImporter from "@/components/question-creator/ExcelImporter";
 import QuestionBankSelector from "./QuestionBankSelector";
+import ClassSelectorModal from "./ClassSelectorModal";
 
 export default function CreateStudySetPage() {
   const router = useRouter();
@@ -20,6 +21,11 @@ export default function CreateStudySetPage() {
   const [topic, setTopic] = useState("");
   const [visibility, setVisibility] = useState("private");
   const [questionBankId, setQuestionBankId] = useState(null);
+
+  // --- 1.1 CLASSES SELECTION STATE ---
+  const [selectedClassIds, setSelectedClassIds] = useState([]);
+  const [selectedClassNames, setSelectedClassNames] = useState([]);
+  const [showClassSelector, setShowClassSelector] = useState(false);
 
   // --- 2. STATE FOR DRAFT QUESTIONS ---
   const [questions, setQuestions] = useState([
@@ -221,6 +227,18 @@ export default function CreateStudySetPage() {
     setShowExcelImporter(false);
   };
 
+  // --- 5.1 CLASS SELECTION CONFIRMATION ---
+  const handleClassesConfirmed = (ids, names) => {
+    setSelectedClassIds(ids);
+    setSelectedClassNames(names);
+    setShowClassSelector(false);
+    setErrors((prev) => ({ ...prev, classIds: null }));
+  };
+
+  const handleClassSelectionCancelled = () => {
+    setShowClassSelector(false);
+  };
+
   // --- 6. SAVE STUDY SET TO DATABASE ---
   const handleSave = async (e) => {
     e.preventDefault();
@@ -234,6 +252,11 @@ export default function CreateStudySetPage() {
     }
     if (questions.length === 0) {
       newErrors.questions = "A study set must contain at least one question.";
+    }
+
+    // A.1 Validate class selection if class_only
+    if (visibility === "class_only" && selectedClassIds.length === 0) {
+      newErrors.classIds = "Please select at least one class.";
     }
 
     // B. Validate draft questions
@@ -270,6 +293,7 @@ export default function CreateStudySetPage() {
         subject: subject || null,
         topic: topic || null,
         visibility,
+        classId: visibility === "class_only" ? selectedClassIds : null,
         questionBankId,
         questions
       });
@@ -362,13 +386,54 @@ export default function CreateStudySetPage() {
                 <select
                   className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-ring"
                   value={visibility}
-                  onChange={(e) => setVisibility(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setVisibility(val);
+                    if (val === "class_only" && selectedClassIds.length === 0) {
+                      setShowClassSelector(true);
+                    }
+                  }}
                 >
                   <option value="private">Private</option>
                   <option value="public">Public</option>
                   <option value="class_only">Class Only</option>
                 </select>
               </div>
+
+              {/* Display selected classes if visibility is class_only */}
+              {visibility === "class_only" && (
+                <div className="space-y-1.5 md:col-span-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="text-sm font-semibold text-foreground flex items-center gap-1">
+                    Assigned Classes <span className="text-rose-500"> *</span>
+                  </label>
+                  <div
+                    onClick={() => setShowClassSelector(true)}
+                    className="cursor-pointer transition duration-150"
+                    title="Click to edit class assignments"
+                  >
+                    {selectedClassIds.length === 0 ? (
+                      <p className="text-xs text-rose-600 font-semibold bg-rose-50 p-3 rounded-xl border border-rose-200 hover:bg-rose-100/70 hover:border-rose-300">
+                        No classes selected. Click here to select at least one class.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5 bg-primary/5 p-3 rounded-xl border border-primary/20 hover:bg-primary/10 hover:border-primary/30">
+                        <span className="text-xs font-semibold text-primary/80 self-center mr-1">Assigned to:</span>
+                        {selectedClassNames.map((name, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center rounded-lg bg-primary px-2.5 py-1 text-xs font-bold text-white shadow-sm"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {errors.classIds && (
+                    <p className="text-xs font-semibold text-rose-500 mt-1">{errors.classIds}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -404,7 +469,7 @@ export default function CreateStudySetPage() {
               </div>
             )}
 
-            {/* Questions list rendering via shared QuestionCardEditor component */}
+            {/* Questions list rendering */}
             <div className="space-y-6">
               {questions.map((q, qIndex) => (
                 <QuestionCardEditor
@@ -450,6 +515,15 @@ export default function CreateStudySetPage() {
           </div>
         </form>
       </div>
+
+      {/* Class Selector Modal Popup */}
+      {showClassSelector && (
+        <ClassSelectorModal
+          initialSelectedIds={selectedClassIds}
+          onConfirm={handleClassesConfirmed}
+          onCancel={handleClassSelectionCancelled}
+        />
+      )}
 
       {/* Question Bank Selector Popup */}
       {showQBSelector && (
