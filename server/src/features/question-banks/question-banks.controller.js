@@ -76,6 +76,9 @@ function validateCreatePayload(body = {}) {
   const errors = {};
   const title = normalizeText(body.title);
   const status = validateEnum(body.status, allowedEditableStatus, "status", errors);
+  const questions = body.questions === undefined
+    ? undefined
+    : validateQuestionsPayload(body.questions, errors);
 
   if (!title) {
     errors.title = "Please complete all required information.";
@@ -89,6 +92,7 @@ function validateCreatePayload(body = {}) {
     topic: normalizeNullableText(body.topic),
     status: status || "Private",
     updated_at: new Date().toISOString(),
+    ...(questions !== undefined ? { questions } : {}),
   };
 }
 

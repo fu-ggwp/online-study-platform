@@ -430,9 +430,10 @@ async function syncQuestionBankQuestions(userId, questionBankId, questions) {
 
 export async function createQuestionBank(userId, payload) {
   await requireActiveTeacher(userId);
+  const { questions, ...bankPayload } = payload;
 
   const { data, error } = await questionBanksDao.create({
-    ...payload,
+    ...bankPayload,
     teacher_id: userId,
   });
 
@@ -443,10 +444,9 @@ export async function createQuestionBank(userId, payload) {
     );
   }
 
-  return {
-    ...data,
-    questionCount: 0,
-  };
+  await syncQuestionBankQuestions(userId, data.question_bank_id, questions);
+
+  return attachQuestionCount(data);
 }
 
 export async function updateQuestionBank(userId, questionBankId, changes) {
