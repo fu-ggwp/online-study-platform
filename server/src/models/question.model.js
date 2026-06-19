@@ -5,11 +5,6 @@
 // `question_text`/`question_type`.)
 export const QUESTION_TABLE = "questions";
 
-export const QuestionType = Object.freeze({
-  MULTIPLE_CHOICE: "multiple_choice",
-  TRUE_FALSE: "true_false",
-});
-
 /**
  * @typedef {Object} Question
  * @property {string} question_id
@@ -18,8 +13,6 @@ export const QuestionType = Object.freeze({
  * @property {string} [source_question_id]  - FK -> questions.question_id (self, nullable)
  * @property {string} owner_id              - FK -> users.user_id
  * @property {string} question_text
- * @property {"multiple_choice"|"true_false"} question_type
- * @property {number} score
  * @property {string} [explanation]
  * @property {string} [topic]
  * @property {string} [chapter]
