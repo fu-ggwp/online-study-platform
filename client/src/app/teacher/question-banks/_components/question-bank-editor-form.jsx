@@ -11,7 +11,7 @@ const labels = {
   create: {
     title: "Create Question Bank",
     description: "Create metadata and draft reusable questions in one place.",
-    questionDescription: "Add prompts, options, scores, and explanations directly.",
+    questionDescription: "Add prompts, options, and explanations directly.",
     emptyDescription: "This bank will be created without questions.",
     submit: "Create Question Bank",
     submitting: "Creating...",
@@ -19,7 +19,7 @@ const labels = {
   edit: {
     title: "Edit Question Bank",
     description: "Update metadata and edit reusable questions in one place.",
-    questionDescription: "Edit prompts, options, scores, and explanations directly.",
+    questionDescription: "Edit prompts, options, and explanations directly.",
     emptyDescription: "Add a question card or save this empty bank to remove all active questions.",
     submit: "Save Changes",
     submitting: "Saving...",
@@ -142,7 +142,6 @@ export function QuestionBankEditorForm({
                     question={question}
                     qIndex={index}
                     errors={errors}
-                    showQuestionDetails
                     onFieldChange={(field, value) => onQuestionFieldChange(index, field, value)}
                     onDelete={() => onDeleteQuestion(index)}
                     onAddOption={() => onAddOption(index)}

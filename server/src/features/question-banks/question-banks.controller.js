@@ -10,13 +10,9 @@ import {
   updateQuestion as updateQuestionRecord,
   updateQuestionBank,
 } from "./question-banks.service.js";
-import {
-  QuestionType,
-} from "../../models/question.model.js";
 
 const savedMessage = "Question bank information has been saved successfully.";
 const allowedEditableStatus = new Set(["Private", "Assigned"]);
-const allowedQuestionTypes = new Set(Object.values(QuestionType));
 
 function getUserId(req) {
   return req.user?.id || req.user?.user_id;
@@ -132,18 +128,7 @@ function validateUpdatePayload(body = {}) {
   return changes;
 }
 
-function normalizeScore(value, errors) {
-  if (value === undefined || value === null || value === "") return 1;
-
-  const score = Number(value);
-  if (!Number.isFinite(score) || score < 0) {
-    errors.score = "The information is invalid. Please check and try again.";
-  }
-
-  return score;
-}
-
-function validateAnswerOptions(options, questionType, errors) {
+function validateAnswerOptions(options, errors) {
   if (!Array.isArray(options)) {
     errors.answer_options = "Please complete all required information.";
     return [];
@@ -164,20 +149,10 @@ function validateAnswerOptions(options, questionType, errors) {
   });
   const correctCount = normalizedOptions.filter((option) => option.is_correct).length;
 
-  if (questionType === QuestionType.MULTIPLE_CHOICE) {
-    if (normalizedOptions.length < 2) {
-      errors.answer_options = "Multiple choice questions need at least 2 answer options.";
-    } else if (correctCount < 1) {
-      errors.answer_options = "Select at least one correct answer.";
-    }
-  }
-
-  if (questionType === QuestionType.TRUE_FALSE) {
-    if (normalizedOptions.length !== 2) {
-      errors.answer_options = "True/false questions need exactly 2 answer options.";
-    } else if (correctCount !== 1) {
-      errors.answer_options = "True/false questions need exactly one correct answer.";
-    }
+  if (normalizedOptions.length < 2) {
+    errors.answer_options = "Questions need at least 2 answer options.";
+  } else if (correctCount < 1) {
+    errors.answer_options = "Select at least one correct answer.";
   }
 
   return normalizedOptions;
@@ -186,18 +161,7 @@ function validateAnswerOptions(options, questionType, errors) {
 function validateQuestionPayload(body = {}) {
   const errors = {};
   const questionText = normalizeText(body.question_text);
-  const questionType = validateEnum(
-    body.question_type || QuestionType.MULTIPLE_CHOICE,
-    allowedQuestionTypes,
-    "question_type",
-    errors,
-  ) || QuestionType.MULTIPLE_CHOICE;
-  const score = normalizeScore(body.score, errors);
-  const answerOptions = validateAnswerOptions(
-    body.answer_options,
-    questionType,
-    errors,
-  );
+  const answerOptions = validateAnswerOptions(body.answer_options, errors);
 
   if (!questionText) {
     errors.question_text = "Please complete all required information.";
@@ -207,8 +171,6 @@ function validateQuestionPayload(body = {}) {
 
   return {
     question_text: questionText,
-    question_type: questionType,
-    score,
     explanation: normalizeNullableText(body.explanation),
     subject: normalizeNullableText(body.subject),
     topic: normalizeNullableText(body.topic),

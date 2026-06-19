@@ -126,8 +126,6 @@ function buildNewQuestion(questionBankId, teacherId, payload) {
     source_question_id: payload.source_question_id || null,
     owner_id: teacherId,
     question_text: payload.question_text,
-    question_type: payload.question_type,
-    score: payload.score,
     explanation: payload.explanation,
     subject: payload.subject,
     topic: payload.topic,
@@ -322,11 +320,6 @@ export async function updateQuestion(userId, questionId, payload) {
 
   const { answer_options: answerOptions, ...changes } = payload;
   const questionChanges = buildQuestionChanges(changes);
-  const currentQuestionType = current.data.question_type;
-  const nextQuestionType = questionChanges.question_type;
-  const shouldUpdateTypeBeforeOptions =
-    currentQuestionType === "true_false" &&
-    nextQuestionType === "multiple_choice";
 
   async function updateQuestionFields(changesToApply = questionChanges) {
     const { data, error } = await questionBanksDao.updateQuestion(
@@ -342,13 +335,6 @@ export async function updateQuestion(userId, questionId, payload) {
     if (!data) {
       throw serviceError("Question not found.", 404);
     }
-  }
-
-  if (shouldUpdateTypeBeforeOptions) {
-    await updateQuestionFields({
-      question_type: nextQuestionType,
-      updated_at: new Date().toISOString(),
-    });
   }
 
   await syncQuestionAnswerOptions(

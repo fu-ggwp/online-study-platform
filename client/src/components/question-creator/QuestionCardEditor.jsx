@@ -9,7 +9,6 @@ export default function QuestionCardEditor({
   question,
   qIndex,
   errors = {},
-  showQuestionDetails = false,
   onFieldChange,
   onDelete,
   onAddOption,
@@ -17,7 +16,6 @@ export default function QuestionCardEditor({
   onOptionChange,
 }) {
   const options = question.options || question.answer_options || [];
-  const isTrueFalse = question.question_type === "true_false";
 
   return (
     <div className="relative rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
@@ -62,47 +60,6 @@ export default function QuestionCardEditor({
 
       {/* Question metadata */}
       <div className="grid gap-4 sm:grid-cols-2">
-        {showQuestionDetails && (
-          <>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Type</label>
-              <select
-                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={question.question_type || "multiple_choice"}
-                onChange={(e) => onFieldChange("question_type", e.target.value)}
-              >
-                <option value="multiple_choice">Multiple choice</option>
-                <option value="true_false">True/False</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Score</label>
-              <Input
-                min="0"
-                step="0.5"
-                type="number"
-                value={question.score ?? 1}
-                className="h-9 text-xs"
-                onChange={(e) => onFieldChange("score", e.target.value)}
-              />
-              {errors[`q_${qIndex}_score`] && (
-                <p className="text-xs font-semibold text-rose-500 mt-0.5">{errors[`q_${qIndex}_score`]}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Subject</label>
-              <Input
-                placeholder="e.g. Math"
-                value={question.subject || ""}
-                className="h-9 text-xs"
-                onChange={(e) => onFieldChange("subject", e.target.value)}
-              />
-            </div>
-          </>
-        )}
-
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-foreground">Topic</label>
           <Input
@@ -130,7 +87,6 @@ export default function QuestionCardEditor({
           <label className="text-sm font-semibold text-foreground">Answer Options *</label>
           <Button
             onClick={onAddOption}
-            disabled={isTrueFalse}
             type="button"
             variant="ghost"
             size="sm"
@@ -145,11 +101,10 @@ export default function QuestionCardEditor({
           {options.map((opt, optIndex) => (
             <div key={optIndex} className="flex items-center gap-3">
               <input
-                type={isTrueFalse ? "radio" : "checkbox"}
+                type="checkbox"
                 className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer"
                 checked={opt.is_correct}
                 onChange={(e) => onOptionChange(optIndex, "is_correct", e.target.checked)}
-                name={`question_${qIndex}_correct_answer`}
                 title="Mark as correct answer"
               />
 
@@ -159,7 +114,7 @@ export default function QuestionCardEditor({
                 onChange={(e) => onOptionChange(optIndex, "option_text", e.target.value)}
               />
 
-              {!isTrueFalse && options.length > 2 && (
+              {options.length > 2 && (
                 <Button
                   onClick={() => onDeleteOption(optIndex)}
                   type="button"

@@ -1,8 +1,8 @@
 // Mirrors the `questions` table. A question can belong to a question bank
 // AND/OR a study set (both FKs nullable), and can be cloned from another
 // question via the self-referencing `source_question_id`.
-// (The earlier scaffold used `content`/`type`; real columns are
-// `question_text`/`question_type`.)
+// (The earlier scaffold used `content`/`type`; the real prompt column is
+// `question_text`.)
 export const QUESTION_TABLE = "questions";
 
 /**

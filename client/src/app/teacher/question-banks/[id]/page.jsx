@@ -16,15 +16,6 @@ function normalizeParamId(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function formatQuestionType(value) {
-  return String(value || "multiple_choice").replaceAll("_", " ");
-}
-
-function formatScore(value) {
-  const score = Number(value ?? 1);
-  return Number.isInteger(score) ? score : score.toFixed(1);
-}
-
 function sortOptions(options = []) {
   return [...options].sort((left, right) => left.display_order - right.display_order);
 }
@@ -222,13 +213,6 @@ function QuestionCard({ index, isRevealed, onToggleReveal, question }) {
           </span>
 
           <p className="break-words text-base font-semibold leading-7 text-foreground">{question.question_text}</p>
-
-          <div className="flex flex-wrap gap-2">
-            <QuestionMetaBadge>{formatQuestionType(question.question_type)}</QuestionMetaBadge>
-            <QuestionMetaBadge>
-              {formatScore(question.score)} point{Number(question.score ?? 1) === 1 ? "" : "s"}
-            </QuestionMetaBadge>
-          </div>
         </div>
 
         <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
@@ -275,10 +259,6 @@ function QuestionCard({ index, isRevealed, onToggleReveal, question }) {
       </div>
     </article>
   );
-}
-
-function QuestionMetaBadge({ children }) {
-  return <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold capitalize text-muted-foreground">{children}</span>;
 }
 
 function AnswerOption({ isRevealed, option, optionIndex }) {

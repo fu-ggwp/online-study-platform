@@ -7,7 +7,6 @@ import {
   emptyQuestion,
   initialQuestionBankForm,
   normalizeMultipleChoiceOptions,
-  normalizeTrueFalseOptions,
   shiftQuestionErrorsAfterDelete,
 } from "./question-bank-editor";
 
@@ -42,8 +41,6 @@ export function useQuestionBankEditorState({
   function appendImportedQuestions(importedQuestions = []) {
     const drafts = importedQuestions.map((question) => ({
       question_text: question.question_text || "",
-      question_type: "multiple_choice",
-      score: 1,
       explanation: question.explanation || "",
       subject: "",
       topic: question.topic || "",
@@ -65,15 +62,6 @@ export function useQuestionBankEditorState({
   function updateQuestionField(index, field, value) {
     setQuestions((current) => current.map((question, currentIndex) => {
       if (currentIndex !== index) return question;
-
-      if (field === "question_type" && value === "true_false") {
-        return { ...question, question_type: value, options: normalizeTrueFalseOptions(question.options) };
-      }
-
-      if (field === "question_type") {
-        return { ...question, question_type: value, options: normalizeMultipleChoiceOptions(question.options) };
-      }
-
       return { ...question, [field]: value };
     }));
 
@@ -106,16 +94,6 @@ export function useQuestionBankEditorState({
         if (currentOptionIndex !== optionIndex) return option;
         return { ...option, [field]: value };
       });
-
-      if (field === "is_correct" && question.question_type === "true_false" && value) {
-        return {
-          ...question,
-          options: options.map((option, currentOptionIndex) => ({
-            ...option,
-            is_correct: currentOptionIndex === optionIndex,
-          })),
-        };
-      }
 
       return { ...question, options };
     }));
