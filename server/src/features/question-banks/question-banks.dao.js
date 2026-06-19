@@ -256,10 +256,6 @@ export function softDeleteQuestionsByIds(questionBankId, teacherId, questionIds)
     .select("question_id");
 }
 
-export function deleteAnswerOptionsByQuestion(questionId) {
-  return db.from(ANSWER_OPTION_TABLE).delete().eq("question_id", questionId);
-}
-
 export function updateAnswerOption(answerOptionId, questionId, changes) {
   return db
     .from(ANSWER_OPTION_TABLE)
