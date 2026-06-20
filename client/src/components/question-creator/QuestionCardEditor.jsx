@@ -15,6 +15,8 @@ export default function QuestionCardEditor({
   onDeleteOption,
   onOptionChange,
 }) {
+  const options = question.options || question.answer_options || [];
+
   return (
     <div className="relative rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
 
@@ -96,7 +98,7 @@ export default function QuestionCardEditor({
         </div>
 
         <div className="space-y-2">
-          {question.options.map((opt, optIndex) => (
+          {options.map((opt, optIndex) => (
             <div key={optIndex} className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -112,7 +114,7 @@ export default function QuestionCardEditor({
                 onChange={(e) => onOptionChange(optIndex, "option_text", e.target.value)}
               />
 
-              {question.options.length > 2 && (
+              {options.length > 2 && (
                 <Button
                   onClick={() => onDeleteOption(optIndex)}
                   type="button"
