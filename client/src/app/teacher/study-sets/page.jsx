@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { AlertCircle, Eye, Layers3, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { AppPagination } from "@/components/common/app-pagination";
+import ToastNotification from "./ToastNotification";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,19 @@ export default function TeacherStudySetsPage() {
   const [pendingVisibility, setPendingVisibility] = useState("all");
   const [pendingAssignment, setPendingAssignment] = useState("all");
   const [pendingSortBy, setPendingSortBy] = useState("latest");
+  const [toast, setToast] = useState({ message: "", type: "success" });
+
+  useEffect(() => {
+    const savedToast = localStorage.getItem("study_set_toast");
+    if (savedToast) {
+      try {
+        setToast(JSON.parse(savedToast));
+      } catch (e) {
+        console.error(e);
+      }
+      localStorage.removeItem("study_set_toast");
+    }
+  }, []);
 
   // Applied filters (used for query parameters)
   const [appliedQuery, setAppliedQuery] = useState("");
@@ -188,6 +202,11 @@ export default function TeacherStudySetsPage() {
           />
         )}
       </section>
+      <ToastNotification
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: "", type: "success" })}
+      />
     </main>
   );
 
@@ -302,7 +321,7 @@ function StudySetsTable({ studySets }) {
             <tr>
               {["Study Set", "Source", "Visibility", "Questions", "Assigned Classes", "Learners", "Actions"].map(
                 (header) => {
-                  const isCentered = ["Questions", "Assigned Classes", "Learners"].includes(header);
+                  const isCentered = ["Questions", "Assigned Classes", "Learners", "Visibility"].includes(header);
                   return (
                     <th className={`px-4 py-3 ${isCentered ? "text-center" : ""}`} key={header}>
                       {header}
@@ -331,7 +350,7 @@ function StudySetsTable({ studySets }) {
                     </p>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{getSourceName(studySet)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center">
                     <VisibilityBadge visibility={studySet.visibility} />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-center">{getQuestionCount(studySet)}</td>

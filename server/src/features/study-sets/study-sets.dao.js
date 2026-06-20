@@ -23,7 +23,7 @@ export async function findByTeacher(teacherId, filters = {}) {
       .from("study_set_assignments")
       .select("study_set_id")
       .eq("assigned_by", teacherId);
-    
+
     assignedIds = [...new Set((assignments || []).map((a) => a.study_set_id))];
   }
 
@@ -108,7 +108,19 @@ export async function findPublic({ classId } = {}) {
 
 // Tìm study set theo id
 export function findById(id) {
-  return supabase.from(STUDY_SET_TABLE).select("*").eq("study_set_id", id).single();
+  return supabase
+    .from(STUDY_SET_TABLE)
+    .select(`
+      *,
+      study_set_assignments (
+        class_id,
+        classes (
+          class_name
+        )
+      )
+    `)
+    .eq("study_set_id", id)
+    .single();
 }
 
 // Tạo mới study set
@@ -121,9 +133,12 @@ export function update(id, changes) {
   return supabase.from(STUDY_SET_TABLE).update(changes).eq("study_set_id", id).select().single();
 }
 
-// Xóa học phần
+// Xóa học phần (Soft Delete)
 export function remove(id) {
-  return supabase.from(STUDY_SET_TABLE).delete().eq("study_set_id", id);
+  return supabase
+    .from(STUDY_SET_TABLE)
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("study_set_id", id);
 }
 
 // Gán study set cho lớp học
@@ -238,4 +253,43 @@ export function getStudySetsByIds(ids) {
     .in("study_set_id", ids)
     .is("deleted_at", null)
     .eq("is_admin_hidden", false);
+}
+
+//Cập nhật in4 chi tiết 1 câu hỏi
+export function updateQuestion(questionId, changes) {
+  return supabase
+    .from(QUESTION_TABLE)
+    .update(changes)
+    .eq("question_id", questionId);
+}
+
+//Xóa 1 câu hỏi
+export function deleteQuestions(questionIds) {
+  return supabase
+    .from(QUESTION_TABLE)
+    .update({ deleted_at: new Date().toISOString() })
+    .in("question_id", questionIds);
+}
+
+//Cập nhật in4 chi tiết 1 đáp ná
+export function updateOption(optionId, changes) {
+  return supabase
+    .from(ANSWER_OPTION_TABLE)
+    .update(changes)
+    .eq("answer_option_id", optionId);
+}
+
+//Xóa đáp án
+export function deleteOptions(optionIds) {
+  return supabase
+    .from(ANSWER_OPTION_TABLE)
+    .delete()
+    .in("answer_option_id", optionIds);
+}
+
+export function deleteAssignments(studySetId) {
+  return supabase
+    .from(STUDY_SET_ASSIGNMENT_TABLE)
+    .delete()
+    .eq("study_set_id", studySetId);
 }

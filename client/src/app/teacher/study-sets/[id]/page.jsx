@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Edit3, Calendar, BookOpen, Layers, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Edit3, Trash2, Calendar, BookOpen, Layers, Eye, EyeOff, Check, AlertCircle, UserPlus } from "lucide-react";
 import axiosClient from "@/services/axiosClient";
 import { Button } from "@/components/ui/button";
+import ToastNotification from "../ToastNotification";
 
 export default function TeacherStudySetDetailPage() {
   const params = useParams();
@@ -14,6 +15,21 @@ export default function TeacherStudySetDetailPage() {
   const [studySet, setStudySet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [toast, setToast] = useState({ message: "", type: "success" });
+
+  useEffect(() => {
+    const savedToast = localStorage.getItem("study_set_toast");
+    if (savedToast) {
+      try {
+        setToast(JSON.parse(savedToast));
+      } catch (e) {
+        console.error(e);
+      }
+      localStorage.removeItem("study_set_toast");
+    }
+  }, []);
 
   // Quản lý hiển thị đáp án
   const [showAllAnswers, setShowAllAnswers] = useState(false);
@@ -37,6 +53,27 @@ export default function TeacherStudySetDetailPage() {
 
     fetchDetails();
   }, [id]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await axiosClient.delete(`/api/study-sets/${id}`);
+      localStorage.setItem(
+        "study_set_toast",
+        JSON.stringify({ message: `Deleted study set "${studySet.title}" successfully.`, type: "success" })
+      );
+      router.push("/teacher/study-sets");
+    } catch (err) {
+      console.error("Failed to delete study set:", err);
+      setToast({
+        message: err.response?.data?.error || "Failed to delete study set. Please try again.",
+        type: "error"
+      });
+      setShowDeleteModal(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Toggle xem đáp án của từng câu riêng lẻ
   const toggleRevealQuestion = (qId) => {
@@ -80,7 +117,7 @@ export default function TeacherStudySetDetailPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
-        
+
         {/* Navigation & Header Actions */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -101,16 +138,29 @@ export default function TeacherStudySetDetailPage() {
               onClick={() => router.push(`/teacher/study-sets/${id}/assign`)}
               variant="outline"
               size="sm"
+              className="gap-1.5"
             >
+              <UserPlus size={14} />
               Assign to Class
             </Button>
             <Button
-              onClick={() => router.push(`/teacher/study-sets/${id}/edit`)} // Đường dẫn sửa bộ học liệu (hiện tại sẽ báo 404 do chưa xây dựng)
+              onClick={() => router.push(`/teacher/study-sets/${id}/edit`)}
+              variant="outline"
               size="sm"
-              className="gap-2"
+              className="gap-1.5"
             >
-              <Edit3 size={16} />
+              <Edit3 size={14} />
               Edit Set
+            </Button>
+            <Button
+              onClick={() => setShowDeleteModal(true)}
+              variant="outline"
+              disabled={deleting}
+              size="sm"
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 gap-1.5"
+            >
+              <Trash2 size={14} />
+              {deleting ? "Deleting..." : "Delete"}
             </Button>
           </div>
         </div>
@@ -213,18 +263,16 @@ export default function TeacherStudySetDetailPage() {
                       return (
                         <div
                           key={opt.answer_option_id}
-                          className={`flex items-center gap-3 p-3 rounded-xl border text-sm transition duration-150 ${
-                            showSuccessBg
+                          className={`flex items-center gap-3 p-3 rounded-xl border text-sm transition duration-150 ${showSuccessBg
                               ? "border-emerald-500 bg-emerald-50/50 text-emerald-900 font-semibold"
                               : "border-border bg-muted/10 text-foreground"
-                          }`}
+                            }`}
                         >
                           <div
-                            className={`size-5 rounded-full border flex items-center justify-center shrink-0 text-xs ${
-                              showSuccessBg
+                            className={`size-5 rounded-full border flex items-center justify-center shrink-0 text-xs ${showSuccessBg
                                 ? "border-emerald-500 bg-emerald-500 text-white"
                                 : "border-border text-muted-foreground bg-muted/40"
-                            }`}
+                              }`}
                           >
                             {showSuccessBg ? <Check size={12} /> : null}
                           </div>
@@ -247,6 +295,42 @@ export default function TeacherStudySetDetailPage() {
           )}
         </div>
       </div>
+      <ToastNotification
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: "", type: "success" })}
+      />
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-card border border-border p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-foreground">
+              Delete Study Set
+            </h3>
+            <p className="mt-2.5 text-sm text-muted-foreground leading-relaxed">
+              Are you sure you want to delete <strong className="text-foreground">"{studySet.title}"</strong>? This action is permanent and cannot be undone.
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                onClick={() => setShowDeleteModal(false)}
+                variant="outline"
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
