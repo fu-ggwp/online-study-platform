@@ -10,12 +10,45 @@ function notFound(message = "Study set not found") {
 }
 
 // List toàn bộ study set của giáo viên
-export async function listMine(teacherId) {
-  const { data, error } = await dao.findByTeacher(teacherId);
+export async function listMine(teacherId, query = {}) {
+  const filters = {
+    page: parseInt(query.page, 10) || 1,
+    limit: parseInt(query.limit, 10) || 10,
+    keyword: query.keyword || "",
+    visibility: query.visibility || "all",
+    assignment: query.assignment || "all",
+    sortBy: query.sortBy || "latest",
+  };
+
+  const { data, error, count, page, limit } = await dao.findByTeacher(teacherId, filters);
   if (error) {
     throw dbError(error, 500);
   }
-  return data;
+
+  const items = (data || []).map((set) => {
+    const assignedClassIds = (set.study_set_assignments || [])
+      .map((a) => a.classes?.class_name)
+      .filter(Boolean);
+
+    const setCopy = { ...set };
+    delete setCopy.study_set_assignments;
+
+    return {
+      ...setCopy,
+      assigned_class_ids: assignedClassIds,
+      assignedClassIds: assignedClassIds,
+    };
+  });
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      total: count ?? items.length,
+      totalPages: count ? Math.ceil(count / limit) : 1,
+    },
+  };
 }
 
 // List study set public hoặc thuộc 1 lớp
@@ -116,12 +149,19 @@ export async function create(
     studySet.question_count = insertedQuestions.length;
   }
 
-  if (classId) {
-    const { error: assignError } = await dao.assignToClass({
+  const targetClassIds = Array.isArray(classId)
+    ? classId
+    : classId
+      ? [classId]
+      : [];
+
+  if (targetClassIds.length > 0) {
+    const assignments = targetClassIds.map((cid) => ({
       study_set_id: studySet.study_set_id,
-      class_id: classId,
+      class_id: cid,
       assigned_by: teacherId,
-    });
+    }));
+    const { error: assignError } = await dao.assignToClass(assignments);
     if (assignError) {
       throw dbError(assignError);
     }
@@ -137,9 +177,119 @@ export async function update(id, teacherId, changes) {
     throw Object.assign(new Error("Forbidden"), { status: 403 });
   }
 
-  const { data, error } = await dao.update(id, changes);
+  const { questions, classId, questionBankId, ...metadataChanges } = changes;
+
+  if (questionBankId !== undefined) {
+    metadataChanges.source_question_bank_id = questionBankId;
+  }
+  const { data, error } = await dao.update(id, metadataChanges);
   if (error) {
     throw dbError(error);
+  }
+  if (changes.visibility === "class_only" || classId) {
+    const { error: delAssignError } = await dao.deleteAssignments(id);
+    if (delAssignError) throw dbError(delAssignError);
+    const targetClassIds = Array.isArray(classId)
+      ? classId
+      : classId
+        ? [classId]
+        : [];
+    if (targetClassIds.length > 0) {
+      const assignments = targetClassIds.map((cid) => ({
+        study_set_id: id,
+        class_id: cid,
+        assigned_by: teacherId,
+      }));
+      const { error: assignError } = await dao.assignToClass(assignments);
+      if (assignError) {
+        throw dbError(assignError);
+      }
+    }
+  } else if (changes.visibility && changes.visibility !== "class_only") {
+    const { error: delAssignError } = await dao.deleteAssignments(id);
+    if (delAssignError) throw dbError(delAssignError);
+  }
+  if (questions) {
+    const existingQuestions = set.questions || [];
+    const existingQuestionIds = existingQuestions.map((q) => q.question_id);
+    const payloadQuestionIds = questions.map((q) => q.question_id).filter(Boolean);
+    const questionIdsToDelete = existingQuestionIds.filter(
+      (qid) => !payloadQuestionIds.includes(qid)
+    );
+    if (questionIdsToDelete.length > 0) {
+      const { error: delQError } = await dao.deleteQuestions(questionIdsToDelete);
+      if (delQError) throw dbError(delQError);
+    }
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const qPayload = {
+        question_text: q.question_text,
+        explanation: q.explanation || null,
+        topic: q.topic || null,
+        chapter: q.chapter || null,
+        score: q.score ?? 1,
+      };
+      if (q.question_id) {
+        const { error: upQError } = await dao.updateQuestion(q.question_id, qPayload);
+        if (upQError) throw dbError(upQError);
+        const existingQ = existingQuestions.find((eq) => eq.question_id === q.question_id);
+        const existingOptions = existingQ?.answer_options || [];
+        const existingOptionIds = existingOptions.map((o) => o.answer_option_id);
+        const payloadOptionIds = (q.options || []).map((o) => o.answer_option_id).filter(Boolean);
+        const optionIdsToDelete = existingOptionIds.filter(
+          (oid) => !payloadOptionIds.includes(oid)
+        );
+        if (optionIdsToDelete.length > 0) {
+          const { error: delOptError } = await dao.deleteOptions(optionIdsToDelete);
+          if (delOptError) throw dbError(delOptError);
+        }
+        const optionsToInsert = [];
+        for (let idx = 0; idx < (q.options || []).length; idx++) {
+          const opt = q.options[idx];
+          const optPayload = {
+            option_text: opt.option_text,
+            is_correct: !!opt.is_correct,
+            display_order: opt.display_order ?? idx + 1,
+          };
+          if (opt.answer_option_id) {
+            const { error: upOptError } = await dao.updateOption(opt.answer_option_id, optPayload);
+            if (upOptError) throw dbError(upOptError);
+          } else {
+            optionsToInsert.push({
+              ...optPayload,
+              question_id: q.question_id,
+            });
+          }
+        }
+        if (optionsToInsert.length > 0) {
+          const { error: insOptError } = await dao.createOptions(optionsToInsert);
+          if (insOptError) throw dbError(insOptError);
+        }
+      } else {
+        const { data: newQ, error: insQError } = await dao.creationQuestions([
+          {
+            study_set_id: id,
+            owner_id: teacherId,
+            ...qPayload,
+          },
+        ]);
+        if (insQError) throw dbError(insQError);
+        const insertedQuestionId = newQ[0].question_id;
+        if (q.options && q.options.length > 0) {
+          const optionsPayload = q.options.map((opt, idx) => ({
+            question_id: insertedQuestionId,
+            option_text: opt.option_text,
+            is_correct: !!opt.is_correct,
+            display_order: opt.display_order ?? idx + 1,
+          }));
+          const { error: insOptError } = await dao.createOptions(optionsPayload);
+          if (insOptError) throw dbError(insOptError);
+        }
+      }
+    }
+    const activeQuestions = questions.length;
+    await dao.updateQuestionCount(id, activeQuestions);
+    data.question_count = activeQuestions;
   }
   return data;
 }

@@ -1,19 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { Plus, Save, ArrowLeft, Database, FileSpreadsheet } from "lucide-react";
 import axiosClient from "@/services/axiosClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import QuestionCardEditor from "@/components/question-creator/QuestionCardEditor";
 import ExcelImporter from "@/components/question-creator/ExcelImporter";
-import QuestionBankSelector from "./QuestionBankSelector";
-import ClassSelectorModal from "./ClassSelectorModal";
-import ToastNotification from "../ToastNotification";
+import QuestionBankSelector from "../../create/QuestionBankSelector";
+import ClassSelectorModal from "../../create/ClassSelectorModal";
+import ToastNotification from "../../ToastNotification";
 
-export default function CreateStudySetPage() {
+export default function EditStudySetPage() {
+  const params = useParams();
   const router = useRouter();
+  const id = params.id;
 
   // --- 1. STATE FOR STUDY SET METADATA ---
   const [title, setTitle] = useState("");
@@ -29,27 +31,69 @@ export default function CreateStudySetPage() {
   const [showClassSelector, setShowClassSelector] = useState(false);
 
   // --- 2. STATE FOR DRAFT QUESTIONS ---
-  const [questions, setQuestions] = useState([
-    {
-      question_text: "",
-      explanation: "",
-      topic: "",
-      chapter: "",
-      options: [
-        { option_text: "", is_correct: false },
-        { option_text: "", is_correct: false }
-      ]
-    }
-  ]);
+  const [questions, setQuestions] = useState([]);
 
-  // --- 3. UI STATE FOR MODALS/PANELS ---
+  // --- 3. UI STATE ---
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
   const [showQBSelector, setShowQBSelector] = useState(false);
   const [showExcelImporter, setShowExcelImporter] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
 
-  // --- 4. MANUAL DRAFT MANIPULATION ---
+  // --- 4. FETCH DATA ON MOUNT ---
+  useEffect(() => {
+    if (!id) return;
+
+    async function loadStudySet() {
+      setLoading(true);
+      try {
+        const res = await axiosClient.get(`/api/study-sets/${id}`);
+        const data = res.data?.data;
+        if (data) {
+          setTitle(data.title || "");
+          setDescription(data.description || "");
+          setSubject(data.subject || "");
+          setTopic(data.topic || "");
+          setVisibility(data.visibility || "private");
+          setQuestionBankId(data.source_question_bank_id || null);
+
+          // Map questions & answers options
+          const formattedQuestions = (data.questions || []).map((q) => ({
+            question_id: q.question_id,
+            question_text: q.question_text || "",
+            explanation: q.explanation || "",
+            topic: q.topic || "",
+            chapter: q.chapter || "",
+            source_question_id: q.source_question_id || null,
+            options: (q.answer_options || []).map((opt) => ({
+              answer_option_id: opt.answer_option_id,
+              option_text: opt.option_text || "",
+              is_correct: !!opt.is_correct,
+            })),
+          }));
+          setQuestions(formattedQuestions);
+
+          // Populate class assignments if study_set_assignments exists
+          if (data.study_set_assignments && data.study_set_assignments.length > 0) {
+            const classIds = data.study_set_assignments.map((a) => a.class_id);
+            const classNames = data.study_set_assignments.map((a) => a.classes?.class_name || "Lớp học");
+            setSelectedClassIds(classIds);
+            setSelectedClassNames(classNames);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load study set details:", err);
+        setErrors({ submit: "Failed to load study set details. Please try again." });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadStudySet();
+  }, [id]);
+
+  // --- 5. MANUAL DRAFT MANIPULATION ---
 
   // Add a new blank question card
   const addBlankQuestion = () => {
@@ -67,6 +111,7 @@ export default function CreateStudySetPage() {
       }
     ]);
 
+    // Clear question list validation error and toast
     setErrors((prev) => {
       const next = { ...prev };
       delete next.questions;
@@ -96,17 +141,13 @@ export default function CreateStudySetPage() {
           const idx = parseInt(match[1], 10);
           const suffix = match[2];
           if (idx === qIndex) {
-            // Delete errors for this deleted question card
             return;
           } else if (idx > qIndex) {
-            // Shift index down by 1 since questions shifted
             next[`q_${idx - 1}_${suffix}`] = prev[key];
           } else {
-            // Keep unchanged
             next[key] = prev[key];
           }
         } else {
-          // Keep other errors like title, questions, but clear submit
           if (key !== "submit") {
             next[key] = prev[key];
           }
@@ -138,9 +179,9 @@ export default function CreateStudySetPage() {
       prev.map((q, idx) =>
         idx === qIndex
           ? {
-            ...q,
-            options: [...q.options, { option_text: "", is_correct: false }]
-          }
+              ...q,
+              options: [...q.options, { option_text: "", is_correct: false }]
+            }
           : q
       )
     );
@@ -159,9 +200,9 @@ export default function CreateStudySetPage() {
       prev.map((q, idx) =>
         idx === qIndex
           ? {
-            ...q,
-            options: q.options.filter((_, oIdx) => oIdx !== optIndex)
-          }
+              ...q,
+              options: q.options.filter((_, oIdx) => oIdx !== optIndex)
+            }
           : q
       )
     );
@@ -179,11 +220,11 @@ export default function CreateStudySetPage() {
       prev.map((q, idx) =>
         idx === qIndex
           ? {
-            ...q,
-            options: q.options.map((opt, oIdx) =>
-              oIdx === optIndex ? { ...opt, [field]: value } : opt
-            )
-          }
+              ...q,
+              options: q.options.map((opt, oIdx) =>
+                oIdx === optIndex ? { ...opt, [field]: value } : opt
+              )
+            }
           : q
       )
     );
@@ -196,28 +237,25 @@ export default function CreateStudySetPage() {
     setToast({ message: "", type: "success" });
   };
 
-  // --- 5. QUESTION BANK IMPORT CALLBACKS ---
+  // --- 6. QUESTION BANK IMPORT CALLBACKS ---
   const handleQBQuestionsImported = (importedQs, selectedBankId) => {
-    // Save source question bank mapping
     setQuestionBankId(selectedBankId);
 
-    // Format imported questions to match the draft structure
     const formattedQs = importedQs.map((q) => ({
       question_text: q.question_text,
       explanation: q.explanation || "",
       topic: q.topic || "",
       chapter: q.chapter || "",
-      source_question_id: q.question_id, // Save parent question reference
+      source_question_id: q.question_id,
       options: q.answer_options.map((opt) => ({
         option_text: opt.option_text,
         is_correct: opt.is_correct
       }))
     }));
 
-    // Append to existing draft list
     setQuestions((prev) => [...prev, ...formattedQs]);
-    setShowQBSelector(false); // Hide the QB selector panel
-    
+    setShowQBSelector(false);
+
     setErrors((prev) => {
       const next = { ...prev };
       delete next.questions;
@@ -256,11 +294,12 @@ export default function CreateStudySetPage() {
     setToast({ message: "", type: "success" });
   };
 
-  // --- 5.1 CLASS SELECTION CONFIRMATION ---
+  // --- 7. CLASS SELECTION CALLBACKS ---
   const handleClassesConfirmed = (ids, names) => {
     setSelectedClassIds(ids);
     setSelectedClassNames(names);
     setShowClassSelector(false);
+
     setErrors((prev) => {
       const next = { ...prev };
       delete next.classIds;
@@ -274,27 +313,25 @@ export default function CreateStudySetPage() {
     setShowClassSelector(false);
   };
 
-  // --- 6. SAVE STUDY SET TO DATABASE ---
+  // --- 8. SAVE CHANGES ---
   const handleSave = async (e) => {
     e.preventDefault();
     setErrors({});
 
     const newErrors = {};
 
-    // A. Validate basic details
+    // Validate details
     if (!title.trim()) {
       newErrors.title = "Study set title is required.";
     }
     if (questions.length === 0) {
       newErrors.questions = "A study set must contain at least one question.";
     }
-
-    // A.1 Validate class selection if class_only
     if (visibility === "class_only" && selectedClassIds.length === 0) {
       newErrors.classIds = "Please select at least one class.";
     }
 
-    // B. Validate draft questions
+    // Validate questions
     questions.forEach((q, idx) => {
       if (!q.question_text.trim()) {
         newErrors[`q_${idx}_text`] = "Question prompt cannot be empty.";
@@ -323,10 +360,9 @@ export default function CreateStudySetPage() {
       return;
     }
 
-    // C. Send POST request
     setSaving(true);
     try {
-      await axiosClient.post("/api/study-sets", {
+      await axiosClient.patch(`/api/study-sets/${id}`, {
         title,
         description,
         subject: subject || null,
@@ -336,18 +372,17 @@ export default function CreateStudySetPage() {
         questionBankId,
         questions
       });
-      
+
       // Save success toast to localStorage to persist across navigation
       localStorage.setItem(
         "study_set_toast",
-        JSON.stringify({ message: `Created study set "${title}" successfully.`, type: "success" })
+        JSON.stringify({ message: `Updated study set "${title}" successfully.`, type: "success" })
       );
 
-      // Redirect to the teacher list view on success
-      router.push("/teacher/study-sets");
+      router.push(`/teacher/study-sets/${id}`);
     } catch (err) {
-      console.error("Failed to create study set:", err);
-      const errMsg = err.response?.data?.error || "Failed to create study set. Please try again.";
+      console.error("Failed to update study set:", err);
+      const errMsg = err.response?.data?.error || "Failed to update study set. Please try again.";
       setErrors({
         submit: errMsg
       });
@@ -360,6 +395,17 @@ export default function CreateStudySetPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-muted-foreground font-semibold">Loading study set details...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
@@ -370,9 +416,9 @@ export default function CreateStudySetPage() {
             <ArrowLeft className="size-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Create Study Set</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Edit Study Set</h1>
             <p className="text-xs text-muted-foreground mt-1">
-              Add metadata and write questions manually or import them from your Question Banks.
+              Modify details, edit draft questions, or manage imported items.
             </p>
           </div>
         </div>
@@ -384,7 +430,7 @@ export default function CreateStudySetPage() {
         )}
 
         <form onSubmit={handleSave} className="space-y-6">
-          {/* Section 1: Study Set Metadata Details */}
+          {/* Study Set Metadata */}
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
             <h2 className="text-lg font-bold text-foreground border-b border-border pb-2">Study Set Details</h2>
 
@@ -467,7 +513,7 @@ export default function CreateStudySetPage() {
                 </select>
               </div>
 
-              {/* Display selected classes if visibility is class_only */}
+              {/* Class Selection */}
               {visibility === "class_only" && (
                 <div className="space-y-1.5 md:col-span-2 animate-in fade-in slide-in-from-top-2 duration-200">
                   <label className="text-sm font-semibold text-foreground flex items-center gap-1">
@@ -504,7 +550,7 @@ export default function CreateStudySetPage() {
             </div>
           </div>
 
-          {/* Section 2: Questions Editor */}
+          {/* Questions List */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground">Questions ({questions.length})</h2>
@@ -536,7 +582,6 @@ export default function CreateStudySetPage() {
               </div>
             )}
 
-            {/* Questions list rendering */}
             <div className="space-y-6">
               {questions.map((q, qIndex) => (
                 <QuestionCardEditor
@@ -553,7 +598,6 @@ export default function CreateStudySetPage() {
               ))}
             </div>
 
-            {/* Add blank question button */}
             <Button
               onClick={addBlankQuestion}
               type="button"
@@ -565,7 +609,7 @@ export default function CreateStudySetPage() {
             </Button>
           </div>
 
-          {/* Action Save/Cancel Footer */}
+          {/* Action Footer */}
           <div className="flex justify-end gap-3 border-t border-border pt-6">
             <Button
               onClick={() => router.back()}
