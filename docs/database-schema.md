@@ -20,8 +20,9 @@ Important:
 - `question_banks`, `study_sets`, `questions`, and `answer_options` model
   reusable quiz/study content.
 - `study_set_assignments`, `practice_attempts`, `exam_sessions`,
-  `exam_questions`, `exam_attempts`, and `attempt_answers` model learning,
-  assigned practice, exams, and submitted answers.
+  `exam_questions`, `exam_attempts`, `exam_attempt_events`, and
+  `attempt_answers` model learning, assigned practice, exams, integrity
+  warnings, and submitted answers.
 - `premium_plans` and `payments` model premium subscriptions.
 - `ai_interactions` stores AI usage metadata for explanations and question
   generation.
@@ -211,7 +212,7 @@ CREATE TABLE public.exam_sessions (
   question_bank_id uuid NOT NULL,
   title character varying NOT NULL,
   description text,
-  status character varying NOT NULL DEFAULT 'draft'::character varying CHECK (status::text = ANY (ARRAY['draft'::character varying, 'published'::character varying, 'active'::character varying, 'closed'::character varying, 'archived'::character varying]::text[])),
+  status character varying NOT NULL DEFAULT 'draft'::character varying CHECK (status::text = ANY (ARRAY['draft'::character varying, 'active'::character varying, 'closed'::character varying, 'archived'::character varying]::text[])),
   start_at timestamp with time zone,
   end_at timestamp with time zone,
   duration_minutes integer NOT NULL CHECK (duration_minutes > 0),
@@ -240,10 +241,8 @@ CREATE TABLE public.exam_questions (
   subject character varying,
   topic character varying,
   chapter character varying,
-  lesson character varying,
-  difficulty character varying,
   answer_options_json jsonb NOT NULL,
-  correct_option_indexes ARRAY NOT NULL CHECK (array_length(correct_option_indexes, 1) >= 1),
+  correct_option_indexes integer[] NOT NULL CHECK (array_length(correct_option_indexes, 1) >= 1),
   display_order integer NOT NULL CHECK (display_order > 0),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT exam_questions_pkey PRIMARY KEY (exam_question_id),
@@ -256,9 +255,13 @@ CREATE TABLE public.exam_attempts (
   learner_id uuid NOT NULL,
   attempt_number integer NOT NULL CHECK (attempt_number > 0),
   started_at timestamp with time zone NOT NULL DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL,
   submitted_at timestamp with time zone,
-  status character varying NOT NULL DEFAULT 'in_progress'::character varying CHECK (status::text = ANY (ARRAY['in_progress'::character varying, 'submitted'::character varying, 'auto_submitted'::character varying, 'abandoned'::character varying]::text[])),
+  status character varying NOT NULL DEFAULT 'in_progress'::character varying CHECK (status::text = ANY (ARRAY['in_progress'::character varying, 'submitted'::character varying]::text[])),
   is_auto_submitted boolean NOT NULL DEFAULT false,
+  question_order uuid[] NOT NULL DEFAULT '{}'::uuid[],
+  answer_order jsonb NOT NULL DEFAULT '{}'::jsonb,
+  warning_count integer NOT NULL DEFAULT 0 CHECK (warning_count >= 0),
   total_score numeric NOT NULL DEFAULT 0,
   max_score numeric NOT NULL DEFAULT 0,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -267,19 +270,30 @@ CREATE TABLE public.exam_attempts (
   CONSTRAINT exam_attempts_exam_session_id_fkey FOREIGN KEY (exam_session_id) REFERENCES public.exam_sessions(exam_session_id),
   CONSTRAINT exam_attempts_learner_id_fkey FOREIGN KEY (learner_id) REFERENCES public.users(user_id)
 );
+CREATE TABLE public.exam_attempt_events (
+  exam_attempt_event_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  exam_attempt_id uuid NOT NULL,
+  event_type character varying NOT NULL CHECK (event_type::text = ANY (ARRAY['tab_hidden'::character varying, 'tab_visible'::character varying, 'window_blur'::character varying, 'window_focus'::character varying, 'fullscreen_exit'::character varying, 'zoom_changed'::character varying]::text[])),
+  occurred_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT exam_attempt_events_pkey PRIMARY KEY (exam_attempt_event_id),
+  CONSTRAINT exam_attempt_events_exam_attempt_id_fkey FOREIGN KEY (exam_attempt_id) REFERENCES public.exam_attempts(exam_attempt_id)
+);
 CREATE TABLE public.attempt_answers (
   attempt_answer_id uuid NOT NULL DEFAULT gen_random_uuid(),
   practice_attempt_id uuid,
   exam_attempt_id uuid,
   question_id uuid,
   exam_question_id uuid,
-  selected_answer_option_ids ARRAY NOT NULL DEFAULT '{}'::uuid[],
-  selected_exam_option_indexes ARRAY NOT NULL DEFAULT '{}'::integer[],
+  selected_answer_option_ids uuid[] NOT NULL DEFAULT '{}'::uuid[],
+  selected_exam_option_indexes integer[] NOT NULL DEFAULT '{}'::integer[],
   is_correct boolean,
   score_awarded numeric NOT NULL DEFAULT 0 CHECK (score_awarded >= 0::numeric),
   review_status character varying NOT NULL DEFAULT 'unreviewed'::character varying CHECK (review_status::text = ANY (ARRAY['unreviewed'::character varying, 'reviewed'::character varying, 'marked_for_retry'::character varying, 'mastered'::character varying]::text[])),
   answered_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT attempt_answers_pkey PRIMARY KEY (attempt_answer_id),
+  CONSTRAINT attempt_answers_exam_attempt_question_unique UNIQUE (exam_attempt_id, exam_question_id),
+  CONSTRAINT attempt_answers_practice_attempt_question_unique UNIQUE (practice_attempt_id, question_id),
+  CONSTRAINT attempt_answers_one_context_check CHECK (((exam_attempt_id IS NOT NULL AND exam_question_id IS NOT NULL AND practice_attempt_id IS NULL AND question_id IS NULL) OR (practice_attempt_id IS NOT NULL AND question_id IS NOT NULL AND exam_attempt_id IS NULL AND exam_question_id IS NULL))),
   CONSTRAINT attempt_answers_practice_attempt_id_fkey FOREIGN KEY (practice_attempt_id) REFERENCES public.practice_attempts(practice_attempt_id),
   CONSTRAINT attempt_answers_exam_attempt_id_fkey FOREIGN KEY (exam_attempt_id) REFERENCES public.exam_attempts(exam_attempt_id),
   CONSTRAINT attempt_answers_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.questions(question_id),
