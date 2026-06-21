@@ -124,7 +124,10 @@ export default function LearnerExamDetailPage() {
           ) : null}
 
           <div className="mt-6 flex justify-center gap-3">
-            <Button disabled={!canStart} onClick={() => router.push(`/learner/exams/${exam.exam_session_id}/take`)}>
+            <Button
+              disabled={!canStart}
+              onClick={() => router.push(`/learner/exams/${exam.exam_session_id}/take?code=${encodeURIComponent(accessCode.trim())}`)}
+            >
               Confirm
             </Button>
             <Button asChild variant="outline"><Link href="/learner/exams">Cancel</Link></Button>

@@ -6,8 +6,6 @@ export const EXAM_ATTEMPT_TABLE = "exam_attempts";
 export const ExamAttemptStatus = Object.freeze({
   IN_PROGRESS: "in_progress",
   SUBMITTED: "submitted",
-  AUTO_SUBMITTED: "auto_submitted",
-  ABANDONED: "abandoned",
 });
 
 /**
@@ -17,9 +15,13 @@ export const ExamAttemptStatus = Object.freeze({
  * @property {string} learner_id       - FK -> users.user_id
  * @property {number} attempt_number
  * @property {string} started_at
+ * @property {string} expires_at
  * @property {string} [submitted_at]
- * @property {"in_progress"|"submitted"|"auto_submitted"|"abandoned"} status
+ * @property {"in_progress"|"submitted"} status
  * @property {boolean} is_auto_submitted
+ * @property {string[]} question_order
+ * @property {Record<string, number[]>} answer_order
+ * @property {number} warning_count
  * @property {number} total_score
  * @property {number} max_score
  * @property {string} created_at
