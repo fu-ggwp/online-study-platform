@@ -42,8 +42,10 @@ export default function TakeExamPage() {
   const submittingRef = useRef(false);
 
   const attempt = examData?.attempt;
+  const examAttemptId = attempt?.exam_attempt_id;
   const questions = examData?.questions ?? [];
   const activeQuestion = questions[activeIndex] ?? questions[0];
+  const activeOptions = Array.isArray(activeQuestion?.answer_options) ? activeQuestion.answer_options : [];
 
   const requestExamMode = useCallback(() => {
     if (typeof document === "undefined") return;
@@ -66,7 +68,7 @@ export default function TakeExamPage() {
   }, []);
 
   const recordEvent = useCallback(async (eventType, message, countWarning = true) => {
-    if (!attempt?.exam_attempt_id) return;
+    if (!examAttemptId) return;
 
     const now = Date.now();
     if (now - (eventAtRef.current[eventType] || 0) < 600) return;
@@ -75,11 +77,11 @@ export default function TakeExamPage() {
     if (message) setWarning(message);
 
     try {
-      const updated = await examsService.recordAttemptEvent(attempt.exam_attempt_id, { event_type: eventType });
+      const updated = await examsService.recordAttemptEvent(examAttemptId, { event_type: eventType });
       syncWarningCount(updated);
     } catch (eventError) {
       if (eventType === "tab_hidden") {
-        examsService.recordAttemptEventKeepAlive(attempt.exam_attempt_id, { event_type: eventType });
+        examsService.recordAttemptEventKeepAlive(examAttemptId, { event_type: eventType });
       }
 
       if (countWarning) {
@@ -89,24 +91,24 @@ export default function TakeExamPage() {
     }
 
     if (countWarning) requestExamMode();
-  }, [attempt?.exam_attempt_id, requestExamMode, syncWarningCount]);
+  }, [examAttemptId, requestExamMode, syncWarningCount]);
 
   const returnToExam = useCallback(async () => {
     requestExamMode();
-    if (!attempt?.exam_attempt_id) return;
+    if (!examAttemptId) return;
 
     try {
-      await examsService.recordAttemptEvent(attempt.exam_attempt_id, { event_type: "tab_visible" });
+      await examsService.recordAttemptEvent(examAttemptId, { event_type: "tab_visible" });
     } catch {
       setWarning("Returned to exam, but return event could not sync to server.");
     }
-  }, [attempt?.exam_attempt_id, requestExamMode]);
+  }, [examAttemptId, requestExamMode]);
 
   const submitAttempt = useCallback(async (isAutoSubmitted = false) => {
-    if (!attempt?.exam_attempt_id || submittingRef.current) return;
+    if (!examAttemptId || submittingRef.current) return;
     submittingRef.current = true;
     try {
-      const result = await examsService.submitAttempt(attempt.exam_attempt_id, { is_auto_submitted: isAutoSubmitted });
+      const result = await examsService.submitAttempt(examAttemptId, { is_auto_submitted: isAutoSubmitted });
       setSubmitted(result);
       setWarning(isAutoSubmitted ? "Time is up. Your saved answers were submitted automatically." : "Exam submitted successfully.");
     } catch (submitError) {
@@ -114,7 +116,7 @@ export default function TakeExamPage() {
     } finally {
       submittingRef.current = false;
     }
-  }, [attempt?.exam_attempt_id]);
+  }, [examAttemptId]);
 
   useEffect(() => {
     if (startedRef.current || !examId) return;
@@ -141,7 +143,7 @@ export default function TakeExamPage() {
   }, [examId, requestExamMode]);
 
   useEffect(() => {
-    if (!attempt?.exam_attempt_id || submitted) return;
+    if (!examAttemptId || submitted) return;
     const interval = window.setInterval(() => {
       setRemainingSeconds((current) => {
         if (current <= 1) {
@@ -154,10 +156,10 @@ export default function TakeExamPage() {
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [attempt?.exam_attempt_id, submitAttempt, submitted]);
+  }, [examAttemptId, submitAttempt, submitted]);
 
   useEffect(() => {
-    if (!attempt?.exam_attempt_id || submitted) return undefined;
+    if (!examAttemptId || submitted) return undefined;
 
     const onVisibility = () => {
       if (document.visibilityState === "hidden") {
@@ -176,11 +178,15 @@ export default function TakeExamPage() {
     };
     const onKeyDown = (event) => {
       const key = event.key.toLowerCase();
-      const blockedDevTools = event.key === "F12" || (event.ctrlKey && event.shiftKey && ["i", "j", "c"].includes(key));
+      const blockedDevTools = event.key === "F12" || (event.ctrlKey && event.shiftKey && ["i", "j", "c", "k"].includes(key));
+      const blockedBrowserConfig = event.ctrlKey && ["u", "s", "p", "r", "f", "g"].includes(key);
       const blockedZoom = event.ctrlKey && ["-", "_", "="].includes(key);
-      if (!blockedDevTools && !blockedZoom) return;
+      if (!blockedDevTools && !blockedBrowserConfig && !blockedZoom) return;
       event.preventDefault();
-      recordEvent(blockedZoom ? "zoom_changed" : "window_blur", "Warning: restricted browser action detected.");
+      event.stopPropagation();
+      if (blockedZoom) {
+        recordEvent("zoom_changed", "Warning: browser zoom changes are not allowed.");
+      }
     };
     const onWheel = (event) => {
       if (!event.ctrlKey) return;
@@ -189,7 +195,7 @@ export default function TakeExamPage() {
     };
     const onContextMenu = (event) => {
       event.preventDefault();
-      recordEvent("window_blur", "Warning: restricted browser action detected.");
+      event.stopPropagation();
     };
 
     document.addEventListener("visibilitychange", onVisibility);
@@ -209,7 +215,7 @@ export default function TakeExamPage() {
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("contextmenu", onContextMenu);
     };
-  }, [attempt?.exam_attempt_id, recordEvent, requestExamMode, submitted]);
+  }, [examAttemptId, recordEvent, requestExamMode, submitted]);
 
   const answeredCount = useMemo(() => {
     return questions.filter((question) => (selectedAnswers[question.exam_question_id] ?? []).length > 0).length;
@@ -221,7 +227,7 @@ export default function TakeExamPage() {
 
     setSelectedAnswers((current) => ({ ...current, [questionId]: nextSelection }));
     try {
-      await examsService.submitAnswer(attempt.exam_attempt_id, {
+      await examsService.submitAnswer(examAttemptId, {
         exam_question_id: questionId,
         selected_exam_option_indexes: nextSelection,
       });
@@ -357,7 +363,7 @@ export default function TakeExamPage() {
               </div>
 
               <div className="space-y-4 px-5 py-5">
-                {activeQuestion.answer_options.map((option, index) => {
+                {activeOptions.map((option, index) => {
                   const checked = selectedAnswers[activeQuestion.exam_question_id]?.[0] === option.index;
                   return (
                     <label key={`${activeQuestion.exam_question_id}-${option.index}`} className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">

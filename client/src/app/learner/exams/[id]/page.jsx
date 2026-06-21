@@ -41,23 +41,24 @@ export default function LearnerExamDetailPage() {
 
   useEffect(() => {
     let ignore = false;
-    setLoading(true);
-    setError("");
 
-    examsService
-      .getLearnerExam(examId)
-      .then((data) => {
+    async function loadExam() {
+      try {
+        const data = await examsService.getLearnerExam(examId);
         if (ignore) return;
         setExam(data);
-      })
-      .catch((loadError) => {
+        setError("");
+      } catch (loadError) {
         if (ignore) return;
+        setExam(null);
         setError(getErrorMessage(loadError));
-      })
-      .finally(() => {
+      } finally {
         if (ignore) return;
         setLoading(false);
-      });
+      }
+    }
+
+    loadExam();
 
     return () => {
       ignore = true;
