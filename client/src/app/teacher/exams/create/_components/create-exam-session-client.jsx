@@ -37,7 +37,7 @@ export function CreateExamSessionClient() {
     try {
       const [classRows, bankResult] = await Promise.all([
         classesService.listMine(),
-        questionBanksService.listAssigned(),
+        questionBanksService.listReady(),
       ]);
 
       const activeClasses = (classRows ?? []).filter((item) => item.status === "active");

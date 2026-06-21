@@ -6,8 +6,8 @@ import {
   generateFromMaterial,
   getById,
   getQuestionById,
-  listAssigned,
-  listAssignedQuestions,
+  listReady,
+  listReadyQuestions,
   list,
   listQuestions,
   remove,
@@ -25,11 +25,11 @@ questionBanksRouter.post(
   uploadMaterial,
   generateFromMaterial,
 );
-questionBanksRouter.get("/assigned", requireAuth, listAssigned);
+questionBanksRouter.get("/ready", requireAuth, listReady);
 questionBanksRouter.get(
-  "/assigned/:id/questions",
+  "/ready/:id/questions",
   requireAuth,
-  listAssignedQuestions,
+  listReadyQuestions,
 );
 questionBanksRouter.get("/questions/:questionId", requireAuth, getQuestionById);
 questionBanksRouter.patch(

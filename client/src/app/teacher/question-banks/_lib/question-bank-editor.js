@@ -2,7 +2,7 @@ export const initialQuestionBankForm = {
   title: "",
   description: "",
   topic: "",
-  status: "Private",
+  status: "Draft",
 };
 
 export function emptyOption(label = "") {
@@ -54,7 +54,7 @@ export function toQuestionBankForm(questionBank) {
     title: questionBank?.title || "",
     description: questionBank?.description || "",
     topic: questionBank?.topic || "",
-    status: questionBank?.status === "Assigned" ? "Assigned" : "Private",
+    status: questionBank?.status === "Ready" ? "Ready" : "Draft",
   };
 }
 
