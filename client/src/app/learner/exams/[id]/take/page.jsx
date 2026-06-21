@@ -56,7 +56,16 @@ export default function TakeExamPage() {
     setNeedsReturn(false);
   }, []);
 
-  const recordEvent = useCallback((eventType, message, countWarning = true) => {
+  const syncWarningCount = useCallback((updated) => {
+    if (updated?.warning_count === undefined) return;
+
+    setExamData((current) => current ? {
+      ...current,
+      attempt: { ...current.attempt, warning_count: updated.warning_count },
+    } : current);
+  }, []);
+
+  const recordEvent = useCallback(async (eventType, message, countWarning = true) => {
     if (!attempt?.exam_attempt_id) return;
 
     const now = Date.now();
@@ -65,19 +74,32 @@ export default function TakeExamPage() {
 
     if (message) setWarning(message);
 
-    if (countWarning) {
-      setExamData((current) => current ? {
-        ...current,
-        attempt: {
-          ...current.attempt,
-          warning_count: Number(current.attempt?.warning_count || 0) + 1,
-        },
-      } : current);
+    try {
+      const updated = await examsService.recordAttemptEvent(attempt.exam_attempt_id, { event_type: eventType });
+      syncWarningCount(updated);
+    } catch (eventError) {
+      if (eventType === "tab_hidden") {
+        examsService.recordAttemptEventKeepAlive(attempt.exam_attempt_id, { event_type: eventType });
+      }
+
+      if (countWarning) {
+        const syncError = eventError?.response?.data?.error || eventError?.message || "Could not sync warning to server.";
+        setWarning(`${message || "Warning detected."} ${syncError}`);
+      }
     }
 
-    examsService.recordAttemptEventKeepAlive(attempt.exam_attempt_id, { event_type: eventType });
-
     if (countWarning) requestExamMode();
+  }, [attempt?.exam_attempt_id, requestExamMode, syncWarningCount]);
+
+  const returnToExam = useCallback(async () => {
+    requestExamMode();
+    if (!attempt?.exam_attempt_id) return;
+
+    try {
+      await examsService.recordAttemptEvent(attempt.exam_attempt_id, { event_type: "tab_visible" });
+    } catch {
+      setWarning("Returned to exam, but return event could not sync to server.");
+    }
   }, [attempt?.exam_attempt_id, requestExamMode]);
 
   const submitAttempt = useCallback(async (isAutoSubmitted = false) => {
@@ -141,7 +163,7 @@ export default function TakeExamPage() {
       if (document.visibilityState === "hidden") {
         recordEvent("tab_hidden", "Warning: do not leave the exam tab.");
       } else {
-        recordEvent("tab_visible", "", false);
+        setNeedsReturn(true);
         requestExamMode();
       }
     };
@@ -372,7 +394,7 @@ export default function TakeExamPage() {
             <p className="mt-2 text-sm text-slate-600">
               The exam must stay fullscreen and active. Click below to continue.
             </p>
-            <Button className="mt-5 rounded-sm" onClick={requestExamMode}>
+            <Button className="mt-5 rounded-sm" onClick={returnToExam}>
               Return to exam
             </Button>
           </section>
@@ -381,7 +403,7 @@ export default function TakeExamPage() {
 
       <button
         className="fixed bottom-16 right-5 grid size-9 place-items-center border border-slate-300 bg-white text-slate-500 shadow-sm"
-        onClick={requestExamMode}
+        onClick={returnToExam}
         title="Restore fullscreen"
         type="button"
       >
