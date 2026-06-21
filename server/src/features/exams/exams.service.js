@@ -6,8 +6,8 @@ import {
   EXAM_SESSION_CONFIG_COLUMNS,
 } from "../../models/exam.model.js";
 import {
-  getAssignedQuestionBank,
-  listAssignedQuestionBankQuestions,
+  getReadyQuestionBank,
+  listReadyQuestionBankQuestions,
 } from "../question-banks/question-banks.service.js";
 import * as dao from "./exams.dao.js";
 
@@ -273,7 +273,7 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
   }
 
   if (changes.question_count || isActivating) {
-    const sourceQuestions = await listAssignedQuestionBankQuestions(teacherId, exam.question_bank_id);
+    const sourceQuestions = await listReadyQuestionBankQuestions(teacherId, exam.question_bank_id);
     const count = sourceQuestions.filter(validQuestion).length;
 
     const nextQuestionCount = Number(getNext(exam, changes, "question_count"));
@@ -301,8 +301,8 @@ export async function createExamSession(teacherId, payload = {}) {
   const normalized = normalizeCreatePayload(payload);
   const [classResult, questionBank, sourceQuestions] = await Promise.all([
     dao.findManagedActiveClass(normalized.class_id, teacherId),
-    getAssignedQuestionBank(teacherId, normalized.question_bank_id),
-    listAssignedQuestionBankQuestions(teacherId, normalized.question_bank_id),
+    getReadyQuestionBank(teacherId, normalized.question_bank_id),
+    listReadyQuestionBankQuestions(teacherId, normalized.question_bank_id),
   ]);
 
   if (classResult.error) throw dbError(classResult.error, 500);

@@ -50,12 +50,12 @@ export function listByTeacher(teacherId, filters = {}) {
     }));
 }
 
-export function listAssignedByTeacher(teacherId) {
+export function listReadyByTeacher(teacherId) {
   return db
     .from(QUESTION_BANK_TABLE)
     .select("*")
     .eq("teacher_id", teacherId)
-    .eq("status", "Assigned")
+    .eq("status", "Ready")
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
 }
@@ -70,13 +70,13 @@ export function findOwnedById(questionBankId, teacherId) {
     .maybeSingle();
 }
 
-export function findAssignedOwnedById(questionBankId, teacherId) {
+export function findReadyOwnedById(questionBankId, teacherId) {
   return db
     .from(QUESTION_BANK_TABLE)
     .select("*")
     .eq("question_bank_id", questionBankId)
     .eq("teacher_id", teacherId)
-    .eq("status", "Assigned")
+    .eq("status", "Ready")
     .is("deleted_at", null)
     .maybeSingle();
 }

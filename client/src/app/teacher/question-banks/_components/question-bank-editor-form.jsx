@@ -105,8 +105,8 @@ export function QuestionBankEditorForm({
                   value={form.status}
                   onChange={onMetadataChange}
                 >
-                  <option value="Private">Private</option>
-                  <option value="Assigned">Assigned</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Ready">Ready</option>
                 </select>
               </div>
             </div>
