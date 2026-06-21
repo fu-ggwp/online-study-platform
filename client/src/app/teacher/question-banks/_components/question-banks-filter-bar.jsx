@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 
 const statusOptions = [
   { value: "all", label: "All status" },
-  { value: "Private", label: "Private" },
-  { value: "Assigned", label: "Assigned" },
+  { value: "Draft", label: "Draft" },
+  { value: "Ready", label: "Ready" },
 ];
 
 export function QuestionBanksFilterBar({

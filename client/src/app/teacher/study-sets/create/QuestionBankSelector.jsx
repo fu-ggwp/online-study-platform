@@ -44,7 +44,7 @@ export default function QuestionBankSelector({
   useEffect(() => {
     async function fetchBanks() {
       try {
-        const data = await questionBanksService.listAssigned();
+        const data = await questionBanksService.listReady();
         setBanks(data || []);
       } catch (err) {
         console.error("Failed to load question banks:", err);
@@ -76,7 +76,7 @@ export default function QuestionBankSelector({
     async function fetchQuestions() {
       setLoading(true);
       try {
-        const qList = await questionBanksService.listAssignedQuestions(selectedBankId);
+        const qList = await questionBanksService.listReadyQuestions(selectedBankId);
         setQuestions(qList);
         setSelectedQIds(new Set()); // Reset previous selections
 
