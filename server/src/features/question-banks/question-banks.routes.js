@@ -1,6 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import { requireAuth } from "../../middlewares/auth.middleware.js";
+import { requireRole } from "../../middlewares/role.middleware.js";
 import {
   create,
   generateFromMaterial,
@@ -36,21 +37,22 @@ function uploadMaterial(req, res, next) {
   });
 }
 
-questionBanksRouter.get("/", requireAuth, list);
-questionBanksRouter.post("/", requireAuth, create);
+questionBanksRouter.get("/", requireAuth, requireRole("teacher"), list);
+questionBanksRouter.post("/", requireAuth, requireRole("teacher"), create);
 questionBanksRouter.post(
   "/generate-from-material",
   requireAuth,
+  requireRole("teacher"),
   uploadMaterial,
   generateFromMaterial,
 );
-questionBanksRouter.get("/assigned", requireAuth, listAssigned);
-questionBanksRouter.get("/assigned/:id/questions", requireAuth, listAssignedQuestions);
-questionBanksRouter.get("/questions/:questionId", requireAuth, getQuestionById);
-questionBanksRouter.patch("/questions/:questionId", requireAuth, updateQuestion);
-questionBanksRouter.get("/:id/questions", requireAuth, listQuestions);
-questionBanksRouter.get("/:id", requireAuth, getById);
-questionBanksRouter.patch("/:id", requireAuth, update);
-questionBanksRouter.delete("/:id", requireAuth, remove);
+questionBanksRouter.get("/assigned", requireAuth, requireRole("teacher"), listAssigned);
+questionBanksRouter.get("/assigned/:id/questions", requireAuth, requireRole("teacher"), listAssignedQuestions);
+questionBanksRouter.get("/questions/:questionId", requireAuth, requireRole("teacher"), getQuestionById);
+questionBanksRouter.patch("/questions/:questionId", requireAuth, requireRole("teacher"), updateQuestion);
+questionBanksRouter.get("/:id/questions", requireAuth, requireRole("teacher"), listQuestions);
+questionBanksRouter.get("/:id", requireAuth, requireRole("teacher"), getById);
+questionBanksRouter.patch("/:id", requireAuth, requireRole("teacher"), update);
+questionBanksRouter.delete("/:id", requireAuth, requireRole("teacher"), remove);
 
 export default questionBanksRouter;
