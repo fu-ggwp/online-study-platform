@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../../middlewares/auth.middleware.js";
+import { requireRole } from "../../middlewares/role.middleware.js";
 import {
   createExamSession,
   getAvailableExamSessions,
@@ -17,20 +18,22 @@ import {
 const examsRouter = Router();
 
 // Learner routes must be before /:id routes.
-examsRouter.get("/learner", requireAuth, getAvailableExamSessions);
-examsRouter.get("/learner/:id", requireAuth, getLearnerExamDetail);
-examsRouter.post("/:id/attempts", requireAuth, startLearnerExamAttempt);
-examsRouter.get("/attempts/:attemptId", requireAuth, getLearnerExamAttempt);
-examsRouter.post("/attempts/:attemptId/answers", requireAuth, saveLearnerExamAnswer);
-examsRouter.patch("/attempts/:attemptId/submit", requireAuth, submitLearnerExamAttempt);
-examsRouter.post("/attempts/:attemptId/events", requireAuth, recordLearnerExamEvent);
+
+examsRouter.get("/learner", requireAuth, requireRole("learner"), getAvailableExamSessions);
+examsRouter.get("/learner/:id", requireAuth, requireRole("learner"), getLearnerExamDetail);
+examsRouter.post("/:id/attempts", requireAuth, requireRole("learner"), startLearnerExamAttempt);
+examsRouter.get("/attempts/:attemptId", requireAuth, requireRole("learner"), getLearnerExamAttempt);
+examsRouter.post("/attempts/:attemptId/answers", requireAuth, requireRole("learner"), saveLearnerExamAnswer);
+examsRouter.patch("/attempts/:attemptId/submit", requireAuth, requireRole("learner"), submitLearnerExamAttempt);
+examsRouter.post("/attempts/:attemptId/events", requireAuth, requireRole("learner"), recordLearnerExamEvent);
+
 
 // Collection routes
-examsRouter.get("/", requireAuth, getMyExamSessions);
-examsRouter.post("/", requireAuth, createExamSession);
+examsRouter.get("/", requireAuth, requireRole("teacher"), getMyExamSessions);
+examsRouter.post("/", requireAuth, requireRole("teacher"), createExamSession);
 
 // Exam detail and settings routes
-examsRouter.get("/:id", requireAuth, getExamDetail);
-examsRouter.patch("/:id/settings", requireAuth, updateExamSettings);
+examsRouter.get("/:id", requireAuth, requireRole("teacher"), getExamDetail);
+examsRouter.patch("/:id/settings", requireAuth, requireRole("teacher"), updateExamSettings);
 
 export default examsRouter;
