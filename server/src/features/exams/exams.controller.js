@@ -1,9 +1,14 @@
 import {
   createExamSession as createExamSessionService,
   getExamDetail as getExamDetailService,
+  getLearnerExamAttempt as getLearnerExamAttemptService,
   getLearnerExamDetail as getLearnerExamDetailService,
   listLearnerExamSessions,
   listTeacherExamSessions,
+  recordLearnerExamEvent as recordLearnerExamEventService,
+  saveLearnerExamAnswer as saveLearnerExamAnswerService,
+  startLearnerExamAttempt as startLearnerExamAttemptService,
+  submitLearnerExamAttempt as submitLearnerExamAttemptService,
   updateExamSettings as updateExamSettingsService,
 } from "./exams.service.js";
 
@@ -88,6 +93,51 @@ export async function getLearnerExamDetail(req, res) {
   try {
     const data = await getLearnerExamDetailService(req.params.id, getUserId(req));
     res.json({ ok: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function startLearnerExamAttempt(req, res) {
+  try {
+    const data = await startLearnerExamAttemptService(req.params.id, getUserId(req), req.body);
+    res.status(201).json({ ok: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function getLearnerExamAttempt(req, res) {
+  try {
+    const data = await getLearnerExamAttemptService(req.params.attemptId, getUserId(req));
+    res.json({ ok: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function saveLearnerExamAnswer(req, res) {
+  try {
+    const data = await saveLearnerExamAnswerService(req.params.attemptId, getUserId(req), req.body);
+    res.json({ ok: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function submitLearnerExamAttempt(req, res) {
+  try {
+    const data = await submitLearnerExamAttemptService(req.params.attemptId, getUserId(req), Boolean(req.body?.is_auto_submitted));
+    res.json({ ok: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function recordLearnerExamEvent(req, res) {
+  try {
+    const data = await recordLearnerExamEventService(req.params.attemptId, getUserId(req), req.body);
+    res.status(201).json({ ok: true, data });
   } catch (error) {
     sendError(res, error);
   }

@@ -41,23 +41,24 @@ export default function LearnerExamDetailPage() {
 
   useEffect(() => {
     let ignore = false;
-    setLoading(true);
-    setError("");
 
-    examsService
-      .getLearnerExam(examId)
-      .then((data) => {
+    async function loadExam() {
+      try {
+        const data = await examsService.getLearnerExam(examId);
         if (ignore) return;
         setExam(data);
-      })
-      .catch((loadError) => {
+        setError("");
+      } catch (loadError) {
         if (ignore) return;
+        setExam(null);
         setError(getErrorMessage(loadError));
-      })
-      .finally(() => {
+      } finally {
         if (ignore) return;
         setLoading(false);
-      });
+      }
+    }
+
+    loadExam();
 
     return () => {
       ignore = true;
@@ -124,7 +125,10 @@ export default function LearnerExamDetailPage() {
           ) : null}
 
           <div className="mt-6 flex justify-center gap-3">
-            <Button disabled={!canStart} onClick={() => router.push(`/learner/exams/${exam.exam_session_id}/take`)}>
+            <Button
+              disabled={!canStart}
+              onClick={() => router.push(`/learner/exams/${exam.exam_session_id}/take?code=${encodeURIComponent(accessCode.trim())}`)}
+            >
               Confirm
             </Button>
             <Button asChild variant="outline"><Link href="/learner/exams">Cancel</Link></Button>
