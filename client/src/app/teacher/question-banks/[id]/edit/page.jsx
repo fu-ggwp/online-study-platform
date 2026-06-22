@@ -6,6 +6,7 @@ import { AlertCircle, Loader2, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { questionBanksService } from "@/services/question-banks.service";
+import ConfirmModal from "@/components/common/ConfirmModal";
 
 import {
   QuestionBankEditorForm,
@@ -34,8 +35,11 @@ export default function EditQuestionBankPage() {
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [archiving, setArchiving] = useState(false);
-  const { handleSubmit, submitting } = useQuestionBankEditorSubmit({
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const { handleSubmit } = useQuestionBankEditorSubmit({
     editor,
     fallbackErrorMessage: "Question bank could not be updated.",
     onSave: (payload) => questionBanksService.update(questionBankId, payload),
@@ -68,10 +72,7 @@ export default function EditQuestionBankPage() {
     void Promise.resolve().then(loadQuestionBank);
   }, [loadQuestionBank]);
 
-  async function handleDelete() {
-    const confirmed = window.confirm("Delete this question bank?");
-    if (!confirmed) return;
-
+  async function executeDelete() {
     editor.setErrors({});
     setArchiving(true);
 
@@ -82,6 +83,7 @@ export default function EditQuestionBankPage() {
       editor.setErrors({ submit: err.response?.data?.message || err.message || "Question bank delete failed." });
     } finally {
       setArchiving(false);
+      setShowDeleteModal(false);
     }
   }
 
@@ -114,7 +116,7 @@ export default function EditQuestionBankPage() {
     <>
       <QuestionBankEditorForm
         actionSlot={(
-          <Button disabled={archiving || submitting} onClick={handleDelete} type="button" variant="destructive">
+          <Button disabled={archiving || submitting} onClick={() => setShowDeleteModal(true)} type="button" variant="destructive">
             {archiving ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
             {archiving ? "Deleting..." : "Delete"}
           </Button>
@@ -151,6 +153,17 @@ export default function EditQuestionBankPage() {
           onQuestionsGenerated={editor.handleGeneratedQuestions}
         />
       )}
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Delete Question Bank?"
+        message="Are you sure you want to delete this question bank? This action is permanent and cannot be undone."
+        confirmLabel={archiving ? "Deleting..." : "Delete"}
+        cancelLabel="Cancel"
+        onConfirm={executeDelete}
+        onCancel={() => setShowDeleteModal(false)}
+        variant="danger"
+      />
     </>
   );
 }
