@@ -5,14 +5,12 @@ import {
   create,
   generateFromMaterial,
   getById,
-  getQuestionById,
   listReady,
   listReadyQuestions,
   list,
   listQuestions,
   remove,
   update,
-  updateQuestion,
 } from "./question-banks.controller.js";
 
 const questionBanksRouter = Router();
@@ -30,12 +28,6 @@ questionBanksRouter.get(
   "/ready/:id/questions",
   requireAuth,
   listReadyQuestions,
-);
-questionBanksRouter.get("/questions/:questionId", requireAuth, getQuestionById);
-questionBanksRouter.patch(
-  "/questions/:questionId",
-  requireAuth,
-  updateQuestion,
 );
 questionBanksRouter.get("/:id/questions", requireAuth, listQuestions);
 questionBanksRouter.get("/:id", requireAuth, getById);

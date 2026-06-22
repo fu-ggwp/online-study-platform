@@ -106,8 +106,6 @@ export function archive(questionBankId, teacherId) {
   });
 }
 
-export const softDelete = archive;
-
 export async function countQuestions(questionBankId) {
   const { count, error } = await db
     .from(QUESTION_TABLE)
@@ -131,7 +129,6 @@ export function listQuestionsByBank(questionBankId, teacherId) {
       owner_id,
       question_text,
       explanation,
-      subject,
       topic,
       chapter,
       created_at,
@@ -163,7 +160,6 @@ export function findOwnedQuestionById(questionId, teacherId) {
       owner_id,
       question_text,
       explanation,
-      subject,
       topic,
       chapter,
       created_at,
@@ -200,7 +196,6 @@ export function updateQuestion(questionId, teacherId, changes) {
       owner_id,
       question_text,
       explanation,
-      subject,
       topic,
       chapter,
       created_at,
@@ -221,7 +216,6 @@ export function createQuestion(payload) {
       owner_id,
       question_text,
       explanation,
-      subject,
       topic,
       chapter,
       created_at,
@@ -230,7 +224,7 @@ export function createQuestion(payload) {
     .single();
 }
 
-export function softDeleteQuestionsByIds(questionBankId, teacherId, questionIds) {
+export function archiveQuestionsByIds(questionBankId, teacherId, questionIds) {
   if (!questionIds.length) {
     return Promise.resolve({ data: [], error: null });
   }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { questionBanksService } from "@/services/question-banks.service";
@@ -11,56 +10,23 @@ import {
   QuestionBankMaterialGenerateModal,
 } from "../_components/question-bank-editor-form";
 import {
-  buildQuestionBankPayload,
   emptyQuestion,
-  mapQuestionBankServerErrors,
-  validateQuestionBankEditor,
+  useQuestionBankEditorState,
+  useQuestionBankEditorSubmit,
 } from "../_lib/question-bank-editor";
-import { useQuestionBankEditorState } from "../_lib/use-question-bank-editor-state";
 
 export default function CreateQuestionBankPage() {
   const router = useRouter();
   const editor = useQuestionBankEditorState({ initialQuestions: [emptyQuestion()] });
-  const [submitting, setSubmitting] = useState(false);
-  const [showExcelImporter, setShowExcelImporter] = useState(false);
-  const [showMaterialGenerator, setShowMaterialGenerator] = useState(false);
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    const nextErrors = validateQuestionBankEditor(editor.form, editor.questions);
-    editor.setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
-    setSubmitting(true);
-    try {
-      const response = await questionBanksService.create(
-        buildQuestionBankPayload(editor.form, editor.questions),
-      );
+  const { handleSubmit, submitting } = useQuestionBankEditorSubmit({
+    editor,
+    fallbackErrorMessage: "Question bank could not be created.",
+    onSave: questionBanksService.create,
+    onSuccess: (response) => {
       const questionBankId = response?.data?.question_bank_id;
       router.push(questionBankId ? `/teacher/question-banks/${questionBankId}` : "/teacher/question-banks");
-    } catch (err) {
-      const fieldErrors = mapQuestionBankServerErrors(err.response?.data?.fields || {});
-      editor.setErrors({
-        ...fieldErrors,
-        submit: Object.keys(fieldErrors).length
-          ? "Please review the highlighted fields."
-          : err.response?.data?.message || err.message || "Question bank could not be created.",
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function handleExcelQuestionsImported(importedQuestions) {
-    editor.appendImportedQuestions(importedQuestions);
-    setShowExcelImporter(false);
-  }
-
-  function handleMaterialQuestionsGenerated(generatedQuestions) {
-    editor.appendImportedQuestions(generatedQuestions);
-    setShowMaterialGenerator(false);
-  }
+    },
+  });
 
   return (
     <>
@@ -73,8 +39,8 @@ export default function CreateQuestionBankPage() {
         onCancel={() => router.push("/teacher/question-banks")}
         onDeleteOption={editor.deleteOption}
         onDeleteQuestion={editor.deleteQuestion}
-        onGenerateMaterial={() => setShowMaterialGenerator(true)}
-        onImportExcel={() => setShowExcelImporter(true)}
+        onGenerateMaterial={editor.openMaterialGenerator}
+        onImportExcel={editor.openExcelImporter}
         onMetadataChange={editor.handleMetadataChange}
         onOptionChange={editor.updateOption}
         onQuestionFieldChange={editor.updateQuestionField}
@@ -83,18 +49,18 @@ export default function CreateQuestionBankPage() {
         submitting={submitting}
       />
 
-      {showExcelImporter && (
+      {editor.showExcelImporter && (
         <QuestionBankExcelImportModal
-          onCancel={() => setShowExcelImporter(false)}
-          onQuestionsImported={handleExcelQuestionsImported}
+          onCancel={editor.closeExcelImporter}
+          onQuestionsImported={editor.handleImportedQuestions}
         />
       )}
 
-      {showMaterialGenerator && (
+      {editor.showMaterialGenerator && (
         <QuestionBankMaterialGenerateModal
           generateQuestions={questionBanksService.generateFromMaterial}
-          onCancel={() => setShowMaterialGenerator(false)}
-          onQuestionsGenerated={handleMaterialQuestionsGenerated}
+          onCancel={editor.closeMaterialGenerator}
+          onQuestionsGenerated={editor.handleGeneratedQuestions}
         />
       )}
     </>

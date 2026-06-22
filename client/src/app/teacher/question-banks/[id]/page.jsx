@@ -8,16 +8,12 @@ import { AlertCircle, ArrowLeft, BookOpen, Check, Edit3, Eye, EyeOff, ListChecks
 import { Button } from "@/components/ui/button";
 import { questionBanksService } from "@/services/question-banks.service";
 
-import { QuestionBanksBadge } from "../_components/question-banks-badge";
+import { formatBankStatus, formatDate, getStatusTone, QuestionBanksBadge } from "../_components/question-banks-badge";
 import { QuestionBanksStatePanel } from "../_components/question-banks-state-panel";
-import { formatBankStatus, formatDate, getStatusTone } from "../_lib/question-banks.formatters";
+import { sortQuestionOptions } from "../_lib/question-bank-editor";
 
 function normalizeParamId(value) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function sortOptions(options = []) {
-  return [...options].sort((left, right) => left.display_order - right.display_order);
 }
 
 export default function QuestionBankDetailPage() {
@@ -201,7 +197,7 @@ function MetadataItem({ label, value }) {
 }
 
 function QuestionCard({ index, isRevealed, onToggleReveal, question }) {
-  const options = sortOptions(question.answer_options);
+  const options = sortQuestionOptions(question.answer_options);
 
   return (
     <article className="grid gap-5 rounded-lg border border-border bg-card p-5 shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">

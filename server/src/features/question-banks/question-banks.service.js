@@ -171,7 +171,6 @@ function buildNewQuestion(questionBankId, teacherId, payload) {
     owner_id: teacherId,
     question_text: payload.question_text,
     explanation: payload.explanation,
-    subject: payload.subject,
     topic: payload.topic,
     chapter: payload.chapter,
     updated_at: new Date().toISOString(),
@@ -259,7 +258,6 @@ function normalizeGeneratedQuestion(question = {}) {
   return {
     question_text: normalizeText(question.question_text) || "",
     explanation: normalizeText(question.explanation) || "",
-    subject: "",
     topic: normalizeText(question.topic) || "",
     chapter: normalizeText(question.chapter) || "",
     options,
@@ -431,7 +429,7 @@ export async function listReadyQuestionBankQuestions(userId, questionBankId) {
   return (data || []).map(sortQuestionAnswerOptions);
 }
 
-export async function getQuestion(userId, questionId) {
+async function getQuestion(userId, questionId) {
   await requireActiveTeacher(userId);
 
   const { data, error } = await questionBanksDao.findOwnedQuestionById(
@@ -447,7 +445,7 @@ export async function getQuestion(userId, questionId) {
   return sortQuestionAnswerOptions(data);
 }
 
-export async function updateQuestion(userId, questionId, payload) {
+async function updateQuestion(userId, questionId, payload) {
   await requireActiveTeacher(userId);
 
   const current = await questionBanksDao.findOwnedQuestionById(
@@ -545,7 +543,7 @@ async function syncQuestionBankQuestions(userId, questionBankId, questions) {
   }
 
   const removedIds = [...existingIds].filter((questionId) => !retainedIds.has(questionId));
-  const deleteResult = await questionBanksDao.softDeleteQuestionsByIds(
+  const deleteResult = await questionBanksDao.archiveQuestionsByIds(
     questionBankId,
     userId,
     removedIds,
@@ -632,4 +630,3 @@ export async function archiveQuestionBank(userId, questionBankId) {
   return data;
 }
 
-export const deleteQuestionBank = archiveQuestionBank;
