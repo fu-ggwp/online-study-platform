@@ -1,8 +1,8 @@
 import {
   archiveQuestionBank,
   createQuestionBank,
-  listAssignedQuestionBankQuestions,
-  listAssignedQuestionBanks,
+  listReadyQuestionBankQuestions,
+  listReadyQuestionBanks,
   getQuestion,
   getQuestionBank,
   listQuestionBankQuestions,
@@ -13,7 +13,7 @@ import {
 } from "./question-banks.service.js";
 
 const savedMessage = "Question bank information has been saved successfully.";
-const allowedEditableStatus = new Set(["Private", "Assigned"]);
+const allowedEditableStatus = new Set(["Draft", "Ready"]);
 
 function getUserId(req) {
   return req.user?.id || req.user?.user_id;
@@ -87,7 +87,7 @@ function validateCreatePayload(body = {}) {
     title,
     description: normalizeNullableText(body.description),
     topic: normalizeNullableText(body.topic),
-    status: status || "Private",
+    status: status || "Draft",
     updated_at: new Date().toISOString(),
     ...(questions !== undefined ? { questions } : {}),
   };
@@ -255,9 +255,9 @@ export async function list(req, res) {
   }
 }
 
-export async function listAssigned(req, res) {
+export async function listReady(req, res) {
   try {
-    const data = await listAssignedQuestionBanks(getUserId(req));
+    const data = await listReadyQuestionBanks(getUserId(req));
     return res.status(200).json({ data });
   } catch (error) {
     return sendError(res, error);
@@ -282,9 +282,9 @@ export async function listQuestions(req, res) {
   }
 }
 
-export async function listAssignedQuestions(req, res) {
+export async function listReadyQuestions(req, res) {
   try {
-    const data = await listAssignedQuestionBankQuestions(getUserId(req), req.params.id);
+    const data = await listReadyQuestionBankQuestions(getUserId(req), req.params.id);
     return res.status(200).json({ data });
   } catch (error) {
     return sendError(res, error);

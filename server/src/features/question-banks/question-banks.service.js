@@ -7,7 +7,7 @@ import * as questionBanksDao from "./question-banks.dao.js";
 const db = supabaseAdmin || supabase;
 const userModel = createUserModel(db);
 
-const allowedStatus = new Set(["Private", "Assigned"]);
+const allowedStatus = new Set(["Draft", "Ready"]);
 const premiumRequiredMessage = "This feature is available for Premium accounts only. Please upgrade to continue.";
 const aiUnavailableMessage = "AI processing is currently unavailable. Please try again later.";
 
@@ -353,10 +353,10 @@ export async function listQuestionBanks(userId, query) {
   };
 }
 
-export async function listAssignedQuestionBanks(userId) {
+export async function listReadyQuestionBanks(userId) {
   await requireActiveTeacher(userId);
 
-  const { data, error } = await questionBanksDao.listAssignedByTeacher(userId);
+  const { data, error } = await questionBanksDao.listReadyByTeacher(userId);
   handleLoadError(error);
 
   return Promise.all((data || []).map(attachQuestionCount));
@@ -378,19 +378,19 @@ export async function getQuestionBank(userId, questionBankId) {
   return attachQuestionCount(data);
 }
 
-export async function getAssignedQuestionBank(userId, questionBankId) {
+export async function getReadyQuestionBank(userId, questionBankId) {
   await requireActiveTeacher(userId);
 
-  const { data, error } = await questionBanksDao.findAssignedOwnedById(
+  const { data, error } = await questionBanksDao.findReadyOwnedById(
     questionBankId,
     userId,
   );
   handleLoadError(error);
 
   if (!data) {
-    throw serviceError("Select one of your assigned question banks.", 400, {
-      questionBankId: "Select one of your assigned question banks.",
-      question_bank_id: "Select one of your assigned question banks.",
+    throw serviceError("Select one of your ready question banks.", 400, {
+      questionBankId: "Select one of your ready question banks.",
+      question_bank_id: "Select one of your ready question banks.",
     });
   }
 
@@ -419,8 +419,8 @@ export async function listQuestionBankQuestions(userId, questionBankId) {
   return (data || []).map(sortQuestionAnswerOptions);
 }
 
-export async function listAssignedQuestionBankQuestions(userId, questionBankId) {
-  await getAssignedQuestionBank(userId, questionBankId);
+export async function listReadyQuestionBankQuestions(userId, questionBankId) {
+  await getReadyQuestionBank(userId, questionBankId);
 
   const { data, error } = await questionBanksDao.listQuestionsByBank(
     questionBankId,
