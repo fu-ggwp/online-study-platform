@@ -3,8 +3,8 @@
 export const QUESTION_BANK_TABLE = "question_banks";
 
 export const QuestionBankStatus = Object.freeze({
-  PRIVATE: "Private",
-  ASSIGNED: "Assigned",
+  DRAFT: "Draft",
+  READY: "Ready",
   DELETED: "Deleted",
 });
 
@@ -15,7 +15,7 @@ export const QuestionBankStatus = Object.freeze({
  * @property {string} title
  * @property {string} [description]
  * @property {string} [topic]
- * @property {"Private"|"Assigned"|"Deleted"} status
+ * @property {"Draft"|"Ready"|"Deleted"} status
  * @property {string} created_at
  * @property {string} updated_at
  * @property {string} [deleted_at]
