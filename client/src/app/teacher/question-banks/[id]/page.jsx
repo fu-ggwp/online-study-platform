@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, BookOpen, Check, Edit3, Eye, EyeOff, ListChecks } from "lucide-react";
+import { AlertCircle, ArrowLeft, BookOpen, Check, ChevronDown, ChevronRight, Edit3, Eye, EyeOff, ListChecks } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { questionBanksService } from "@/services/question-banks.service";
 
 import { formatBankStatus, formatDate, getStatusTone, QuestionBanksBadge } from "../_components/question-banks-badge";
 import { QuestionBanksStatePanel } from "../_components/question-banks-state-panel";
-import { sortQuestionOptions } from "../_lib/question-bank-editor";
+import { groupQuestionsByChapter, sortQuestionOptions } from "../_lib/question-bank-editor";
 
 function normalizeParamId(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -27,6 +27,9 @@ export default function QuestionBankDetailPage() {
   const [error, setError] = useState("");
   const [showAllAnswers, setShowAllAnswers] = useState(false);
   const [revealedQuestions, setRevealedQuestions] = useState(new Set());
+  const [collapsedChapters, setCollapsedChapters] = useState({});
+
+  const questionGroups = useMemo(() => groupQuestionsByChapter(questions), [questions]);
 
   useEffect(() => {
     if (!questionBankId) return;
@@ -49,6 +52,7 @@ export default function QuestionBankDetailPage() {
         setQuestions(questionRows || []);
         setShowAllAnswers(false);
         setRevealedQuestions(new Set());
+        setCollapsedChapters({});
       } catch (err) {
         if (ignore) return;
 
@@ -84,6 +88,13 @@ export default function QuestionBankDetailPage() {
   function toggleAllAnswers() {
     setShowAllAnswers((current) => !current);
     setRevealedQuestions(new Set());
+  }
+
+  function toggleChapter(chapter) {
+    setCollapsedChapters((current) => ({
+      ...current,
+      [chapter]: !current[chapter],
+    }));
   }
 
   if (loading) {
@@ -171,15 +182,41 @@ export default function QuestionBankDetailPage() {
           />
         ) : (
           <div className="space-y-4">
-            {questions.map((question, index) => (
-              <QuestionCard
-                index={index}
-                isRevealed={showAllAnswers || revealedQuestions.has(question.question_id)}
-                key={question.question_id}
-                onToggleReveal={toggleRevealQuestion}
-                question={question}
-              />
-            ))}
+            {questionGroups.map((group) => {
+              const isExpanded = !collapsedChapters[group.chapter];
+
+              return (
+                <section key={group.chapter} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                  <button
+                    className="flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left hover:bg-muted/50"
+                    onClick={() => toggleChapter(group.chapter)}
+                    type="button"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      {isExpanded ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
+                      <span className="truncate text-sm font-bold text-foreground">{group.chapter}</span>
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                      {group.questions.length} {group.questions.length === 1 ? "question" : "questions"}
+                    </span>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="space-y-4 p-4">
+                      {group.questions.map(({ question, index }) => (
+                        <QuestionCard
+                          index={index}
+                          isRevealed={showAllAnswers || revealedQuestions.has(question.question_id)}
+                          key={question.question_id}
+                          onToggleReveal={toggleRevealQuestion}
+                          question={question}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
           </div>
         )}
       </section>

@@ -13,12 +13,35 @@ export function emptyOption(label = "") {
   return { option_text: label, is_correct: false };
 }
 
+export function getQuestionChapterLabel(question) {
+  return question?.chapter?.trim() || "No Chapter";
+}
+
+export function groupQuestionsByChapter(questions = [], getGroupKey = getQuestionChapterLabel) {
+  const groups = [];
+  const groupIndexes = new Map();
+
+  questions.forEach((question, index) => {
+    const chapter = getGroupKey(question) || "No Chapter";
+
+    if (!groupIndexes.has(chapter)) {
+      groupIndexes.set(chapter, groups.length);
+      groups.push({ chapter, questions: [] });
+    }
+
+    groups[groupIndexes.get(chapter)].questions.push({ question, index });
+  });
+
+  return groups;
+}
+
 export function emptyQuestion() {
   return {
     question_text: "",
     explanation: "",
     topic: "",
     chapter: "",
+    groupChapter: "No Chapter",
     options: [emptyOption(), emptyOption()],
   };
 }
@@ -47,6 +70,7 @@ export function toQuestionDraft(question) {
     explanation: question?.explanation || "",
     topic: question?.topic || "",
     chapter: question?.chapter || "",
+    groupChapter: getQuestionChapterLabel(question),
     options: normalizeMultipleChoiceOptions(sourceOptions),
   };
 }
@@ -183,6 +207,7 @@ export function useQuestionBankEditorState({
       explanation: question.explanation || "",
       topic: question.topic || "",
       chapter: question.chapter || "",
+      groupChapter: getQuestionChapterLabel(question),
       options: normalizeMultipleChoiceOptions(question.options || question.answer_options || []),
     }));
 
