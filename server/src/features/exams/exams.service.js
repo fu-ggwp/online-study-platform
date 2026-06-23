@@ -5,11 +5,14 @@ import {
   ExamSessionStatus,
   EXAM_SESSION_CONFIG_COLUMNS,
 } from "../../models/exam.model.js";
+import { ExamAttemptStatus } from "../../models/exam-attempt.model.js";
 import {
   getReadyQuestionBank,
   listReadyQuestionBankQuestions,
 } from "../question-banks/question-banks.service.js";
 import * as dao from "./exams.dao.js";
+import { notifyExamPublished } from "../../utils/notification.service.js";
+import { logger } from "../../utils/logger.js";
 
 const createSavedMessage = "Exam session has been created successfully.";
 const settingsSavedMessage = "Exam settings have been updated successfully.";
@@ -189,19 +192,19 @@ function shuffle(items) {
 }
 
 // Store a frozen copy so later bank edits do not change this exam.
-function toExamQuestionRows(examSessionId, questions, randomizeAnswers) {
+function toExamQuestionRows(examSessionId, questions) {
   return questions.map((question, index) => {
     const options = [...(question.answer_options ?? [])].sort(
       (left, right) => left.display_order - right.display_order
     );
-    const orderedOptions = randomizeAnswers ? shuffle(options) : options;
+    const orderedOptions = options;
 
     return {
       exam_session_id: examSessionId,
       source_question_id: question.question_id,
       question_text: question.question_text,
-      question_type: "multiple_choice",
-      score: 1,
+      question_type: question.question_type || "multiple_choice",
+      score: question.score || 1,
       explanation: question.explanation || null,
       subject: question.subject || null,
       topic: question.topic || null,
@@ -216,6 +219,29 @@ function toExamQuestionRows(examSessionId, questions, randomizeAnswers) {
       display_order: index + 1,
     };
   });
+}
+
+// Notify all active learners in the exam's class that it was published (UC-46).
+// Non-blocking + guarded so a notification failure never breaks publish.
+async function notifyExamSessionPublished(exam) {
+  try {
+    if (!exam?.class_id) return;
+    const { data: members, error } = await dao.listActiveClassMemberEmails(exam.class_id);
+    if (error) {
+      logger.error("Failed to load exam class members for notification:", error.message);
+      return;
+    }
+    const learners = (members || []).map((member) => member.learner).filter(Boolean);
+    if (learners.length === 0) return;
+    await notifyExamPublished({
+      learners,
+      examTitle: exam.title,
+      className: exam.classes?.class_name,
+      startAt: exam.start_at,
+    });
+  } catch (err) {
+    logger.error("Failed to notify learners of exam publish:", err.message);
+  }
 }
 
 // List teacher exams and close old active sessions before returning them.
@@ -291,6 +317,12 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
 
   if (error) throw dbError(error);
   if (!data) throw notFound();
+
+  // Publishing = transitioning draft -> active. Notify class learners (UC-46).
+  if (isActivating) {
+    notifyExamSessionPublished(data);
+  }
+
   return { message: settingsSavedMessage, exam: data };
 }
 
@@ -327,15 +359,19 @@ export async function createExamSession(teacherId, payload = {}) {
   });
   if (examError) throw dbError(examError);
 
-  const orderedQuestions = normalized.randomize_questions ? shuffle(questions) : questions;
-  const selectedQuestions = orderedQuestions.slice(0, normalized.question_count);
+  const selectedQuestions = shuffle(questions).slice(0, normalized.question_count);
   const { data: examQuestions, error: questionError } = await dao.insertExamQuestions(
-    toExamQuestionRows(examSession.exam_session_id, selectedQuestions, normalized.randomize_answers)
+    toExamQuestionRows(examSession.exam_session_id, selectedQuestions)
   );
 
   if (questionError) {
     await dao.deleteExamSession(examSession.exam_session_id);
     throw dbError(questionError);
+  }
+
+  // If the exam is created already published (active), notify class learners.
+  if (examSession.status === ExamSessionStatus.ACTIVE) {
+    notifyExamSessionPublished(examSession);
   }
 
   return {
@@ -447,4 +483,259 @@ export async function getLearnerExamDetail(examSessionId, learnerId) {
     attempts_used: attempts?.length ?? 0,
     attempts_remaining: Math.max(Number(data.attempt_limit || 0) - (attempts?.length ?? 0), 0),
   };
+}
+
+function nowMs() {
+  return Date.now();
+}
+
+function isWithinExamWindow(exam, now = nowMs()) {
+  const start = exam.start_at ? new Date(exam.start_at).getTime() : null;
+  const end = exam.end_at ? new Date(exam.end_at).getTime() : null;
+  return (!start || start <= now) && (!end || now <= end);
+}
+
+function expiresAtForAttempt(exam, startedAt) {
+  const started = new Date(startedAt).getTime();
+  const durationEnd = started + Number(exam.duration_minutes || 0) * 60 * 1000;
+  const sessionEnd = exam.end_at ? new Date(exam.end_at).getTime() : durationEnd;
+  return new Date(Math.min(durationEnd, sessionEnd)).toISOString();
+}
+
+function remainingSeconds(attempt) {
+  const expires = new Date(attempt.expires_at).getTime();
+  if (!Number.isFinite(expires)) return 0;
+  return Math.max(Math.ceil((expires - nowMs()) / 1000), 0);
+}
+
+function sameIndexes(left = [], right = []) {
+  if (left.length !== right.length) return false;
+  const sortedLeft = [...left].map(Number).sort((a, b) => a - b);
+  const sortedRight = [...right].map(Number).sort((a, b) => a - b);
+  return sortedLeft.every((value, index) => value === sortedRight[index]);
+}
+
+function buildAttemptOrder(exam, questions) {
+  const orderedQuestions = exam.randomize_questions ? shuffle(questions) : [...questions];
+  const questionOrder = orderedQuestions.map((question) => question.exam_question_id);
+  const answerOrder = {};
+
+  questions.forEach((question) => {
+    const options = Array.isArray(question.answer_options_json) ? question.answer_options_json : [];
+    const indexes = options.map((option, index) => Number(option.index ?? index));
+    answerOrder[question.exam_question_id] = exam.randomize_answers ? shuffle(indexes) : indexes;
+  });
+
+  return { questionOrder, answerOrder };
+}
+
+function visibleQuestions(questions, attempt) {
+  const byId = new Map(questions.map((question) => [question.exam_question_id, question]));
+  const orderedIds = attempt.question_order?.length
+    ? attempt.question_order
+    : questions.map((question) => question.exam_question_id);
+
+  return orderedIds.map((id) => byId.get(id)).filter(Boolean).map((question) => {
+    const options = Array.isArray(question.answer_options_json) ? question.answer_options_json : [];
+    const optionsByIndex = new Map(options.map((option, index) => [Number(option.index ?? index), option]));
+    const order = attempt.answer_order?.[question.exam_question_id] ?? options.map((option, index) => Number(option.index ?? index));
+
+    return {
+      exam_question_id: question.exam_question_id,
+      question_text: question.question_text,
+      question_type: question.question_type,
+      score: question.score,
+      display_order: question.display_order,
+      answer_options: order.map((optionIndex) => {
+        const option = optionsByIndex.get(Number(optionIndex));
+        return { index: Number(optionIndex), text: option?.text || "" };
+      }),
+    };
+  });
+}
+
+async function getLearnerClassIds(learnerId) {
+  const { data, error } = await dao.listActiveClassMemberships(learnerId);
+  if (error) throw dbError(error, 500);
+  return (data ?? []).map((item) => item.class_id).filter(Boolean);
+}
+
+async function getLearnerExamOrFail(examSessionId, learnerId) {
+  const classIds = await getLearnerClassIds(learnerId);
+  const { data, error } = await dao.findLearnerExamSession(examSessionId, classIds);
+  if (error) throw dbError(error, 500);
+  if (!data) throw fail("This exam is not available to you at this time.", 403);
+  return data;
+}
+
+async function buildAttemptPayload(attempt, exam) {
+  const { data: questions, error: questionError } = await dao.listExamQuestions(attempt.exam_session_id);
+  if (questionError) throw dbError(questionError, 500);
+
+  const { data: answers, error: answerError } = await dao.listExamAttemptAnswers(attempt.exam_attempt_id);
+  if (answerError) throw dbError(answerError, 500);
+
+  return {
+    exam,
+    attempt: {
+      ...attempt,
+      remaining_seconds: remainingSeconds(attempt),
+    },
+    questions: visibleQuestions(questions ?? [], attempt),
+    answers: answers ?? [],
+  };
+}
+
+async function autoSubmitIfExpired(attempt, exam) {
+  if (attempt.status !== ExamAttemptStatus.IN_PROGRESS || remainingSeconds(attempt) > 0) return attempt;
+  return submitLearnerExamAttempt(attempt.exam_attempt_id, attempt.learner_id, true, exam);
+}
+
+export async function startLearnerExamAttempt(examSessionId, learnerId, payload = {}) {
+  requireUser(learnerId);
+  const exam = await getLearnerExamOrFail(examSessionId, learnerId);
+
+  if (!isWithinExamWindow(exam)) throw fail("This exam is not available to you at this time.", 403);
+  if (exam.access_code && text(payload.access_code).toUpperCase() !== exam.access_code.toUpperCase()) {
+    throw fail("The exam access code is invalid.", 403);
+  }
+
+  const { data: existingAttempt, error: existingError } = await dao.findInProgressExamAttempt(examSessionId, learnerId);
+  if (existingError) throw dbError(existingError, 500);
+  if (existingAttempt) {
+    const current = await autoSubmitIfExpired(existingAttempt, exam);
+    if (current.status === ExamAttemptStatus.IN_PROGRESS) return buildAttemptPayload(current, exam);
+  }
+
+  const { data: attempts, error: attemptError } = await dao.listLearnerExamAttempts(examSessionId, learnerId);
+  if (attemptError) throw dbError(attemptError, 500);
+  if ((attempts?.length ?? 0) >= Number(exam.attempt_limit || 1)) {
+    throw fail("This exam is not available to you at this time.", 403);
+  }
+
+  const { data: questions, error: questionError } = await dao.listExamQuestions(examSessionId);
+  if (questionError) throw dbError(questionError, 500);
+  if (!questions?.length) throw fail("No exam questions are available.", 400);
+
+  const startedAt = new Date().toISOString();
+  const { questionOrder, answerOrder } = buildAttemptOrder(exam, questions);
+  const maxScore = questions.reduce((sum, question) => sum + Number(question.score || 0), 0);
+
+  const { data: attempt, error } = await dao.insertExamAttempt({
+    exam_session_id: examSessionId,
+    learner_id: learnerId,
+    attempt_number: (attempts?.length ?? 0) + 1,
+    started_at: startedAt,
+    expires_at: expiresAtForAttempt(exam, startedAt),
+    status: ExamAttemptStatus.IN_PROGRESS,
+    is_auto_submitted: false,
+    question_order: questionOrder,
+    answer_order: answerOrder,
+    warning_count: 0,
+    total_score: 0,
+    max_score: maxScore,
+  });
+  if (error) throw dbError(error);
+
+  return buildAttemptPayload(attempt, exam);
+}
+
+export async function getLearnerExamAttempt(examAttemptId, learnerId) {
+  requireUser(learnerId);
+  const { data: attempt, error } = await dao.findLearnerExamAttempt(examAttemptId, learnerId);
+  if (error) throw dbError(error, 500);
+  if (!attempt) throw notFound("Exam attempt not found");
+
+  const exam = await getLearnerExamOrFail(attempt.exam_session_id, learnerId);
+  const current = await autoSubmitIfExpired(attempt, exam);
+  return buildAttemptPayload(current, exam);
+}
+
+export async function saveLearnerExamAnswer(examAttemptId, learnerId, payload = {}) {
+  requireUser(learnerId);
+  const { data: attempt, error } = await dao.findLearnerExamAttempt(examAttemptId, learnerId);
+  if (error) throw dbError(error, 500);
+  if (!attempt) throw notFound("Exam attempt not found");
+  if (attempt.status !== ExamAttemptStatus.IN_PROGRESS) throw fail("This attempt has already been submitted.", 409);
+  if (remainingSeconds(attempt) <= 0) throw fail("Time is up.", 409);
+
+  const { data: questions, error: questionError } = await dao.listExamQuestions(attempt.exam_session_id);
+  if (questionError) throw dbError(questionError, 500);
+  const question = (questions ?? []).find((item) => item.exam_question_id === payload.exam_question_id);
+  if (!question) throw fail("Question is not part of this attempt.", 400);
+
+  const selected = Array.isArray(payload.selected_exam_option_indexes)
+    ? payload.selected_exam_option_indexes.map(Number).filter(Number.isFinite)
+    : [];
+  const isCorrect = sameIndexes(selected, question.correct_option_indexes ?? []);
+  const { data, error: answerError } = await dao.upsertExamAttemptAnswer({
+    exam_attempt_id: examAttemptId,
+    exam_question_id: question.exam_question_id,
+    selected_exam_option_indexes: selected,
+    is_correct: isCorrect,
+    score_awarded: isCorrect ? Number(question.score || 0) : 0,
+    review_status: "unreviewed",
+    answered_at: new Date().toISOString(),
+  });
+  if (answerError) throw dbError(answerError);
+  return data;
+}
+
+export async function submitLearnerExamAttempt(examAttemptId, learnerId, auto = false, knownExam = null) {
+  requireUser(learnerId);
+  const { data: attempt, error } = await dao.findLearnerExamAttempt(examAttemptId, learnerId);
+  if (error) throw dbError(error, 500);
+  if (!attempt) throw notFound("Exam attempt not found");
+  const exam = knownExam || await getLearnerExamOrFail(attempt.exam_session_id, learnerId);
+  if (attempt.status === ExamAttemptStatus.SUBMITTED) {
+    return { ...attempt, result_visibility: exam.result_visibility };
+  }
+  const { data: answers, error: answerError } = await dao.listExamAttemptAnswers(examAttemptId);
+  if (answerError) throw dbError(answerError, 500);
+  const totalScore = (answers ?? []).reduce((sum, answer) => sum + Number(answer.score_awarded || 0), 0);
+
+  const { data, error: updateError } = await dao.updateExamAttempt(examAttemptId, {
+    status: ExamAttemptStatus.SUBMITTED,
+    is_auto_submitted: Boolean(auto),
+    submitted_at: new Date().toISOString(),
+    total_score: totalScore,
+    updated_at: new Date().toISOString(),
+  });
+  if (updateError) throw dbError(updateError);
+
+  return {
+    ...data,
+    result_visibility: exam.result_visibility,
+  };
+}
+
+export async function recordLearnerExamEvent(examAttemptId, learnerId, payload = {}) {
+  requireUser(learnerId);
+  const eventType = text(payload.event_type);
+  const eventTypes = new Set(["tab_hidden", "tab_visible", "window_blur", "window_focus", "fullscreen_exit", "zoom_changed"]);
+  const warningTypes = new Set(["tab_hidden", "window_blur", "fullscreen_exit", "zoom_changed"]);
+  if (!eventTypes.has(eventType)) throw fail("Invalid exam event type.", 400);
+
+  const { data: attempt, error } = await dao.findLearnerExamAttempt(examAttemptId, learnerId);
+  if (error) throw dbError(error, 500);
+  if (!attempt) throw notFound("Exam attempt not found");
+  if (attempt.status !== ExamAttemptStatus.IN_PROGRESS) return attempt;
+
+  const { error: eventError } = await dao.insertExamAttemptEvent({
+    exam_attempt_id: examAttemptId,
+    event_type: eventType,
+    occurred_at: new Date().toISOString(),
+  });
+  if (eventError) throw dbError(eventError);
+
+  if (!warningTypes.has(eventType)) return attempt;
+  const { count, error: countError } = await dao.countExamAttemptWarningEvents(examAttemptId);
+  if (countError) throw dbError(countError, 500);
+
+  const { data, error: updateError } = await dao.updateExamAttempt(examAttemptId, {
+    warning_count: count ?? Number(attempt.warning_count || 0) + 1,
+    updated_at: new Date().toISOString(),
+  });
+  if (updateError) throw dbError(updateError);
+  return data;
 }

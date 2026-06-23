@@ -1,5 +1,41 @@
 import * as dao from "./study-sets.dao.js";
 import { buildPaginatedResponse } from "../../utils/pagination.js";
+import { notifyStudySetAssigned } from "../../utils/notification.service.js";
+import { logger } from "../../utils/logger.js";
+
+// Resolve the "Notify learners after assignment" flag (UC-45 checkbox).
+// Accepts camelCase or snake_case; defaults to true when unspecified.
+function shouldNotify(payload = {}) {
+  const flag = payload.notifyLearners ?? payload.notify_learners;
+  return flag === undefined ? true : Boolean(flag);
+}
+
+// Email active learners of the target classes that a study set was assigned.
+// Fully guarded + non-blocking: a notification failure never breaks assignment.
+async function notifyAssignment(targetClassIds, studySetTitle, options = {}) {
+  try {
+    if (!targetClassIds?.length || !options.notify) return;
+
+    const [{ data: members }, { data: classes }] = await Promise.all([
+      dao.getActiveClassMemberEmails(targetClassIds),
+      dao.getClassNamesByIds(targetClassIds),
+    ]);
+
+    const learners = (members || []).map((m) => m.learner).filter(Boolean);
+    if (learners.length === 0) return;
+
+    const className = (classes || []).map((c) => c.class_name).filter(Boolean).join(", ");
+    await notifyStudySetAssigned({
+      learners,
+      studySetTitle,
+      className,
+      instructions: options.instructions,
+      dueAt: options.dueAt,
+    });
+  } catch (err) {
+    logger.error("Failed to notify learners of study set assignment:", err.message);
+  }
+}
 
 function dbError(error, status = 400) {
   return Object.assign(new Error(error.message), { status });
@@ -103,8 +139,9 @@ export async function getOne(id) {
 // Tạo mới 1 study set
 export async function create(
   teacherId,
-  { title, description, visibility, classId, questionBankId, questions },
+  payload,
 ) {
+  const { title, description, visibility, classId, questionBankId, questions } = payload;
   if (!title?.trim()) {
     throw Object.assign(new Error("Title is required"), { status: 422 });
   }
@@ -186,6 +223,12 @@ export async function create(
     if (assignError) {
       throw dbError(assignError);
     }
+
+    notifyAssignment(targetClassIds, studySet.title, {
+      notify: shouldNotify(payload),
+      instructions: payload.instructions,
+      dueAt: payload.dueAt ?? payload.due_at,
+    });
   }
 
   return studySet;
@@ -198,7 +241,19 @@ export async function update(id, teacherId, changes) {
     throw Object.assign(new Error("Forbidden"), { status: 403 });
   }
 
-  const { questions, classId, questionBankId, ...metadataChanges } = changes;
+  // Pull notification-only fields out of `changes` so they are never written
+  // to study_sets columns (they are not columns) in metadataChanges below.
+  const {
+    questions,
+    classId,
+    questionBankId,
+    notifyLearners,
+    notify_learners,
+    instructions: assignInstructions,
+    dueAt: assignDueAt,
+    due_at: assignDueAtSnake,
+    ...metadataChanges
+  } = changes;
 
   if (questionBankId !== undefined) {
     metadataChanges.source_question_bank_id = questionBankId;
@@ -230,6 +285,12 @@ export async function update(id, teacherId, changes) {
       if (assignError) {
         throw dbError(assignError);
       }
+
+      notifyAssignment(targetClassIds, set.title, {
+        notify: shouldNotify({ notifyLearners, notify_learners }),
+        instructions: assignInstructions,
+        dueAt: assignDueAt ?? assignDueAtSnake,
+      });
     }
   } else if (changes.visibility && changes.visibility !== "class_only") {
     const { error: delAssignError } = await dao.deleteAssignments(id);

@@ -1,10 +1,12 @@
 import supabase, { supabaseAdmin } from "../../config/supabase.js";
 import { CLASS_TABLE } from "../../models/class.model.js";
+import { ATTEMPT_ANSWER_TABLE } from "../../models/attempt-answer.model.js";
 import { CLASS_MEMBER_TABLE } from "../../models/join-request.model.js";
 import { EXAM_ATTEMPT_TABLE } from "../../models/exam-attempt.model.js";
 import { EXAM_QUESTION_TABLE, EXAM_SESSION_TABLE } from "../../models/exam.model.js";
 
 const db = supabaseAdmin ?? supabase;
+const EXAM_ATTEMPT_EVENT_TABLE = "exam_attempt_events";
 
 const EXAM_SESSION_SELECT = `
   exam_session_id,
@@ -253,6 +255,16 @@ export function listActiveClassMemberships(learnerId) {
     .eq("status", "active");
 }
 
+// Active members (with contact info) of a class — used to notify learners when
+// an exam session is published.
+export function listActiveClassMemberEmails(classId) {
+  return db
+    .from(CLASS_MEMBER_TABLE)
+    .select("learner:users!learner_id(email, full_name)")
+    .eq("class_id", classId)
+    .eq("status", "active");
+}
+
 export async function listLearnerExamSessions(classIds) {
   if (!classIds.length) return { data: [], error: null };
 
@@ -294,8 +306,77 @@ export function findLearnerExamSession(examSessionId, classIds) {
 export function listLearnerExamAttempts(examSessionId, learnerId) {
   return db
     .from(EXAM_ATTEMPT_TABLE)
-    .select("exam_attempt_id, attempt_number, status, started_at, submitted_at, total_score, max_score")
+    .select("exam_attempt_id, attempt_number, status, started_at, expires_at, submitted_at, total_score, max_score, warning_count")
     .eq("exam_session_id", examSessionId)
     .eq("learner_id", learnerId)
     .order("attempt_number", { ascending: true });
+}
+
+export function listExamQuestions(examSessionId) {
+  return db
+    .from(EXAM_QUESTION_TABLE)
+    .select("*")
+    .eq("exam_session_id", examSessionId)
+    .order("display_order", { ascending: true });
+}
+
+export function insertExamAttempt(payload) {
+  return db.from(EXAM_ATTEMPT_TABLE).insert(payload).select("*").single();
+}
+
+export function findLearnerExamAttempt(examAttemptId, learnerId) {
+  return db
+    .from(EXAM_ATTEMPT_TABLE)
+    .select("*")
+    .eq("exam_attempt_id", examAttemptId)
+    .eq("learner_id", learnerId)
+    .maybeSingle();
+}
+
+export function findInProgressExamAttempt(examSessionId, learnerId) {
+  return db
+    .from(EXAM_ATTEMPT_TABLE)
+    .select("*")
+    .eq("exam_session_id", examSessionId)
+    .eq("learner_id", learnerId)
+    .eq("status", "in_progress")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+}
+
+export function updateExamAttempt(examAttemptId, changes) {
+  return db
+    .from(EXAM_ATTEMPT_TABLE)
+    .update(changes)
+    .eq("exam_attempt_id", examAttemptId)
+    .select("*")
+    .single();
+}
+
+export function listExamAttemptAnswers(examAttemptId) {
+  return db
+    .from(ATTEMPT_ANSWER_TABLE)
+    .select("*")
+    .eq("exam_attempt_id", examAttemptId);
+}
+
+export function upsertExamAttemptAnswer(payload) {
+  return db
+    .from(ATTEMPT_ANSWER_TABLE)
+    .upsert(payload, { onConflict: "exam_attempt_id,exam_question_id" })
+    .select("*")
+    .single();
+}
+
+export function insertExamAttemptEvent(payload) {
+  return db.from(EXAM_ATTEMPT_EVENT_TABLE).insert(payload).select("*").single();
+}
+
+export function countExamAttemptWarningEvents(examAttemptId) {
+  return db
+    .from(EXAM_ATTEMPT_EVENT_TABLE)
+    .select("exam_attempt_event_id", { count: "exact", head: true })
+    .eq("exam_attempt_id", examAttemptId)
+    .in("event_type", ["tab_hidden", "window_blur", "fullscreen_exit", "zoom_changed"]);
 }

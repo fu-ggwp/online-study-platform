@@ -16,7 +16,7 @@ export async function sendEmail({ to, subject, htmlContent }) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      sender: { email: process.env.EMAIL_FROM_ADDRESS, name: "Smart Quiz Platform" },
+      sender: { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME },
       to: [{ email: to }],
       subject,
       htmlContent,

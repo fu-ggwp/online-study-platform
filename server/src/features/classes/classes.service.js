@@ -19,9 +19,12 @@ import {
   getActiveMemberCounts,
   findMemberByClassAndLearner,
   reactivateClassMember,
+  getUserById,
 } from "./classes.dao.js";
 import { ClassJoinPolicy } from "../../models/class.model.js";
 import { JoinRequestStatus, ClassMemberStatus } from "../../models/join-request.model.js";
+import { notifyJoinRequestResolved } from "../../utils/notification.service.js";
+import { logger } from "../../utils/logger.js";
 
 /**
  * Generate a random 6-character uppercase alphanumeric class code (e.g. "AB3X9Z").
@@ -188,7 +191,32 @@ export async function resolveJoinRequest(requestId, status, reviewerId) {
     await addOrReactivateMember(request.class_id, request.learner_id);
   }
 
+  // Notify the learner of the approval/rejection (UC-31). Fire-and-forget:
+  // a notification failure must never affect the resolve outcome.
+  notifyLearnerOfResolution(request.class_id, request.learner_id, status);
+
   return updated;
+}
+
+/**
+ * Look up the learner + class, then email the learner about the resolution.
+ * Non-blocking and fully guarded so notification errors are swallowed.
+ */
+async function notifyLearnerOfResolution(classId, learnerId, status) {
+  try {
+    const [{ data: cls }, { data: learner }] = await Promise.all([
+      getClassById(classId),
+      getUserById(learnerId),
+    ]);
+    if (!learner?.email) return;
+    await notifyJoinRequestResolved({
+      learner,
+      className: cls?.class_name || "your class",
+      status,
+    });
+  } catch (err) {
+    logger.error("Failed to notify learner of join request resolution:", err.message);
+  }
 }
 
 /**

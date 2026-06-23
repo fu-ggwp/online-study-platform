@@ -1,4 +1,4 @@
-import supabase from "../../config/supabase.js";
+import supabase, { supabaseAdmin } from "../../config/supabase.js";
 import { STUDY_SET_TABLE } from "../../models/study-set.model.js";
 import { PRACTICE_ATTEMPT_TABLE } from "../../models/practice-attempt.model.js";
 import { ATTEMPT_ANSWER_TABLE } from "../../models/attempt-answer.model.js";
@@ -323,4 +323,31 @@ export function deleteAssignments(studySetId) {
     .from(STUDY_SET_ASSIGNMENT_TABLE)
     .delete()
     .eq("study_set_id", studySetId);
+}
+
+// Active members (with contact info) of one or more classes — used to notify
+// learners after a study set is assigned. Admin client bypasses RLS so emails
+// of other users can be read server-side.
+export function getActiveClassMemberEmails(classIds) {
+  if (!classIds || classIds.length === 0) {
+    return Promise.resolve({ data: [], error: null });
+  }
+  const db = supabaseAdmin ?? supabase;
+  return db
+    .from(CLASS_MEMBER_TABLE)
+    .select("learner:users!learner_id(email, full_name)")
+    .in("class_id", classIds)
+    .eq("status", "active");
+}
+
+// Class names for a set of class IDs (for the notification body).
+export function getClassNamesByIds(classIds) {
+  if (!classIds || classIds.length === 0) {
+    return Promise.resolve({ data: [], error: null });
+  }
+  const db = supabaseAdmin ?? supabase;
+  return db
+    .from("classes")
+    .select("class_id, class_name")
+    .in("class_id", classIds);
 }
