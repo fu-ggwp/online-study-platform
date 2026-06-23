@@ -273,6 +273,19 @@ export async function findMemberByClassAndLearner(classId, learnerId) {
 }
 
 /**
+ * Get a single user's contact info (used to notify a learner).
+ */
+export async function getUserById(userId) {
+  const { data, error } = await supabaseAdmin
+    .from("users")
+    .select("user_id, email, full_name")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return { data, error };
+}
+
+/**
  * Reactivate a previously-removed membership row: status -> "active",
  * removed_at -> null, joined_at refreshed to now.
  */
