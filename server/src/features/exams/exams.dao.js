@@ -255,6 +255,16 @@ export function listActiveClassMemberships(learnerId) {
     .eq("status", "active");
 }
 
+// Active members (with contact info) of a class — used to notify learners when
+// an exam session is published.
+export function listActiveClassMemberEmails(classId) {
+  return db
+    .from(CLASS_MEMBER_TABLE)
+    .select("learner:users!learner_id(email, full_name)")
+    .eq("class_id", classId)
+    .eq("status", "active");
+}
+
 export async function listLearnerExamSessions(classIds) {
   if (!classIds.length) return { data: [], error: null };
 

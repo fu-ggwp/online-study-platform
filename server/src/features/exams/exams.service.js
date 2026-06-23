@@ -11,6 +11,8 @@ import {
   listReadyQuestionBankQuestions,
 } from "../question-banks/question-banks.service.js";
 import * as dao from "./exams.dao.js";
+import { notifyExamPublished } from "../../utils/notification.service.js";
+import { logger } from "../../utils/logger.js";
 
 const createSavedMessage = "Exam session has been created successfully.";
 const settingsSavedMessage = "Exam settings have been updated successfully.";
@@ -219,6 +221,29 @@ function toExamQuestionRows(examSessionId, questions) {
   });
 }
 
+// Notify all active learners in the exam's class that it was published (UC-46).
+// Non-blocking + guarded so a notification failure never breaks publish.
+async function notifyExamSessionPublished(exam) {
+  try {
+    if (!exam?.class_id) return;
+    const { data: members, error } = await dao.listActiveClassMemberEmails(exam.class_id);
+    if (error) {
+      logger.error("Failed to load exam class members for notification:", error.message);
+      return;
+    }
+    const learners = (members || []).map((member) => member.learner).filter(Boolean);
+    if (learners.length === 0) return;
+    await notifyExamPublished({
+      learners,
+      examTitle: exam.title,
+      className: exam.classes?.class_name,
+      startAt: exam.start_at,
+    });
+  } catch (err) {
+    logger.error("Failed to notify learners of exam publish:", err.message);
+  }
+}
+
 // List teacher exams and close old active sessions before returning them.
 export async function listTeacherExamSessions(teacherId, filters = {}) {
   requireUser(teacherId);
@@ -292,6 +317,12 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
 
   if (error) throw dbError(error);
   if (!data) throw notFound();
+
+  // Publishing = transitioning draft -> active. Notify class learners (UC-46).
+  if (isActivating) {
+    notifyExamSessionPublished(data);
+  }
+
   return { message: settingsSavedMessage, exam: data };
 }
 
@@ -336,6 +367,11 @@ export async function createExamSession(teacherId, payload = {}) {
   if (questionError) {
     await dao.deleteExamSession(examSession.exam_session_id);
     throw dbError(questionError);
+  }
+
+  // If the exam is created already published (active), notify class learners.
+  if (examSession.status === ExamSessionStatus.ACTIVE) {
+    notifyExamSessionPublished(examSession);
   }
 
   return {
