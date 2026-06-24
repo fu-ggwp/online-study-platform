@@ -10,3 +10,23 @@ export function QuestionBanksBadge({ children, tone }) {
 
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${toneClass}`}>{children}</span>;
 }
+
+export function formatDate(value) {
+  if (!value) return "Not updated";
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+export function formatBankStatus(value) {
+  if (!value) return "None";
+  return value.charAt(0).toUpperCase() + value.slice(1).replaceAll("_", " ");
+}
+
+export function getStatusTone(value) {
+  if (value === "Ready") return "green";
+  if (value === "Deleted") return "red";
+  return "neutral";
+}

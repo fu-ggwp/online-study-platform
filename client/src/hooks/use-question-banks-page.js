@@ -2,11 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { buildQuestionBankParams } from "@/app/teacher/question-banks/_lib/question-banks.params";
 import { questionBanksService } from "@/services/question-banks.service";
 
 const itemsPerPage = 10;
 const defaultPagination = (page) => ({ page, limit: itemsPerPage, total: 0, totalPages: 0 });
+
+function buildQuestionBankParams({ keyword, page, status }) {
+  return {
+    keyword: keyword.trim() || undefined,
+    status: status === "all" ? undefined : status,
+    page,
+    limit: itemsPerPage,
+    sortBy: "updated_at",
+    sortOrder: "desc",
+  };
+}
 
 export function useQuestionBanksPage() {
   const [questionBanks, setQuestionBanks] = useState([]);

@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-import { formatBankStatus, formatDate, getStatusTone } from "../_lib/question-banks.formatters";
-import { QuestionBanksBadge } from "./question-banks-badge";
+import { formatBankStatus, formatDate, getStatusTone, QuestionBanksBadge } from "./question-banks-badge";
 
 export function QuestionBanksTable({ questionBanks }) {
   const router = useRouter();

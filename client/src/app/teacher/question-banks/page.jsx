@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { useQuestionBanksPage } from "@/hooks/use-question-banks-page";
 
 import { QuestionBanksFilterBar } from "./_components/question-banks-filter-bar";
-import { QuestionBanksHeader } from "./_components/question-banks-header";
 import { QuestionBanksStatePanel } from "./_components/question-banks-state-panel";
 import { QuestionBanksTable } from "./_components/question-banks-table";
 
@@ -31,7 +30,19 @@ export default function QuestionBanksPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl space-y-6">
-        <QuestionBanksHeader />
+        <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Question Banks</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Manage teacher-owned repositories for study sets and exams.</p>
+          </div>
+
+          <Button asChild>
+            <Link href="/teacher/question-banks/create">
+              <Plus className="size-4" />
+              Create Question Bank
+            </Link>
+          </Button>
+        </div>
 
         <QuestionBanksFilterBar
           keyword={pendingKeyword}

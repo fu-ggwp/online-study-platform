@@ -3,12 +3,10 @@ import {
   createQuestionBank,
   listReadyQuestionBankQuestions,
   listReadyQuestionBanks,
-  getQuestion,
   getQuestionBank,
   listQuestionBankQuestions,
   listQuestionBanks,
   generateQuestionsFromMaterial,
-  updateQuestion as updateQuestionRecord,
   updateQuestionBank,
 } from "./question-banks.service.js";
 
@@ -206,7 +204,6 @@ function validateQuestionPayload(body = {}) {
   return {
     question_text: questionText,
     explanation: normalizeNullableText(body.explanation),
-    subject: normalizeNullableText(body.subject),
     topic: normalizeNullableText(body.topic),
     chapter: normalizeNullableText(body.chapter),
     answer_options: answerOptions,
@@ -291,15 +288,6 @@ export async function listReadyQuestions(req, res) {
   }
 }
 
-export async function getQuestionById(req, res) {
-  try {
-    const data = await getQuestion(getUserId(req), req.params.questionId);
-    return res.status(200).json({ data });
-  } catch (error) {
-    return sendError(res, error);
-  }
-}
-
 export async function create(req, res) {
   try {
     const payload = validateCreatePayload(req.body);
@@ -324,20 +312,6 @@ export async function update(req, res) {
   try {
     const changes = validateUpdatePayload(req.body);
     const data = await updateQuestionBank(getUserId(req), req.params.id, changes);
-    return res.status(200).json({ message: savedMessage, data });
-  } catch (error) {
-    return sendError(res, error);
-  }
-}
-
-export async function updateQuestion(req, res) {
-  try {
-    const payload = validateQuestionPayload(req.body);
-    const data = await updateQuestionRecord(
-      getUserId(req),
-      req.params.questionId,
-      payload,
-    );
     return res.status(200).json({ message: savedMessage, data });
   } catch (error) {
     return sendError(res, error);

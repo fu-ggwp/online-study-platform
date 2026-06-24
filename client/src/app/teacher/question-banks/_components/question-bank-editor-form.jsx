@@ -1,12 +1,15 @@
 "use client";
 
-import { ArrowLeft, FileSpreadsheet, Loader2, Plus, Save, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, ChevronDown, ChevronRight, FileSpreadsheet, Loader2, Plus, Save, Sparkles } from "lucide-react";
 
 import ExcelImporter from "@/components/question-creator/ExcelImporter";
 import MaterialQuestionGenerator from "@/components/question-creator/MaterialQuestionGenerator";
 import QuestionCardEditor from "@/components/question-creator/QuestionCardEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+import { getQuestionChapterLabel, groupQuestionsByChapter } from "../_lib/question-bank-editor";
 
 const labels = {
   create: {
@@ -48,6 +51,18 @@ export function QuestionBankEditorForm({
   submitting,
 }) {
   const copy = labels[mode] || labels.edit;
+  const [collapsedChapters, setCollapsedChapters] = useState({});
+  const questionGroups = useMemo(
+    () => groupQuestionsByChapter(questions, (question) => question.groupChapter || getQuestionChapterLabel(question)),
+    [questions],
+  );
+
+  function toggleChapter(chapter) {
+    setCollapsedChapters((current) => ({
+      ...current,
+      [chapter]: !current[chapter],
+    }));
+  }
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
@@ -140,19 +155,45 @@ export function QuestionBankEditorForm({
               </div>
             ) : (
               <div className="space-y-6">
-                {questions.map((question, index) => (
-                  <QuestionCardEditor
-                    key={question.question_id || index}
-                    question={question}
-                    qIndex={index}
-                    errors={errors}
-                    onFieldChange={(field, value) => onQuestionFieldChange(index, field, value)}
-                    onDelete={() => onDeleteQuestion(index)}
-                    onAddOption={() => onAddOption(index)}
-                    onDeleteOption={(optionIndex) => onDeleteOption(index, optionIndex)}
-                    onOptionChange={(optionIndex, field, value) => onOptionChange(index, optionIndex, field, value)}
-                  />
-                ))}
+                {questionGroups.map((group) => {
+                  const isExpanded = !collapsedChapters[group.chapter];
+
+                  return (
+                    <section key={group.chapter} className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                      <button
+                        className="flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left hover:bg-muted/50"
+                        onClick={() => toggleChapter(group.chapter)}
+                        type="button"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          {isExpanded ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
+                          <span className="truncate text-sm font-bold text-foreground">{group.chapter}</span>
+                        </span>
+                        <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                          {group.questions.length} {group.questions.length === 1 ? "question" : "questions"}
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="space-y-4 bg-background p-4">
+                          {group.questions.map(({ question, index }) => (
+                            <QuestionCardEditor
+                              key={question.question_id || index}
+                              question={question}
+                              qIndex={index}
+                              errors={errors}
+                              onFieldChange={(field, value) => onQuestionFieldChange(index, field, value)}
+                              onDelete={() => onDeleteQuestion(index)}
+                              onAddOption={() => onAddOption(index)}
+                              onDeleteOption={(optionIndex) => onDeleteOption(index, optionIndex)}
+                              onOptionChange={(optionIndex, field, value) => onOptionChange(index, optionIndex, field, value)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
               </div>
             )}
 

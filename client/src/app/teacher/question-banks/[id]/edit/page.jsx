@@ -15,13 +15,11 @@ import {
 } from "../../_components/question-bank-editor-form";
 import { QuestionBanksStatePanel } from "../../_components/question-banks-state-panel";
 import {
-  buildQuestionBankPayload,
-  mapQuestionBankServerErrors,
   toQuestionBankForm,
   toQuestionDraft,
-  validateQuestionBankEditor,
+  useQuestionBankEditorState,
+  useQuestionBankEditorSubmit,
 } from "../../_lib/question-bank-editor";
-import { useQuestionBankEditorState } from "../../_lib/use-question-bank-editor-state";
 
 function normalizeParamId(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -39,9 +37,14 @@ export default function EditQuestionBankPage() {
   const [loadError, setLoadError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [archiving, setArchiving] = useState(false);
-  const [showExcelImporter, setShowExcelImporter] = useState(false);
-  const [showMaterialGenerator, setShowMaterialGenerator] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const { handleSubmit } = useQuestionBankEditorSubmit({
+    editor,
+    fallbackErrorMessage: "Question bank could not be updated.",
+    onSave: (payload) => questionBanksService.update(questionBankId, payload),
+    onSuccess: () => router.push(detailHref),
+  });
 
   const loadQuestionBank = useCallback(async () => {
     if (!questionBankId) return;
@@ -69,33 +72,6 @@ export default function EditQuestionBankPage() {
     void Promise.resolve().then(loadQuestionBank);
   }, [loadQuestionBank]);
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    const nextErrors = validateQuestionBankEditor(editor.form, editor.questions);
-    editor.setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
-    setSubmitting(true);
-    try {
-      await questionBanksService.update(
-        questionBankId,
-        buildQuestionBankPayload(editor.form, editor.questions),
-      );
-      router.push(detailHref);
-    } catch (err) {
-      const fieldErrors = mapQuestionBankServerErrors(err.response?.data?.fields || {});
-      editor.setErrors({
-        ...fieldErrors,
-        submit: Object.keys(fieldErrors).length
-          ? "Please review the highlighted fields."
-          : err.response?.data?.message || err.message || "Question bank could not be updated.",
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   async function executeDelete() {
     editor.setErrors({});
     setArchiving(true);
@@ -109,16 +85,6 @@ export default function EditQuestionBankPage() {
       setArchiving(false);
       setShowDeleteModal(false);
     }
-  }
-
-  function handleExcelQuestionsImported(importedQuestions) {
-    editor.appendImportedQuestions(importedQuestions);
-    setShowExcelImporter(false);
-  }
-
-  function handleMaterialQuestionsGenerated(generatedQuestions) {
-    editor.appendImportedQuestions(generatedQuestions);
-    setShowMaterialGenerator(false);
   }
 
   if (loading) {
@@ -163,8 +129,8 @@ export default function EditQuestionBankPage() {
         onCancel={() => router.push(detailHref)}
         onDeleteOption={editor.deleteOption}
         onDeleteQuestion={editor.deleteQuestion}
-        onGenerateMaterial={() => setShowMaterialGenerator(true)}
-        onImportExcel={() => setShowExcelImporter(true)}
+        onGenerateMaterial={editor.openMaterialGenerator}
+        onImportExcel={editor.openExcelImporter}
         onMetadataChange={editor.handleMetadataChange}
         onOptionChange={editor.updateOption}
         onQuestionFieldChange={editor.updateQuestionField}
@@ -173,18 +139,18 @@ export default function EditQuestionBankPage() {
         submitting={submitting || archiving}
       />
 
-      {showExcelImporter && (
+      {editor.showExcelImporter && (
         <QuestionBankExcelImportModal
-          onCancel={() => setShowExcelImporter(false)}
-          onQuestionsImported={handleExcelQuestionsImported}
+          onCancel={editor.closeExcelImporter}
+          onQuestionsImported={editor.handleImportedQuestions}
         />
       )}
 
-      {showMaterialGenerator && (
+      {editor.showMaterialGenerator && (
         <QuestionBankMaterialGenerateModal
           generateQuestions={questionBanksService.generateFromMaterial}
-          onCancel={() => setShowMaterialGenerator(false)}
-          onQuestionsGenerated={handleMaterialQuestionsGenerated}
+          onCancel={editor.closeMaterialGenerator}
+          onQuestionsGenerated={editor.handleGeneratedQuestions}
         />
       )}
 
