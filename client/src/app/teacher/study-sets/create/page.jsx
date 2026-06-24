@@ -359,7 +359,6 @@ export default function CreateStudySetPage() {
       await axiosClient.post("/api/study-sets", {
         title,
         description,
-        subject: null,
         topic: topic || null,
         visibility,
         classId: selectedClassIds,

@@ -42,7 +42,7 @@ export async function findByTeacher(teacherId, filters = {}) {
     .is("deleted_at", null);
 
   if (keyword) {
-    query = query.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%,topic.ilike.%${keyword}%,subject.ilike.%${keyword}%`);
+    query = query.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%,topic.ilike.%${keyword}%`);
   }
 
   if (visibility) {
@@ -94,14 +94,14 @@ export async function findPublicStudySets(filters = {}) {
 
   let query = supabase
     .from(STUDY_SET_TABLE)
-    .select("study_set_id, title, description, subject, topic, tags, question_count, created_at, updated_at", { count: "exact" })
+    .select("study_set_id, title, description, topic, tags, question_count, created_at, updated_at", { count: "exact" })
     .eq("visibility", "public")
     .is("deleted_at", null)
     .eq("is_admin_hidden", false);
 
   if (keyword) {
     query = query.or(
-      `title.ilike.%${keyword}%,description.ilike.%${keyword}%,subject.ilike.%${keyword}%,topic.ilike.%${keyword}%`,
+      `title.ilike.%${keyword}%,description.ilike.%${keyword}%,topic.ilike.%${keyword}%`,
     );
   }
 
