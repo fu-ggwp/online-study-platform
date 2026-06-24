@@ -202,7 +202,23 @@ export function listAttemptsByLearner(learnerId) {
 }
 
 // Lưu các câu trả lời của học sinh
-export function recordAnswer(payload) {
+export async function recordAnswer(payload) {
+  const { data: existing } = await supabase
+    .from(ATTEMPT_ANSWER_TABLE)
+    .select("attempt_answer_id")
+    .eq("practice_attempt_id", payload.practice_attempt_id)
+    .eq("question_id", payload.question_id)
+    .maybeSingle();
+
+  if (existing) {
+    return supabase
+      .from(ATTEMPT_ANSWER_TABLE)
+      .update(payload)
+      .eq("attempt_answer_id", existing.attempt_answer_id)
+      .select()
+      .single();
+  }
+
   return supabase.from(ATTEMPT_ANSWER_TABLE).insert(payload).select().single();
 }
 
