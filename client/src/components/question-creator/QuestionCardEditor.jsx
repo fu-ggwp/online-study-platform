@@ -63,28 +63,15 @@ export default function QuestionCardEditor({
       </div>
 
       {/* Question metadata */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-foreground">Topic</label>
-          <Input
-            placeholder="e.g. Gravity"
-            value={question.topic || ""}
-            className="h-9 text-xs"
-            disabled={readOnly}
-            onChange={(e) => onFieldChange("topic", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-foreground">Chapter</label>
-          <Input
-            placeholder="e.g. Chapter 2"
-            value={question.chapter || ""}
-            className="h-9 text-xs"
-            disabled={readOnly}
-            onChange={(e) => onFieldChange("chapter", e.target.value)}
-          />
-        </div>
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-foreground">Chapter</label>
+        <Input
+          placeholder="e.g. Chapter 2"
+          value={question.chapter || ""}
+          className="h-9 text-xs"
+          disabled={readOnly}
+          onChange={(e) => onFieldChange("chapter", e.target.value)}
+        />
       </div>
 
       {/* Options Editor */}

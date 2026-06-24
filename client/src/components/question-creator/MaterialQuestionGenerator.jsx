@@ -77,7 +77,7 @@ export default function MaterialQuestionGenerator({
       setGeneratedQuestions(questions);
 
       if (!questions.length) {
-        setError("AI returned no usable questions. Try a clearer material file or focus topic.");
+        setError("AI returned no usable questions. Try a clearer material file or focus request.");
       }
     } catch (err) {
       setGeneratedQuestions([]);

@@ -34,7 +34,6 @@ export default function CreateStudySetPage() {
     {
       question_text: "",
       explanation: "",
-      topic: "",
       chapter: "",
       options: [
         { option_text: "", is_correct: false },
@@ -66,7 +65,6 @@ export default function CreateStudySetPage() {
       {
         question_text: "",
         explanation: "",
-        topic: "",
         chapter: "",
         options: [
           { option_text: "", is_correct: false },
@@ -213,7 +211,6 @@ export default function CreateStudySetPage() {
     const formattedQs = importedQs.map((q) => ({
       question_text: q.question_text,
       explanation: q.explanation || "",
-      topic: q.topic || "",
       chapter: q.chapter || "",
       source_question_id: q.question_id, // Save parent question reference
       options: q.answer_options.map((opt) => ({
@@ -244,7 +241,6 @@ export default function CreateStudySetPage() {
     const formattedQs = importedQs.map((q) => ({
       question_text: q.question_text,
       explanation: q.explanation || "",
-      topic: q.topic || "",
       chapter: q.chapter || "",
       options: q.options.map((opt) => ({
         option_text: opt.option_text,

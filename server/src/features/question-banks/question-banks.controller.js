@@ -204,7 +204,6 @@ function validateQuestionPayload(body = {}) {
   return {
     question_text: questionText,
     explanation: normalizeNullableText(body.explanation),
-    topic: normalizeNullableText(body.topic),
     chapter: normalizeNullableText(body.chapter),
     answer_options: answerOptions,
   };

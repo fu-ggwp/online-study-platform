@@ -37,7 +37,6 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
       "Option 5",
       "Correct Option",
       "Explanation",
-      "Topic",
       "Chapter"
     ];
 
@@ -51,7 +50,6 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
         "",
         "3",
         "Paris is the capital of France.",
-        "Geography",
         "Europe"
       ],
       [
@@ -63,7 +61,6 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
         "",
         "1",
         "It is a scientific fact.",
-        "Science",
         "Physics"
       ],
       [
@@ -75,7 +72,6 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
         "9",
         "1, 3",
         "Both 2 and 5 are prime numbers. For questions with multiple correct options, enter their indexes separated by commas (e.g., '1, 3').",
-        "Math",
         "Number Theory"
       ]
     ];
@@ -108,7 +104,6 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
         const textIdx = headers.indexOf("question text");
         const correctIdx = headers.indexOf("correct option");
         const explanationIdx = headers.indexOf("explanation");
-        const topicIdx = headers.indexOf("topic");
         const chapterIdx = headers.indexOf("chapter");
 
         const optionIndices = [];
@@ -149,7 +144,6 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
 
           const qText = String(row[textIdx] || "").trim();
           const explanation = row[explanationIdx] ? String(row[explanationIdx]).trim() : "";
-          const topic = row[topicIdx] ? String(row[topicIdx]).trim() : "";
           const chapter = row[chapterIdx] ? String(row[chapterIdx]).trim() : "";
 
           const options = [];
@@ -199,7 +193,6 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
           validList.push({
             question_text: qText,
             explanation,
-            topic,
             chapter,
             options
           });

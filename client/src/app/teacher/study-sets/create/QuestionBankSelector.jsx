@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, Folder, BookOpen, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, BookOpen, AlertTriangle } from "lucide-react";
 import { questionBanksService } from "@/services/question-banks.service";
 import { Button } from "@/components/ui/button";
 import ConfirmModal from "@/components/common/ConfirmModal";
@@ -18,7 +18,6 @@ export default function QuestionBankSelector({
   const [questions, setQuestions] = useState([]);
   const [groupedQuestions, setGroupedQuestions] = useState({});
   const [selectedQIds, setSelectedQIds] = useState(new Set());
-  const [expandedTopics, setExpandedTopics] = useState({});
   const [expandedChapters, setExpandedChapters] = useState({});
   const [loading, setLoading] = useState(false);
   const [showConfirmSwitch, setShowConfirmSwitch] = useState(false);
@@ -81,29 +80,25 @@ export default function QuestionBankSelector({
         setQuestions(qList);
         setSelectedQIds(new Set()); // Reset previous selections
 
-        // Group questions by Topic and Chapter
+        // Group questions by Chapter.
         const grouped = {};
         qList.forEach((q) => {
-          const topicName = q.topic?.trim() || "No Topic";
           const chapterName = q.chapter?.trim() || "No Chapter";
 
-          if (!grouped[topicName]) {
-            grouped[topicName] = {};
+          if (!grouped[chapterName]) {
+            grouped[chapterName] = [];
           }
-          if (!grouped[topicName][chapterName]) {
-            grouped[topicName][chapterName] = [];
-          }
-          grouped[topicName][chapterName].push(q);
+          grouped[chapterName].push(q);
         });
 
         setGroupedQuestions(grouped);
 
-        // Expand all topics by default
+        // Expand all chapters by default.
         const defaultExpanded = {};
-        Object.keys(grouped).forEach((topic) => {
-          defaultExpanded[topic] = true;
+        Object.keys(grouped).forEach((chapter) => {
+          defaultExpanded[chapter] = true;
         });
-        setExpandedTopics(defaultExpanded);
+        setExpandedChapters(defaultExpanded);
       } catch (err) {
         console.error("Failed to load bank questions:", err);
       } finally {
@@ -114,11 +109,6 @@ export default function QuestionBankSelector({
     fetchQuestions();
   }, [selectedBankId]);
 
-  // Toggle expand/collapse for Topic
-  const toggleTopic = (topic) => {
-    setExpandedTopics((prev) => ({ ...prev, [topic]: !prev[topic] }));
-  };
-
   // Toggle expand/collapse for Chapter
   const toggleChapter = (chapterKey) => {
     setExpandedChapters((prev) => ({ ...prev, [chapterKey]: !prev[chapterKey] }));
@@ -126,20 +116,9 @@ export default function QuestionBankSelector({
 
   // --- CHECKBOX SELECTION LOGIC ---
 
-  // Get all questions under a specific Topic
-  const getQuestionsInTopic = (topic) => {
-    const list = [];
-    if (groupedQuestions[topic]) {
-      Object.values(groupedQuestions[topic]).forEach((chapterQs) => {
-        list.push(...chapterQs);
-      });
-    }
-    return list;
-  };
-
-  // Get all questions under a specific Chapter in a Topic
-  const getQuestionsInChapter = (topic, chapter) => {
-    return groupedQuestions[topic]?.[chapter] || [];
+  // Get all questions under a specific Chapter.
+  const getQuestionsInChapter = (chapter) => {
+    return groupedQuestions[chapter] || [];
   };
 
   // Handle individual question checkbox toggle
@@ -157,28 +136,11 @@ export default function QuestionBankSelector({
   };
 
   // Handle Chapter level checkbox toggle (select/deselect all questions in chapter)
-  const handleSelectChapter = (topic, chapter, checked) => {
-    const chapterQs = getQuestionsInChapter(topic, chapter);
+  const handleSelectChapter = (chapter, checked) => {
+    const chapterQs = getQuestionsInChapter(chapter);
     setSelectedQIds((prev) => {
       const next = new Set(prev);
       chapterQs.forEach((q) => {
-        if (importedSet.has(q.question_id)) return;
-        if (checked) {
-          next.add(q.question_id);
-        } else {
-          next.delete(q.question_id);
-        }
-      });
-      return next;
-    });
-  };
-
-  // Handle Topic level checkbox toggle (select/deselect all questions in topic)
-  const handleSelectTopic = (topic, checked) => {
-    const topicQs = getQuestionsInTopic(topic);
-    setSelectedQIds((prev) => {
-      const next = new Set(prev);
-      topicQs.forEach((q) => {
         if (importedSet.has(q.question_id)) return;
         if (checked) {
           next.add(q.question_id);
@@ -242,7 +204,7 @@ export default function QuestionBankSelector({
         </select>
       </div>
 
-      {/* Tree view of Topics, Chapters and Questions */}
+      {/* Tree view of Chapters and Questions */}
       {selectedBankId && (
         <div className="border border-border rounded-xl bg-muted/30 p-4 max-h-[450px] overflow-y-auto mb-6">
           {loading ? (
@@ -250,110 +212,66 @@ export default function QuestionBankSelector({
           ) : questions.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">This question bank has no questions.</p>
           ) : (
-            <div className="space-y-4">
-              {Object.keys(groupedQuestions).map((topic) => {
-                const topicQs = getQuestionsInTopic(topic);
-                const isTopicChecked = topicQs.every((q) => importedSet.has(q.question_id) || selectedQIds.has(q.question_id));
-                const isTopicIndeterminate =
-                  topicQs.some((q) => selectedQIds.has(q.question_id)) && !isTopicChecked;
-                const isTopicDisabled = topicQs.every((q) => importedSet.has(q.question_id));
+            <div className="space-y-2">
+              {Object.keys(groupedQuestions).map((chapter) => {
+                const chapterQs = getQuestionsInChapter(chapter);
+                const isChapterChecked = chapterQs.every((q) => importedSet.has(q.question_id) || selectedQIds.has(q.question_id));
+                const isChapterIndeterminate =
+                  chapterQs.some((q) => selectedQIds.has(q.question_id)) && !isChapterChecked;
+                const isChapterDisabled = chapterQs.every((q) => importedSet.has(q.question_id));
 
                 return (
-                  <div key={topic} className="space-y-1">
-                    {/* TOPIC ROW */}
+                  <div key={chapter} className="space-y-1">
+                    {/* CHAPTER ROW */}
                     <div className="flex items-center gap-2 py-1.5 hover:bg-muted/50 rounded-lg px-2">
                       <button
                         type="button"
-                        onClick={() => toggleTopic(topic)}
+                        onClick={() => toggleChapter(chapter)}
                         className="text-muted-foreground p-0.5 hover:text-foreground"
                       >
-                        {expandedTopics[topic] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        {expandedChapters[chapter] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                       </button>
                       <input
                         type="checkbox"
                         className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        checked={isTopicChecked}
-                        disabled={isTopicDisabled}
+                        checked={isChapterChecked}
+                        disabled={isChapterDisabled}
                         ref={(el) => {
-                          if (el) el.indeterminate = isTopicIndeterminate;
+                          if (el) el.indeterminate = isChapterIndeterminate;
                         }}
-                        onChange={(e) => handleSelectTopic(topic, e.target.checked)}
+                        onChange={(e) => handleSelectChapter(chapter, e.target.checked)}
                       />
-                      <Folder className="size-4 text-amber-500 fill-amber-500/10" />
-                      <span className="text-sm font-bold text-foreground cursor-pointer" onClick={() => toggleTopic(topic)}>
-                        Topic: {topic}
+                      <BookOpen className="size-4 text-blue-500 fill-blue-500/10" />
+                      <span className="text-sm font-bold text-foreground cursor-pointer" onClick={() => toggleChapter(chapter)}>
+                        Chapter: {chapter}
                       </span>
-                      <span className="text-xs text-muted-foreground">({topicQs.length} Qs)</span>
+                      <span className="text-xs text-muted-foreground">({chapterQs.length} Qs)</span>
                     </div>
 
-                    {/* CHAPTERS ACCORDION */}
-                    {expandedTopics[topic] && (
-                      <div className="pl-6 space-y-2 border-l border-border/60 ml-4">
-                        {Object.keys(groupedQuestions[topic]).map((chapter) => {
-                          const chapterKey = `${topic}::${chapter}`;
-                          const chapterQs = getQuestionsInChapter(topic, chapter);
-                          const isChapterChecked = chapterQs.every((q) => importedSet.has(q.question_id) || selectedQIds.has(q.question_id));
-                          const isChapterIndeterminate =
-                            chapterQs.some((q) => selectedQIds.has(q.question_id)) && !isChapterChecked;
-                          const isChapterDisabled = chapterQs.every((q) => importedSet.has(q.question_id));
-
-                          return (
-                            <div key={chapter} className="space-y-1">
-                              {/* CHAPTER ROW */}
-                              <div className="flex items-center gap-2 py-1 hover:bg-muted/50 rounded-lg px-2">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleChapter(chapterKey)}
-                                  className="text-muted-foreground p-0.5"
-                                >
-                                  {expandedChapters[chapterKey] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                </button>
-                                <input
-                                  type="checkbox"
-                                  className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                  checked={isChapterChecked}
-                                  disabled={isChapterDisabled}
-                                  ref={(el) => {
-                                    if (el) el.indeterminate = isChapterIndeterminate;
-                                  }}
-                                  onChange={(e) => handleSelectChapter(topic, chapter, e.target.checked)}
-                                />
-                                <BookOpen className="size-4 text-blue-500 fill-blue-500/10" />
-                                <span className="text-sm font-semibold text-foreground cursor-pointer font-medium" onClick={() => toggleChapter(chapterKey)}>
-                                  Chapter: {chapter}
-                                </span>
-                                <span className="text-xs text-muted-foreground">({chapterQs.length} Qs)</span>
+                    {/* QUESTIONS LIST */}
+                    {expandedChapters[chapter] && (
+                      <div className="pl-6 space-y-1.5 border-l border-border/60 ml-4 py-1">
+                        {chapterQs.map((q) => (
+                          <div key={q.question_id} className="flex items-start gap-3 p-2 hover:bg-muted/80 rounded-lg">
+                            <input
+                              type="checkbox"
+                              className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer mt-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                              checked={importedSet.has(q.question_id) || selectedQIds.has(q.question_id)}
+                              onChange={() => handleSelectQuestion(q.question_id)}
+                              disabled={importedSet.has(q.question_id)}
+                            />
+                            <div className="flex-1 text-sm">
+                              <div className="flex items-start gap-2">
+                                <p className="text-foreground leading-relaxed font-normal">{q.question_text}</p>
+                                {importedSet.has(q.question_id) && (
+                                  <span className="shrink-0 text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-md font-semibold border border-emerald-100">
+                                    Added
+                                  </span>
+                                )}
                               </div>
-
-                              {/* QUESTIONS LIST */}
-                              {expandedChapters[chapterKey] && (
-                                <div className="pl-6 space-y-1.5 border-l border-border/60 ml-4 py-1">
-                                  {chapterQs.map((q) => (
-                                    <div key={q.question_id} className="flex items-start gap-3 p-2 hover:bg-muted/80 rounded-lg">
-                                      <input
-                                        type="checkbox"
-                                        className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer mt-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        checked={importedSet.has(q.question_id) || selectedQIds.has(q.question_id)}
-                                        onChange={() => handleSelectQuestion(q.question_id)}
-                                        disabled={importedSet.has(q.question_id)}
-                                      />
-                                      <div className="flex-1 text-sm">
-                                        <div className="flex items-start gap-2">
-                                          <p className="text-foreground leading-relaxed font-normal">{q.question_text}</p>
-                                          {importedSet.has(q.question_id) && (
-                                            <span className="shrink-0 text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-md font-semibold border border-emerald-100">
-                                              Added
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
                             </div>
-                          );
-                        })}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

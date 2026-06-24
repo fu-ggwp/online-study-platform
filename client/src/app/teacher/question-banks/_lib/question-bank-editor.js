@@ -39,7 +39,6 @@ export function emptyQuestion() {
   return {
     question_text: "",
     explanation: "",
-    topic: "",
     chapter: "",
     groupChapter: "No Chapter",
     options: [emptyOption(), emptyOption()],
@@ -68,7 +67,6 @@ export function toQuestionDraft(question) {
     source_question_id: question?.source_question_id || null,
     question_text: question?.question_text || "",
     explanation: question?.explanation || "",
-    topic: question?.topic || "",
     chapter: question?.chapter || "",
     groupChapter: getQuestionChapterLabel(question),
     options: normalizeMultipleChoiceOptions(sourceOptions),
@@ -95,7 +93,6 @@ export function buildQuestionBankPayload(form, questions) {
       source_question_id: question.source_question_id || null,
       question_text: question.question_text.trim(),
       explanation: question.explanation?.trim() || null,
-      topic: question.topic?.trim() || null,
       chapter: question.chapter?.trim() || null,
       answer_options: question.options.map((option) => ({
         option_text: option.option_text.trim(),
@@ -205,7 +202,6 @@ export function useQuestionBankEditorState({
     const drafts = importedQuestions.map((question) => ({
       question_text: question.question_text || "",
       explanation: question.explanation || "",
-      topic: question.topic || "",
       chapter: question.chapter || "",
       groupChapter: getQuestionChapterLabel(question),
       options: normalizeMultipleChoiceOptions(question.options || question.answer_options || []),

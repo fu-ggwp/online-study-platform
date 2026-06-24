@@ -165,7 +165,6 @@ export async function create(
       question_text: q.question_text,
       explanation: q.explanation || null,
       subject: q.subject || studySet.subject || null,
-      topic: q.topic || studySet.topic || null,
       chapter: q.chapter || null,
       source_question_id: q.source_question_id || null,
     }));
@@ -312,7 +311,6 @@ export async function update(id, teacherId, changes) {
       const qPayload = {
         question_text: q.question_text,
         explanation: q.explanation || null,
-        topic: q.topic || null,
         chapter: q.chapter || null,
         score: q.score ?? 1,
       };
