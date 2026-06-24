@@ -23,7 +23,6 @@ const generatedQuestionsSchema = {
         properties: {
           question_text: { type: "string" },
           explanation: { type: "string" },
-          topic: { type: "string" },
           chapter: { type: "string" },
           options: {
             type: "array",
@@ -38,7 +37,7 @@ const generatedQuestionsSchema = {
             },
           },
         },
-        required: ["question_text", "explanation", "topic", "chapter", "options"],
+        required: ["question_text", "explanation", "chapter", "options"],
       },
     },
   },
@@ -171,7 +170,6 @@ function buildNewQuestion(questionBankId, teacherId, payload) {
     owner_id: teacherId,
     question_text: payload.question_text,
     explanation: payload.explanation,
-    topic: payload.topic,
     chapter: payload.chapter,
     updated_at: new Date().toISOString(),
   };
@@ -258,7 +256,6 @@ function normalizeGeneratedQuestion(question = {}) {
   return {
     question_text: normalizeText(question.question_text) || "",
     explanation: normalizeText(question.explanation) || "",
-    topic: normalizeText(question.topic) || "",
     chapter: normalizeText(question.chapter) || "",
     options,
   };

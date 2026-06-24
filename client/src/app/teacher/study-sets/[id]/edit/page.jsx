@@ -71,7 +71,6 @@ export default function EditStudySetPage() {
             question_id: q.question_id,
             question_text: q.question_text || "",
             explanation: q.explanation || "",
-            topic: q.topic || "",
             chapter: q.chapter || "",
             source_question_id: q.source_question_id || null,
             options: (q.answer_options || []).map((opt) => ({
@@ -110,7 +109,6 @@ export default function EditStudySetPage() {
       {
         question_text: "",
         explanation: "",
-        topic: "",
         chapter: "",
         options: [
           { option_text: "", is_correct: false },
@@ -252,7 +250,6 @@ export default function EditStudySetPage() {
     const formattedQs = importedQs.map((q) => ({
       question_text: q.question_text,
       explanation: q.explanation || "",
-      topic: q.topic || "",
       chapter: q.chapter || "",
       source_question_id: q.question_id,
       options: q.answer_options.map((opt) => ({
@@ -282,7 +279,6 @@ export default function EditStudySetPage() {
     const formattedQs = importedQs.map((q) => ({
       question_text: q.question_text,
       explanation: q.explanation || "",
-      topic: q.topic || "",
       chapter: q.chapter || "",
       options: q.options.map((opt) => ({
         option_text: opt.option_text,

@@ -129,7 +129,6 @@ export function listQuestionsByBank(questionBankId, teacherId) {
       owner_id,
       question_text,
       explanation,
-      topic,
       chapter,
       created_at,
       updated_at,
@@ -160,7 +159,6 @@ export function findOwnedQuestionById(questionId, teacherId) {
       owner_id,
       question_text,
       explanation,
-      topic,
       chapter,
       created_at,
       updated_at,
@@ -196,7 +194,6 @@ export function updateQuestion(questionId, teacherId, changes) {
       owner_id,
       question_text,
       explanation,
-      topic,
       chapter,
       created_at,
       updated_at
@@ -216,7 +213,6 @@ export function createQuestion(payload) {
       owner_id,
       question_text,
       explanation,
-      topic,
       chapter,
       created_at,
       updated_at

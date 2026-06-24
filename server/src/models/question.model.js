@@ -14,7 +14,6 @@ export const QUESTION_TABLE = "questions";
  * @property {string} owner_id              - FK -> users.user_id
  * @property {string} question_text
  * @property {string} [explanation]
- * @property {string} [topic]
  * @property {string} [chapter]
  * @property {string} created_at
  * @property {string} updated_at
