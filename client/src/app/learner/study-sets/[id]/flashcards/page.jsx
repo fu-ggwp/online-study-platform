@@ -129,6 +129,28 @@ export default function LearnerFlashcardsPage() {
     }
   }, [currentIndex, questions, studySetId, sessionId]);
 
+  // --- Lắng nghe sự kiện bàn phím (Trái/Phải để chuyển, Lên/Xuống để lật) ---
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        handlePrev();
+      } else if (e.key === "ArrowRight") {
+        handleNext();
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault(); // Ngăn trình duyệt cuộn trang ngoài ý muốn
+        setIsFlipped((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [currentIndex, questions.length]);
+
   // --- Gửi API lưu tiến độ học từng câu hỏi ---
   const saveProgress = async (qId, status) => {
     if (!sessionId) return;
@@ -343,15 +365,30 @@ export default function LearnerFlashcardsPage() {
       </section>
 
       {/* FOOTER BAR (NAVIGATION & PROGRESS) */}
-      <footer className="max-w-2xl w-full mx-auto space-y-3 mt-auto pb-2">
-        <div className="flex justify-between items-center">
-          <Button onClick={handlePrev} disabled={currentIndex === 0} variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 gap-1 rounded-xl">
-            <ChevronLeft className="size-4" /> Back
-          </Button>
-          <span className="text-xs font-semibold text-muted-foreground">{currentIndex + 1} of {questions.length} cards</span>
-          <Button onClick={handleNext} disabled={currentIndex === questions.length} variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 gap-1 rounded-xl">
-            {currentIndex === questions.length - 1 ? "Finish" : "Next"} <ChevronRight className="size-4" />
-          </Button>
+      <footer className="max-w-2xl w-full mx-auto space-y-4 mt-auto pb-2">
+        {/* Centered Pill Navigation Controls */}
+        <div className="flex items-center justify-center gap-6">
+          <button 
+            onClick={handlePrev} 
+            disabled={currentIndex === 0} 
+            className="w-16 h-11 bg-white border border-slate-200 text-slate-800 rounded-full flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md"
+            title="Back"
+          >
+            <ChevronLeft className="size-6 stroke-[2.5]" />
+          </button>
+          
+          <span className="text-lg font-bold text-slate-800 tracking-wider min-w-[80px] text-center select-none">
+            {currentIndex + 1} / {questions.length}
+          </span>
+          
+          <button 
+            onClick={handleNext} 
+            disabled={currentIndex === questions.length} 
+            className="w-16 h-11 bg-white border border-slate-200 text-slate-800 rounded-full flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md"
+            title={currentIndex === questions.length - 1 ? "Finish" : "Next"}
+          >
+            <ChevronRight className="size-6 stroke-[2.5]" />
+          </button>
         </div>
 
         {/* Component Thanh tiến độ */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Star, CheckCircle } from "lucide-react";
 
 export default function Flashcard({ 
@@ -12,6 +12,30 @@ export default function Flashcard({
   onToggleDifficult,
   onMarkMastered
 }) {
+  const [rotation, setRotation] = useState(0);
+  const [transitionEnabled, setTransitionEnabled] = useState(true);
+
+  // Track isFlipped changes to accumulate rotation in one direction (-180deg increments)
+  useEffect(() => {
+    setRotation((prev) => {
+      const currentIsOdd = Math.abs(prev / 180) % 2 === 1;
+      if (isFlipped === currentIsOdd) {
+        return prev;
+      }
+      return prev - 180;
+    });
+  }, [isFlipped]);
+
+  // Reset rotation to 0 instantly when question changes without the rapid spin transition
+  useEffect(() => {
+    setTransitionEnabled(false);
+    setRotation(0);
+    const timer = setTimeout(() => {
+      setTransitionEnabled(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [question?.question_id]);
+
   const options = question.answer_options || question.options || [];
 
   return (
@@ -21,9 +45,10 @@ export default function Flashcard({
       title="Click card to flip"
     >
       <div 
-        className={`w-full h-full rounded-3xl border border-border bg-card shadow-lg relative transition-transform duration-500 [transform-style:preserve-3d] ${
-          isFlipped ? "[transform:rotateY(180deg)]" : ""
+        className={`w-full h-full rounded-3xl border border-border bg-card shadow-lg relative [transform-style:preserve-3d] ${
+          transitionEnabled ? "transition-transform duration-500" : ""
         }`}
+        style={{ transform: `rotateX(${rotation}deg)` }}
       >
         
         {/* MẶT TRƯỚC (CÂU HỎI) */}
@@ -60,7 +85,7 @@ export default function Flashcard({
         </div>
 
         {/* MẶT SAU (ĐÁP ÁN & GIẢI THÍCH) */}
-        <div className="absolute inset-0 w-full h-full p-8 flex flex-col justify-between rounded-3xl [backface-visibility:hidden] bg-card [transform:rotateY(180deg)]">
+        <div className="absolute inset-0 w-full h-full p-8 flex flex-col justify-between rounded-3xl [backface-visibility:hidden] bg-card [transform:rotateX(-180deg)]">
           {/* Top Row: Star & Check icons */}
           <div className="flex justify-end items-center">
             <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
