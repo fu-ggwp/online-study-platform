@@ -164,7 +164,6 @@ export async function create(
       owner_id: teacherId,
       question_text: q.question_text,
       explanation: q.explanation || null,
-      subject: q.subject || studySet.subject || null,
       chapter: q.chapter || null,
       source_question_id: q.source_question_id || null,
     }));

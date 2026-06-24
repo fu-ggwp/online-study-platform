@@ -394,7 +394,6 @@ export default function EditStudySetPage() {
       await axiosClient.patch(`/api/study-sets/${id}`, {
         title,
         description,
-        subject: null,
         topic: topic || null,
         visibility,
         classId: selectedClassIds,
