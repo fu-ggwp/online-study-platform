@@ -198,7 +198,7 @@ export default function QuestionBankSelector({
           <option value="">-- Select Question Bank --</option>
           {banks.map((bank) => (
             <option key={bank.question_bank_id} value={bank.question_bank_id}>
-              {bank.title} ({bank.subject || "No Subject"})
+              {bank.title}
             </option>
           ))}
         </select>
