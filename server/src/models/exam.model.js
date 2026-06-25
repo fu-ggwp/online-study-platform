@@ -69,7 +69,7 @@ export const EXAM_SESSION_CONFIG_COLUMNS = Object.freeze(
  * @property {"multiple_choice"|"true_false"} question_type
  * @property {number} score
  * @property {string} [explanation]
- * @property {string} [subject]
+ * @property {string} [chapter]
  * @property {Object} answer_options_json    - jsonb snapshot of the options
  * @property {number[]} correct_option_indexes
  * @property {number} display_order

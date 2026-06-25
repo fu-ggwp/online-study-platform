@@ -206,8 +206,6 @@ function toExamQuestionRows(examSessionId, questions) {
       question_type: question.question_type || "multiple_choice",
       score: question.score || 1,
       explanation: question.explanation || null,
-      subject: question.subject || null,
-      topic: null,
       chapter: question.chapter || null,
       answer_options_json: orderedOptions.map((option, optionIndex) => ({
         index: optionIndex,
