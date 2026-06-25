@@ -30,10 +30,10 @@ const roleConfig = {
   },
   teacher: {
     label: "Teacher workspace",
-    homeHref: "/teacher/dashboard",
+    homeHref: "/teacher",
     icon: ShieldCheck,
     nav: [
-      { label: "Dashboard", href: "/teacher/dashboard", icon: Home },
+      { label: "Dashboard", href: "/teacher", icon: Home },
       { label: "Study sets", href: "/teacher/study-sets", icon: BookOpen },
       {
         label: "Question banks",

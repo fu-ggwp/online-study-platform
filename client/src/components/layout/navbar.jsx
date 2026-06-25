@@ -11,7 +11,7 @@ import { authService } from "@/services/auth.service";
 import { profileService } from "@/services/profile.service";
 
 const ROLE_HOME = {
-  teacher: "/teacher/dashboard",
+  teacher: "/teacher",
   learner: "/learner/dashboard",
 };
 

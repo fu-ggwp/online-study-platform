@@ -4,7 +4,7 @@ import { profileService } from "@/services/profile.service";
 const ACCESS_TOKEN_COOKIE = "access_token";
 const ROLE_HOME = {
   admin: "/admin/dashboard",
-  teacher: "/teacher/dashboard",
+  teacher: "/teacher",
   learner: "/learner/dashboard",
 };
 const BLOCKED_NEXT_ROUTES = ["/login", "/register", "/auth/callback"];
