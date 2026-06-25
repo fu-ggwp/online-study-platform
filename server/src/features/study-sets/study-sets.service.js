@@ -470,23 +470,6 @@ export async function submitAnswer(sessionId, payload) {
   if (error) {
     throw dbError(error);
   }
-
-  // If the attempt is already completed (status === 'submitted'), update the total score dynamically
-  if (session.data.status === "submitted") {
-    const { data: answers, error: answersErr } = await dao.listAnswersByAttempt(sessionId);
-    if (!answersErr && answers) {
-      const updatedAnswers = answers.map((ans) =>
-        ans.question_id === payload.question_id ? data : ans
-      );
-      const totalScore = updatedAnswers.reduce((sum, ans) => {
-        return sum + (ans.is_correct ? (parseFloat(ans.score_awarded) || 0) : 0);
-      }, 0);
-      await dao.updateAttempt(sessionId, {
-        total_score: totalScore,
-      });
-    }
-  }
-
   return data;
 }
 
