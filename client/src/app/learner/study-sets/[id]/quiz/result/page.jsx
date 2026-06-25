@@ -84,6 +84,22 @@ export default function LearnerQuizResultPage() {
     );
   }
 
+  const handleAnswerUpdated = (newAnswer) => {
+    setAnswers((prevAnswers) =>
+      prevAnswers.map((ans) => (ans.question_id === newAnswer.question_id ? newAnswer : ans))
+    );
+
+    studySetsService
+      .getSessionResults(sessionId)
+      .then((resultsRes) => {
+        const resultInfo = resultsRes.data || resultsRes;
+        setSessionData(resultInfo.session || resultInfo);
+      })
+      .catch((err) => {
+        console.error("Failed to sync session results:", err);
+      });
+  };
+
   return (
     <main className="min-h-screen bg-neutral-50/50 text-neutral-900 px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -100,6 +116,8 @@ export default function LearnerQuizResultPage() {
         <AnswersReviewList 
           questions={questions}
           answers={answers}
+          sessionId={sessionId}
+          onAnswerUpdated={handleAnswerUpdated}
         />
         
       </div>
