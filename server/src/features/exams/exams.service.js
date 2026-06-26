@@ -74,6 +74,131 @@ function withExamMaxScore(attempt) {
   return attempt ? { ...attempt, max_score: EXAM_MAX_SCORE } : attempt;
 }
 
+function toScore(value) {
+  const score = Number(value || 0);
+  return Number.isFinite(score) ? score : 0;
+}
+
+function learnerDisplayName(learner = {}) {
+  return text(learner.full_name) || text(learner.username) || text(learner.email) || "Learner";
+}
+
+function optionLabel(index) {
+  return String.fromCharCode(65 + Number(index || 0));
+}
+
+function selectedOptionLabels(answer) {
+  const indexes = answer?.selected_exam_option_indexes ?? [];
+  return indexes.map(optionLabel).join(", ");
+}
+
+function scoreBucketFor(score) {
+  const thresholds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const value = toScore(score);
+  const threshold = thresholds.find((item) => value < item);
+  return threshold ? `< ${threshold}` : "<= 10";
+}
+
+function buildDistribution(scores) {
+  const labels = ["< 1", "< 2", "< 3", "< 4", "< 5", "< 6", "< 7", "< 8", "< 9", "<= 10"];
+  const buckets = labels.map((label) => ({ label, count: 0, percentage: 0 }));
+  const byLabel = new Map(buckets.map((bucket) => [bucket.label, bucket]));
+
+  scores.forEach((score) => {
+    const bucket = byLabel.get(scoreBucketFor(score));
+    if (bucket) bucket.count += 1;
+  });
+
+  buckets.forEach((bucket) => {
+    bucket.percentage = scores.length ? roundScore((bucket.count / scores.length) * 100) : 0;
+  });
+
+  return buckets;
+}
+
+function bestSubmittedAttemptsByLearner(attempts = []) {
+  const bestByLearner = new Map();
+
+  attempts
+    .filter((attempt) => attempt.status === ExamAttemptStatus.SUBMITTED)
+    .forEach((attempt) => {
+      const current = bestByLearner.get(attempt.learner_id);
+      const attemptScore = toScore(attempt.total_score);
+      const currentScore = toScore(current?.total_score);
+      const attemptSubmittedAt = attempt.submitted_at ? new Date(attempt.submitted_at).getTime() : 0;
+      const currentSubmittedAt = current?.submitted_at ? new Date(current.submitted_at).getTime() : 0;
+
+      if (!current || attemptScore > currentScore || (attemptScore === currentScore && attemptSubmittedAt > currentSubmittedAt)) {
+        bestByLearner.set(attempt.learner_id, attempt);
+      }
+    });
+
+  return Array.from(bestByLearner.values());
+}
+
+function buildQuestionStatistics(questions = [], attempts = [], answers = []) {
+  const answersByAttemptQuestion = new Map();
+
+  answers.forEach((answer) => {
+    answersByAttemptQuestion.set(`${answer.exam_attempt_id}:${answer.exam_question_id}`, answer);
+  });
+
+  return questions.map((question, index) => {
+    const options = Array.isArray(question.answer_options_json) ? question.answer_options_json : [];
+    const optionStats = options.map((option, optionIndex) => ({
+      index: Number(option.index ?? optionIndex),
+      label: optionLabel(option.index ?? optionIndex),
+      text: option.text || "",
+      correctStudents: [],
+      wrongStudents: [],
+    }));
+    const optionStatsByIndex = new Map(optionStats.map((item) => [item.index, item]));
+    const correctStudents = [];
+    const wrongStudents = [];
+    const unansweredStudents = [];
+
+    attempts.forEach((attempt) => {
+      const learnerName = learnerDisplayName(attempt.learner);
+      const answer = answersByAttemptQuestion.get(`${attempt.exam_attempt_id}:${question.exam_question_id}`);
+
+      if (!answer || !(answer.selected_exam_option_indexes ?? []).length) {
+        unansweredStudents.push(learnerName);
+        return;
+      }
+
+      const selectedLabels = selectedOptionLabels(answer);
+      if (answer.is_correct) {
+        correctStudents.push(learnerName);
+      } else {
+        wrongStudents.push(selectedLabels ? `${learnerName} (${selectedLabels})` : learnerName);
+      }
+
+      (answer.selected_exam_option_indexes ?? []).forEach((selectedIndex) => {
+        const optionStat = optionStatsByIndex.get(Number(selectedIndex));
+        if (!optionStat) return;
+        if (answer.is_correct) optionStat.correctStudents.push(learnerName);
+        else optionStat.wrongStudents.push(learnerName);
+      });
+    });
+
+    return {
+      exam_question_id: question.exam_question_id,
+      label: `Question ${String(index + 1).padStart(2, "0")}`,
+      question_text: question.question_text,
+      totalStudents: attempts.length,
+      answeredCount: attempts.length - unansweredStudents.length,
+      unansweredCount: unansweredStudents.length,
+      correctCount: correctStudents.length,
+      wrongCount: wrongStudents.length,
+      incompleteRate: attempts.length ? roundScore((unansweredStudents.length / attempts.length) * 100) : 0,
+      correctStudents,
+      wrongStudents,
+      unansweredStudents,
+      optionStats,
+    };
+  });
+}
+
 // Teacher can type a code, otherwise generate a short readable one.
 function buildAccessCode(value) {
   return text(value).toUpperCase().replace(/[^A-Z0-9-]/g, "") ||
@@ -300,6 +425,101 @@ export async function getExamDetail(examSessionId, teacherId) {
   }
 
   return data;
+}
+
+export async function getExamStatistics(examSessionId, teacherId) {
+  const exam = await getExamDetail(examSessionId, teacherId);
+
+  const [attemptsResult, questionsResult] = await Promise.all([
+    dao.listTeacherExamAttempts(examSessionId),
+    dao.listExamQuestions(examSessionId),
+  ]);
+
+  if (attemptsResult.error) throw dbError(attemptsResult.error, 500);
+  if (questionsResult.error) throw dbError(questionsResult.error, 500);
+
+  const attempts = (attemptsResult.data ?? []).map(withExamMaxScore);
+  const questions = questionsResult.data ?? [];
+  const bestAttempts = bestSubmittedAttemptsByLearner(attempts);
+  const answerAttemptIds = bestAttempts.map((attempt) => attempt.exam_attempt_id);
+  const { data: answers, error: answersError } = await dao.listExamAttemptAnswersByAttemptIds(answerAttemptIds);
+  if (answersError) throw dbError(answersError, 500);
+
+  const answersByAttemptQuestion = new Map();
+  (answers ?? []).forEach((answer) => {
+    answersByAttemptQuestion.set(`${answer.exam_attempt_id}:${answer.exam_question_id}`, answer);
+  });
+
+  const scoreRows = bestAttempts
+    .sort((left, right) => learnerDisplayName(left.learner).localeCompare(learnerDisplayName(right.learner)))
+    .map((attempt, index) => ({
+      index: index + 1,
+      learner_id: attempt.learner_id,
+      name: learnerDisplayName(attempt.learner),
+      email: attempt.learner?.email || "",
+      birthdate: "Not provided",
+      className: exam.classes?.class_name || "Free",
+      groupName: exam.classes?.class_name || "Free",
+      gender: "Not provided",
+      score: roundScore(attempt.total_score),
+      submitted_at: attempt.submitted_at,
+      attempt_number: attempt.attempt_number,
+      warning_count: attempt.warning_count ?? 0,
+      answers: questions.map((question, questionIndex) => {
+        const answer = answersByAttemptQuestion.get(`${attempt.exam_attempt_id}:${question.exam_question_id}`);
+        return {
+          exam_question_id: question.exam_question_id,
+          label: `Question ${String(questionIndex + 1).padStart(2, "0")}`,
+          status: !answer || !(answer.selected_exam_option_indexes ?? []).length
+            ? "Not answered"
+            : answer.is_correct
+              ? "Correct"
+              : "Wrong",
+          selected: selectedOptionLabels(answer),
+        };
+      }),
+    }));
+
+  const scores = scoreRows.map((row) => row.score);
+  const distribution = buildDistribution(scores);
+  const averageScore = scores.length
+    ? roundScore(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+    : 0;
+  const mostCommonBucket = [...distribution].sort((left, right) => right.count - left.count)[0] ?? distribution[0];
+  const submittedLearnerIds = new Set(bestAttempts.map((attempt) => attempt.learner_id));
+  const registeredLearnerIds = new Set(attempts.map((attempt) => attempt.learner_id));
+  const inProgressLearnerIds = new Set(
+    attempts
+      .filter((attempt) => attempt.status === ExamAttemptStatus.IN_PROGRESS)
+      .map((attempt) => attempt.learner_id)
+  );
+  const notSubmittedOrInProgress = Array.from(registeredLearnerIds)
+    .filter((learnerId) => !submittedLearnerIds.has(learnerId)).length;
+
+  return {
+    exam,
+    summary: {
+      registeredCount: registeredLearnerIds.size,
+      totalAttempts: attempts.length,
+      submittedLearners: submittedLearnerIds.size,
+      inProgressLearners: inProgressLearnerIds.size,
+      notSubmittedOrInProgress,
+      belowOneCount: scores.filter((score) => score < 1).length,
+      atLeastFiveCount: scores.filter((score) => score >= 5).length,
+      averageScore,
+      mostCommonScoreBucket: mostCommonBucket?.label || "-",
+      maxScore: EXAM_MAX_SCORE,
+    },
+    distribution,
+    scoreRows,
+    questionStats: buildQuestionStatistics(questions, bestAttempts, answers ?? []),
+    questions: questions.map((question, index) => ({
+      exam_question_id: question.exam_question_id,
+      label: `Question ${String(index + 1).padStart(2, "0")}`,
+      question_text: question.question_text,
+      display_order: question.display_order,
+    })),
+  };
 }
 
 // Update the configurable fields from the settings screen.

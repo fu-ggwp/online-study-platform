@@ -338,6 +338,14 @@ export function listLearnerExamAttempts(examSessionId, learnerId) {
     .order("attempt_number", { ascending: true });
 }
 
+export function listTeacherExamAttempts(examSessionId) {
+  return db
+    .from(EXAM_ATTEMPT_TABLE)
+    .select(`${EXAM_ATTEMPT_SELECT}, learner:users!learner_id(user_id, email, username, full_name)`)
+    .eq("exam_session_id", examSessionId)
+    .order("started_at", { ascending: true });
+}
+
 export function listExamQuestions(examSessionId) {
   return db
     .from(EXAM_QUESTION_TABLE)
@@ -385,6 +393,15 @@ export function listExamAttemptAnswers(examAttemptId) {
     .from(ATTEMPT_ANSWER_TABLE)
     .select("*")
     .eq("exam_attempt_id", examAttemptId);
+}
+
+export function listExamAttemptAnswersByAttemptIds(examAttemptIds) {
+  if (!examAttemptIds.length) return Promise.resolve({ data: [], error: null });
+
+  return db
+    .from(ATTEMPT_ANSWER_TABLE)
+    .select("*")
+    .in("exam_attempt_id", examAttemptIds);
 }
 
 export function upsertExamAttemptAnswer(payload) {
