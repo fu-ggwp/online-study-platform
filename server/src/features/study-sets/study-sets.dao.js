@@ -442,3 +442,10 @@ export async function adminSetHidden(studySetId, hidden) {
     .single();
   return { data, error };
 }
+export function getUserPremiumStatus(userId) {
+  return supabase
+    .from(USER_TABLE)
+    .select("is_premium")
+    .eq("user_id", userId)
+    .single();
+}
