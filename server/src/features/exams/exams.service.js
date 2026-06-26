@@ -789,19 +789,10 @@ export async function recordLearnerExamEvent(examAttemptId, learnerId, payload =
   if (!attempt) throw notFound("Exam attempt not found");
   if (attempt.status !== ExamAttemptStatus.IN_PROGRESS) return attempt;
 
-  const { error: eventError } = await dao.insertExamAttemptEvent({
-    exam_attempt_id: examAttemptId,
-    event_type: eventType,
-    occurred_at: new Date().toISOString(),
-  });
-  if (eventError) throw dbError(eventError);
-
   if (!warningTypes.has(eventType)) return attempt;
-  const { count, error: countError } = await dao.countExamAttemptWarningEvents(examAttemptId);
-  if (countError) throw dbError(countError, 500);
 
   const { data, error: updateError } = await dao.updateExamAttempt(examAttemptId, {
-    warning_count: count ?? Number(attempt.warning_count || 0) + 1,
+    warning_count: Number(attempt.warning_count || 0) + 1,
     updated_at: new Date().toISOString(),
   });
   if (updateError) throw dbError(updateError);

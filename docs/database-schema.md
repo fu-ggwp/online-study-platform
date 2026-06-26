@@ -20,9 +20,8 @@ Important:
 - `question_banks`, `study_sets`, `questions`, and `answer_options` model
   reusable quiz/study content.
 - `study_set_assignments`, `practice_attempts`, `exam_sessions`,
-  `exam_questions`, `exam_attempts`, `exam_attempt_events`, and
-  `attempt_answers` model learning, assigned practice, exams, integrity
-  warnings, and submitted answers.
+  `exam_questions`, `exam_attempts`, and `attempt_answers` model learning,
+  assigned practice, exams, warning counts, and submitted answers.
 - `premium_plans` and `payments` model premium subscriptions.
 - `ai_interactions` stores AI usage metadata for explanations and question
   generation.
@@ -265,14 +264,6 @@ CREATE TABLE public.exam_attempts (
   CONSTRAINT exam_attempts_pkey PRIMARY KEY (exam_attempt_id),
   CONSTRAINT exam_attempts_exam_session_id_fkey FOREIGN KEY (exam_session_id) REFERENCES public.exam_sessions(exam_session_id),
   CONSTRAINT exam_attempts_learner_id_fkey FOREIGN KEY (learner_id) REFERENCES public.users(user_id)
-);
-CREATE TABLE public.exam_attempt_events (
-  exam_attempt_event_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  exam_attempt_id uuid NOT NULL,
-  event_type character varying NOT NULL CHECK (event_type::text = ANY (ARRAY['tab_hidden'::character varying, 'tab_visible'::character varying, 'window_blur'::character varying, 'window_focus'::character varying, 'fullscreen_exit'::character varying, 'zoom_changed'::character varying]::text[])),
-  occurred_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT exam_attempt_events_pkey PRIMARY KEY (exam_attempt_event_id),
-  CONSTRAINT exam_attempt_events_exam_attempt_id_fkey FOREIGN KEY (exam_attempt_id) REFERENCES public.exam_attempts(exam_attempt_id)
 );
 CREATE TABLE public.attempt_answers (
   attempt_answer_id uuid NOT NULL DEFAULT gen_random_uuid(),

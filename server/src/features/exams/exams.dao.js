@@ -6,7 +6,6 @@ import { EXAM_ATTEMPT_TABLE } from "../../models/exam-attempt.model.js";
 import { EXAM_QUESTION_TABLE, EXAM_SESSION_TABLE } from "../../models/exam.model.js";
 
 const db = supabase;
-const EXAM_ATTEMPT_EVENT_TABLE = "exam_attempt_events";
 
 const EXAM_SESSION_SELECT = `
   exam_session_id,
@@ -376,16 +375,4 @@ export function upsertExamAttemptAnswer(payload) {
     .upsert(payload, { onConflict: "exam_attempt_id,exam_question_id" })
     .select("*")
     .single();
-}
-
-export function insertExamAttemptEvent(payload) {
-  return db.from(EXAM_ATTEMPT_EVENT_TABLE).insert(payload).select("*").single();
-}
-
-export function countExamAttemptWarningEvents(examAttemptId) {
-  return db
-    .from(EXAM_ATTEMPT_EVENT_TABLE)
-    .select("exam_attempt_event_id", { count: "exact", head: true })
-    .eq("exam_attempt_id", examAttemptId)
-    .in("event_type", ["tab_hidden", "window_blur", "fullscreen_exit", "zoom_changed"]);
 }
