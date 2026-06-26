@@ -23,7 +23,6 @@ export const ExamAttemptStatus = Object.freeze({
  * @property {Record<string, number[]>} answer_order
  * @property {number} warning_count
  * @property {number} total_score
- * @property {number} max_score
  * @property {string} created_at
  * @property {string} updated_at
  */

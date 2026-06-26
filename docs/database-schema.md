@@ -258,7 +258,6 @@ CREATE TABLE public.exam_attempts (
   answer_order jsonb NOT NULL DEFAULT '{}'::jsonb,
   warning_count integer NOT NULL DEFAULT 0 CHECK (warning_count >= 0),
   total_score numeric NOT NULL DEFAULT 0,
-  max_score numeric NOT NULL DEFAULT 0,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT exam_attempts_pkey PRIMARY KEY (exam_attempt_id),

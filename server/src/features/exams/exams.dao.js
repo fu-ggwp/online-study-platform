@@ -7,6 +7,24 @@ import { EXAM_QUESTION_TABLE, EXAM_SESSION_TABLE } from "../../models/exam.model
 
 const db = supabase;
 
+const EXAM_ATTEMPT_SELECT = `
+  exam_attempt_id,
+  exam_session_id,
+  learner_id,
+  attempt_number,
+  started_at,
+  expires_at,
+  submitted_at,
+  status,
+  is_auto_submitted,
+  question_order,
+  answer_order,
+  warning_count,
+  total_score,
+  created_at,
+  updated_at
+`;
+
 const EXAM_SESSION_SELECT = `
   exam_session_id,
   class_id,
@@ -314,7 +332,7 @@ export function findLearnerExamSession(examSessionId, classIds) {
 export function listLearnerExamAttempts(examSessionId, learnerId) {
   return db
     .from(EXAM_ATTEMPT_TABLE)
-    .select("exam_attempt_id, attempt_number, status, started_at, expires_at, submitted_at, total_score, max_score, warning_count")
+    .select("exam_attempt_id, attempt_number, status, started_at, expires_at, submitted_at, total_score, warning_count")
     .eq("exam_session_id", examSessionId)
     .eq("learner_id", learnerId)
     .order("attempt_number", { ascending: true });
@@ -329,13 +347,13 @@ export function listExamQuestions(examSessionId) {
 }
 
 export function insertExamAttempt(payload) {
-  return db.from(EXAM_ATTEMPT_TABLE).insert(payload).select("*").single();
+  return db.from(EXAM_ATTEMPT_TABLE).insert(payload).select(EXAM_ATTEMPT_SELECT).single();
 }
 
 export function findLearnerExamAttempt(examAttemptId, learnerId) {
   return db
     .from(EXAM_ATTEMPT_TABLE)
-    .select("*")
+    .select(EXAM_ATTEMPT_SELECT)
     .eq("exam_attempt_id", examAttemptId)
     .eq("learner_id", learnerId)
     .maybeSingle();
@@ -344,7 +362,7 @@ export function findLearnerExamAttempt(examAttemptId, learnerId) {
 export function findInProgressExamAttempt(examSessionId, learnerId) {
   return db
     .from(EXAM_ATTEMPT_TABLE)
-    .select("*")
+    .select(EXAM_ATTEMPT_SELECT)
     .eq("exam_session_id", examSessionId)
     .eq("learner_id", learnerId)
     .eq("status", "in_progress")
@@ -358,7 +376,7 @@ export function updateExamAttempt(examAttemptId, changes) {
     .from(EXAM_ATTEMPT_TABLE)
     .update(changes)
     .eq("exam_attempt_id", examAttemptId)
-    .select("*")
+    .select(EXAM_ATTEMPT_SELECT)
     .single();
 }
 
