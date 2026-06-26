@@ -228,8 +228,8 @@ export default function LearnerFlashcardsPage() {
   // --- Thoát phiên và Quay lại trang chi tiết Study Set ---
   const handleExit = async () => {
     try {
-      if (sessionId) {
-        // Tính điểm tổng kết dựa trên phần trăm thẻ đã thuộc
+      if (sessionId && currentIndex === questions.length) {
+        // Chỉ đánh dấu hoàn thành nếu học sinh đã học hết tất cả các thẻ ghi nhớ
         const score = Math.round((masteredQuestionIds.size / questions.length) * 100);
         await studySetsService.completeSession(sessionId, score);
       }
