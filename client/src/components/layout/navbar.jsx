@@ -12,7 +12,7 @@ import { profileService } from "@/services/profile.service";
 
 const ROLE_HOME = {
   teacher: "/teacher",
-  learner: "/learner/dashboard",
+  learner: "/learner",
 };
 
 export function Navbar() {

@@ -5,7 +5,7 @@ const ACCESS_TOKEN_COOKIE = "access_token";
 const ROLE_HOME = {
   admin: "/admin/dashboard",
   teacher: "/teacher",
-  learner: "/learner/dashboard",
+  learner: "/learner",
 };
 const BLOCKED_NEXT_ROUTES = ["/login", "/register", "/auth/callback"];
 

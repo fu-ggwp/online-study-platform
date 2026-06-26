@@ -47,10 +47,10 @@ const roleConfig = {
   },
   learner: {
     label: "Learner workspace",
-    homeHref: "/learner/dashboard",
+    homeHref: "/learner",
     icon: GraduationCap,
     nav: [
-      { label: "Dashboard", href: "/learner/dashboard", icon: Home },
+      { label: "Dashboard", href: "/learner", icon: Home },
       { label: "Study sets", href: "/learner/study-sets", icon: BookOpen },
       { label: "Classes", href: "/learner/classes", icon: Building2 },
       { label: "Exams", href: "/learner/exams", icon: GraduationCap },
