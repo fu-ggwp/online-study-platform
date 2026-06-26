@@ -1,8 +1,8 @@
-import supabase, { supabaseAdmin } from "../../config/supabase.js";
+import { supabase } from "../../config/supabase.js";
 import { createUserModel, userColumns } from "../../models/user.model.js";
 import { createUserRoleModel } from "../../models/user-role.model.js";
 
-const db = supabaseAdmin || supabase;
+const db = supabase;
 const userModel = createUserModel(db);
 const userRoleModel = createUserRoleModel(db);
 const usernamePattern = /^[a-zA-Z0-9_]+$/;

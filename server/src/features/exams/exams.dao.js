@@ -1,11 +1,11 @@
-import supabase, { supabaseAdmin } from "../../config/supabase.js";
+import { supabase } from "../../config/supabase.js";
 import { CLASS_TABLE } from "../../models/class.model.js";
 import { ATTEMPT_ANSWER_TABLE } from "../../models/attempt-answer.model.js";
 import { CLASS_MEMBER_TABLE } from "../../models/join-request.model.js";
 import { EXAM_ATTEMPT_TABLE } from "../../models/exam-attempt.model.js";
 import { EXAM_QUESTION_TABLE, EXAM_SESSION_TABLE } from "../../models/exam.model.js";
 
-const db = supabaseAdmin ?? supabase;
+const db = supabase;
 const EXAM_ATTEMPT_EVENT_TABLE = "exam_attempt_events";
 
 const EXAM_SESSION_SELECT = `
