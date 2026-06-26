@@ -16,6 +16,7 @@ import { logger } from "../../utils/logger.js";
 
 const createSavedMessage = "Exam session has been created successfully.";
 const settingsSavedMessage = "Exam settings have been updated successfully.";
+const EXAM_MAX_SCORE = 10;
 
 // Small error helpers keep controller responses consistent.
 function dbError(error, status = 400) {
@@ -58,6 +59,19 @@ function toBoolean(value, fallback = false) {
   if (value === "true") return true;
   if (value === "false") return false;
   return Boolean(value);
+}
+
+function roundScore(value) {
+  return Number(Number(value || 0).toFixed(2));
+}
+
+function examQuestionScore(questionCount) {
+  const count = Number(questionCount || 0);
+  return count > 0 ? EXAM_MAX_SCORE / count : 0;
+}
+
+function withExamMaxScore(attempt) {
+  return attempt ? { ...attempt, max_score: EXAM_MAX_SCORE } : attempt;
 }
 
 // Teacher can type a code, otherwise generate a short readable one.
@@ -202,6 +216,8 @@ function shuffle(items) {
 
 // Store a frozen copy so later bank edits do not change this exam.
 function toExamQuestionRows(examSessionId, questions) {
+  const questionScore = examQuestionScore(questions.length);
+
   return questions.map((question, index) => {
     const options = [...(question.answer_options ?? [])].sort(
       (left, right) => left.display_order - right.display_order
@@ -213,7 +229,7 @@ function toExamQuestionRows(examSessionId, questions) {
       source_question_id: question.question_id,
       question_text: question.question_text,
       question_type: question.question_type || "multiple_choice",
-      score: question.score || 1,
+      score: questionScore,
       explanation: question.explanation || null,
       chapter: question.chapter || null,
       answer_options_json: orderedOptions.map((option, optionIndex) => ({
@@ -490,7 +506,7 @@ export async function getLearnerExamDetail(examSessionId, learnerId) {
 
   return {
     ...data,
-    attempts: attempts ?? [],
+    attempts: (attempts ?? []).map(withExamMaxScore),
     attempts_used: attempts?.length ?? 0,
     attempts_remaining: Math.max(Number(data.attempt_limit || 0) - (attempts?.length ?? 0), 0),
   };
@@ -542,6 +558,7 @@ function buildAttemptOrder(exam, questions) {
 
 function visibleQuestions(questions, attempt) {
   const byId = new Map(questions.map((question) => [question.exam_question_id, question]));
+  const questionScore = examQuestionScore(questions.length);
   const orderedIds = attempt.question_order?.length
     ? attempt.question_order
     : questions.map((question) => question.exam_question_id);
@@ -555,7 +572,7 @@ function visibleQuestions(questions, attempt) {
       exam_question_id: question.exam_question_id,
       question_text: question.question_text,
       question_type: question.question_type,
-      score: question.score,
+      score: questionScore,
       display_order: question.display_order,
       answer_options: order.map((optionIndex) => {
         const option = optionsByIndex.get(Number(optionIndex));
@@ -569,6 +586,7 @@ function resultQuestions(questions, answers, attempt) {
   const answersByQuestion = new Map(
     (answers ?? []).map((answer) => [answer.exam_question_id, answer])
   );
+  const questionScore = examQuestionScore(questions.length);
 
   return visibleQuestions(questions, attempt).map((question) => {
     const source = (questions ?? []).find((item) => item.exam_question_id === question.exam_question_id) || {};
@@ -582,7 +600,7 @@ function resultQuestions(questions, answers, attempt) {
       selected_exam_option_indexes: selectedIndexes,
       correct_option_indexes: correctIndexes,
       is_correct: Boolean(answer?.is_correct),
-      score_awarded: Number(answer?.score_awarded || 0),
+      score_awarded: answer?.is_correct ? questionScore : 0,
       answer_options: question.answer_options.map((option) => ({
         ...option,
         is_selected: selectedIndexes.map(Number).includes(Number(option.index)),
@@ -617,6 +635,7 @@ async function buildAttemptPayload(attempt, exam) {
     exam,
     attempt: {
       ...attempt,
+      max_score: EXAM_MAX_SCORE,
       remaining_seconds: remainingSeconds(attempt),
     },
     questions: visibleQuestions(questions ?? [], attempt),
@@ -657,8 +676,6 @@ export async function startLearnerExamAttempt(examSessionId, learnerId, payload 
 
   const startedAt = new Date().toISOString();
   const { questionOrder, answerOrder } = buildAttemptOrder(exam, questions);
-  const maxScore = questions.reduce((sum, question) => sum + Number(question.score || 0), 0);
-
   const { data: attempt, error } = await dao.insertExamAttempt({
     exam_session_id: examSessionId,
     learner_id: learnerId,
@@ -671,7 +688,6 @@ export async function startLearnerExamAttempt(examSessionId, learnerId, payload 
     answer_order: answerOrder,
     warning_count: 0,
     total_score: 0,
-    max_score: maxScore,
   });
   if (error) throw dbError(error);
 
@@ -706,12 +722,13 @@ export async function saveLearnerExamAnswer(examAttemptId, learnerId, payload = 
     ? payload.selected_exam_option_indexes.map(Number).filter(Number.isFinite)
     : [];
   const isCorrect = sameIndexes(selected, question.correct_option_indexes ?? []);
+  const scoreAwarded = isCorrect ? examQuestionScore(questions.length) : 0;
   const { data, error: answerError } = await dao.upsertExamAttemptAnswer({
     exam_attempt_id: examAttemptId,
     exam_question_id: question.exam_question_id,
     selected_exam_option_indexes: selected,
     is_correct: isCorrect,
-    score_awarded: isCorrect ? Number(question.score || 0) : 0,
+    score_awarded: scoreAwarded,
     review_status: "unreviewed",
     answered_at: new Date().toISOString(),
   });
@@ -726,11 +743,19 @@ export async function submitLearnerExamAttempt(examAttemptId, learnerId, auto = 
   if (!attempt) throw notFound("Exam attempt not found");
   const exam = knownExam || await getLearnerExamOrFail(attempt.exam_session_id, learnerId);
   if (attempt.status === ExamAttemptStatus.SUBMITTED) {
-    return { ...attempt, result_visibility: exam.result_visibility };
+    return { ...withExamMaxScore(attempt), result_visibility: exam.result_visibility };
   }
   const { data: answers, error: answerError } = await dao.listExamAttemptAnswers(examAttemptId);
   if (answerError) throw dbError(answerError, 500);
-  const totalScore = (answers ?? []).reduce((sum, answer) => sum + Number(answer.score_awarded || 0), 0);
+
+  const { data: questions, error: questionError } = await dao.listExamQuestions(attempt.exam_session_id);
+  if (questionError) throw dbError(questionError, 500);
+
+  const questionScore = examQuestionScore(questions?.length ?? 0);
+  const totalScore = roundScore((answers ?? []).reduce(
+    (sum, answer) => sum + (answer.is_correct ? questionScore : 0),
+    0
+  ));
 
   const { data, error: updateError } = await dao.updateExamAttempt(examAttemptId, {
     status: ExamAttemptStatus.SUBMITTED,
@@ -743,6 +768,7 @@ export async function submitLearnerExamAttempt(examAttemptId, learnerId, auto = 
 
   return {
     ...data,
+    max_score: EXAM_MAX_SCORE,
     result_visibility: exam.result_visibility,
   };
 }
@@ -772,7 +798,7 @@ export async function getLearnerExamAttemptResults(examAttemptId, learnerId) {
 
   return {
     exam,
-    attempt,
+    attempt: withExamMaxScore(attempt),
     questions: resultQuestions(questions ?? [], answers ?? [], attempt),
   };
 }
@@ -789,19 +815,10 @@ export async function recordLearnerExamEvent(examAttemptId, learnerId, payload =
   if (!attempt) throw notFound("Exam attempt not found");
   if (attempt.status !== ExamAttemptStatus.IN_PROGRESS) return attempt;
 
-  const { error: eventError } = await dao.insertExamAttemptEvent({
-    exam_attempt_id: examAttemptId,
-    event_type: eventType,
-    occurred_at: new Date().toISOString(),
-  });
-  if (eventError) throw dbError(eventError);
-
   if (!warningTypes.has(eventType)) return attempt;
-  const { count, error: countError } = await dao.countExamAttemptWarningEvents(examAttemptId);
-  if (countError) throw dbError(countError, 500);
 
   const { data, error: updateError } = await dao.updateExamAttempt(examAttemptId, {
-    warning_count: count ?? Number(attempt.warning_count || 0) + 1,
+    warning_count: Number(attempt.warning_count || 0) + 1,
     updated_at: new Date().toISOString(),
   });
   if (updateError) throw dbError(updateError);
