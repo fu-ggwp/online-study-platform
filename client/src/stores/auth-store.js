@@ -44,7 +44,10 @@ export const useAuthStore = create((set, get) => ({
 
   clearAuthState: () => {
     clearAuthCookie();
+    const syncId = get().syncId + 1;
+
     set({
+      syncId,
       session: null,
       user: null,
       profile: null,
@@ -52,6 +55,7 @@ export const useAuthStore = create((set, get) => ({
       profileVerified: false,
       hasAuthCookie: false,
       isAuthenticated: false,
+      loading: false,
     });
   },
 

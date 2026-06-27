@@ -18,6 +18,7 @@ export function useAuth() {
       profileVerified: state.profileVerified,
       isAuthenticated: state.isAuthenticated,
       loading: state.loading,
+      clearAuthState: state.clearAuthState,
       setProfile: state.setProfile,
       refreshProfile: state.refreshProfile,
     }))

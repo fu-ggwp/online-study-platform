@@ -28,11 +28,13 @@ export function PublicSearchShell({ children }) {
   }, [role]);
 
   return (
-    <main className="flex min-h-screen flex-col bg-background text-foreground">
+    <main className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       <Navbar />
-      <div className="flex-1 md:flex">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
         {shouldShowSidebar ? <AppSidebar role={sidebarRole} /> : null}
-        <section className="min-w-0 flex-1">{children}</section>
+        <section className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+          {children}
+        </section>
       </div>
     </main>
   );
