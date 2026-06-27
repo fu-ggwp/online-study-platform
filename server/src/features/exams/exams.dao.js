@@ -403,15 +403,6 @@ export function listExamAttemptAnswers(examAttemptId) {
     .eq("exam_attempt_id", examAttemptId);
 }
 
-export function listExamAttemptAnswersByAttemptIds(examAttemptIds) {
-  if (!examAttemptIds.length) return Promise.resolve({ data: [], error: null });
-
-  return db
-    .from(ATTEMPT_ANSWER_TABLE)
-    .select("*")
-    .in("exam_attempt_id", examAttemptIds);
-}
-
 export function upsertExamAttemptAnswer(payload) {
   return db
     .from(ATTEMPT_ANSWER_TABLE)

@@ -15,7 +15,6 @@ export const examsService = {
   listAvailable: (params) => axiosClient.get("/api/exams/learner", { params }).then((r) => r.data),
   listForClass: (classId) => axiosClient.get(`/api/exams/class/${classId}`).then((r) => r.data),
   getOne: (id) => axiosClient.get(`/api/exams/${id}`).then((r) => r.data.data),
-  getStatistics: (id) => axiosClient.get(`/api/exams/${id}/statistics`).then((r) => r.data.data),
   getAttempts: (id) => axiosClient.get(`/api/exams/${id}/attempts`).then((r) => r.data.data),
   getLearnerExam: (id) => axiosClient.get(`/api/exams/learner/${id}`).then((r) => r.data.data),
   create: (payload) => axiosClient.post("/api/exams", payload).then((r) => r.data),

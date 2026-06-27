@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, BarChart3, ClipboardList, Settings } from "lucide-react";
+import { ArrowLeft, ClipboardList, Settings } from "lucide-react";
 
 import { ExamStatusBadge } from "./exam-status-badge";
 
@@ -32,13 +32,6 @@ export function ExamDetailHeader({ exam, examId }) {
         >
           <Settings className="size-4" />
           Configure
-        </Link>
-        <Link
-          href={`/teacher/exams/${examId}/statistics`}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm font-bold hover:bg-muted"
-        >
-          <BarChart3 className="size-4" />
-          Statistics
         </Link>
         <Link
           href={`/teacher/exams/${examId}/attempts`}
