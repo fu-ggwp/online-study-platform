@@ -1,4 +1,4 @@
-import { PublicSearchShell } from "@/components/public-search-shell";
+import { PublicSearchShell } from "@/components/public/public-search-shell";
 
 export default function PlansPage() {
   return (

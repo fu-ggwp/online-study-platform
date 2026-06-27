@@ -1,5 +1,5 @@
-import { PublicSearchShell } from "@/components/public-search-shell";
-import { PublicStudySets } from "@/components/public-study-sets";
+import { PublicSearchShell } from "@/components/public/public-search-shell";
+import { PublicStudySets } from "@/components/public/public-study-sets";
 
 export default function PublicStudySetsPage() {
   return (

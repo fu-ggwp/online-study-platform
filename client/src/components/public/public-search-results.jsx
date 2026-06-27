@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AlertCircle, BookOpen, Search, UserRound } from "lucide-react";
 
+import { StudySetCard } from "@/components/study-set/study-set-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -49,10 +50,6 @@ function unwrapPage(payload) {
 
 function getStudySetId(studySet) {
   return studySet.study_set_id ?? studySet.id;
-}
-
-function getQuestionCount(studySet) {
-  return studySet.question_count ?? studySet.questionCount ?? 0;
 }
 
 function formatShortDate(value) {
@@ -298,46 +295,6 @@ function Pager({ onPageChange, page, totalPages }) {
         </PaginationItem>
       </PaginationContent>
     </Pagination>
-  );
-}
-
-function StudySetCard({ studySet }) {
-  const id = getStudySetId(studySet);
-  const href = id ? `/study-sets/${id}` : "/search";
-
-  return (
-    <Link
-      className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      href={href}
-    >
-      <article className="flex min-h-52 flex-col justify-between rounded-lg border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/60 hover:bg-accent/30">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="line-clamp-2 text-lg font-bold text-foreground">
-                {studySet.title || "Untitled study set"}
-              </h3>
-            </div>
-            <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground">
-              Public
-            </span>
-          </div>
-
-          <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
-            {studySet.description ||
-              "Practice with flashcards and questions shared by the community."}
-          </p>
-        </div>
-
-        <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
-          <span>{studySet.topic || "No topic"}</span>
-          <span>-</span>
-          <span>{getQuestionCount(studySet)} questions</span>
-          <span>-</span>
-          <span>{formatShortDate(studySet.updated_at ?? studySet.created_at)}</span>
-        </div>
-      </article>
-    </Link>
   );
 }
 

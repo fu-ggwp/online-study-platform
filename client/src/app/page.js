@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { BookOpen, Search, Sparkles, Users } from "lucide-react";
 
-import { PublicSearchShell } from "@/components/public-search-shell";
-import { PublicStudySets } from "@/components/public-study-sets";
+import { PublicSearchShell } from "@/components/public/public-search-shell";
+import { PublicStudySets } from "@/components/public/public-study-sets";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 

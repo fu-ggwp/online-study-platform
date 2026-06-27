@@ -1,5 +1,5 @@
-import { PublicSearchResults } from "@/components/public-search-results";
-import { PublicSearchShell } from "@/components/public-search-shell";
+import { PublicSearchResults } from "@/components/public/public-search-results";
+import { PublicSearchShell } from "@/components/public/public-search-shell";
 
 export default function PublicUsersPage() {
   return (
