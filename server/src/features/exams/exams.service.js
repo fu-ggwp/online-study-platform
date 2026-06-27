@@ -105,6 +105,18 @@ function normalizeTeacherAttempt(attempt) {
   };
 }
 
+function withTeacherAttemptPresentation(attempt) {
+  if (!attempt) return attempt;
+  const isSubmitted = attempt.status === ExamAttemptStatus.SUBMITTED;
+
+  return {
+    ...attempt,
+    duration_seconds: isSubmitted ? attemptDurationSeconds(attempt) : null,
+    score: isSubmitted ? roundScore(attempt.total_score) : null,
+    max_score: EXAM_MAX_SCORE,
+  };
+}
+
 // Teacher can type a code, otherwise generate a short readable one.
 function buildAccessCode(value) {
   return text(value).toUpperCase().replace(/[^A-Z0-9-]/g, "") ||
@@ -873,7 +885,7 @@ export async function getTeacherExamAttemptResults(examAttemptId, teacherId) {
   if (attempt.status !== ExamAttemptStatus.SUBMITTED) {
     return {
       exam,
-      attempt: withExamMaxScore(attempt),
+      attempt: withTeacherAttemptPresentation(attempt),
       learner: attempt.learner ?? null,
       questions: [],
       review_available: false,
@@ -889,7 +901,7 @@ export async function getTeacherExamAttemptResults(examAttemptId, teacherId) {
 
   return {
     exam,
-    attempt: withExamMaxScore(attempt),
+    attempt: withTeacherAttemptPresentation(attempt),
     learner: attempt.learner ?? null,
     questions: resultQuestions(questions ?? [], answers ?? [], attempt),
     review_available: true,
