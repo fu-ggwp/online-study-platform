@@ -28,7 +28,7 @@ export const examsService = {
   // Learner: take exams
   startAttempt: (id, payload) => axiosClient.post(`/api/exams/${id}/attempts`, payload).then((r) => r.data.data),
   getAttempt: (attemptId) => axiosClient.get(`/api/exams/attempts/${attemptId}`).then((r) => r.data.data),
-  listMyAttempts: () => axiosClient.get("/api/exams/attempts/mine").then((r) => r.data),
+  listMyAttempts: (params) => axiosClient.get("/api/exams/attempts/mine", { params }).then((r) => r.data),
   submitAnswer: (attemptId, payload) =>
     axiosClient.post(`/api/exams/attempts/${attemptId}/answers`, payload).then((r) => r.data.data),
   submitAttempt: (attemptId, payload) =>

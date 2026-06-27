@@ -418,3 +418,32 @@ export function upsertExamAttemptAnswer(payload) {
     .select("*")
     .single();
 }
+
+export function listLearnerCompletedAttempts(learnerId) {
+  return db
+    .from(EXAM_ATTEMPT_TABLE)
+    .select(`
+      exam_attempt_id,
+      exam_session_id,
+      learner_id,
+      attempt_number,
+      started_at,
+      expires_at,
+      submitted_at,
+      status,
+      total_score,
+      warning_count,
+      exam_sessions:exam_sessions!exam_session_id (
+        exam_session_id,
+        title,
+        class_id,
+        classes:classes (
+          class_id,
+          class_name
+        )
+      )
+    `)
+    .eq("learner_id", learnerId)
+    .eq("status", "submitted");
+}
+
