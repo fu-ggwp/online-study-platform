@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Smart Quiz Platform",
+  title: "CardIO",
   description:
-    "Create, share, discover, and practice public study sets with Smart Quiz Platform.",
+    "Create, share, discover, and practice public study sets with CardIO.",
 };
 
 const VALID_ROLES = new Set(["admin", "teacher", "learner"]);

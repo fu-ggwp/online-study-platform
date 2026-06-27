@@ -44,7 +44,7 @@ export default function HomeRedirectPage() {
         <section className="mx-auto flex max-w-7xl flex-col gap-12">
           <div className="grid gap-8 border-b border-border pb-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div className="max-w-3xl">
-              <p className="text-sm font-semibold text-primary">Smart Quiz Platform</p>
+              <p className="text-sm font-semibold text-primary">CardIO</p>
               <h1 className="mt-3 text-4xl font-bold tracking-normal text-foreground sm:text-5xl">
                 Discover study sets and practice smarter
               </h1>

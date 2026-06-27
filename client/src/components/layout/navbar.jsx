@@ -29,8 +29,14 @@ const ROLE_HOME = {
 
 export function Navbar() {
   const router = useRouter();
-  const { clearAuthState, isAuthenticated, loading, profile, role, setProfile } =
-    useAuth();
+  const {
+    clearAuthState,
+    isAuthenticated,
+    loading,
+    profile,
+    role,
+    setProfile,
+  } = useAuth();
   const [searchInput, setSearchInput] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
@@ -100,7 +106,7 @@ export function Navbar() {
             </Button>
           ) : null}
           <Link href="/" className="text-lg font-bold text-foreground">
-            Smart Quiz Platform
+            CardIO
           </Link>
         </div>
 
