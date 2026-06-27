@@ -302,7 +302,6 @@ CREATE TABLE public.premium_plans (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   deleted_at timestamp with time zone,
   display_name character varying,
-  is_recommended boolean NOT NULL DEFAULT false,
   CONSTRAINT premium_plans_pkey PRIMARY KEY (premium_plan_id)
 );
 CREATE TABLE public.payments (

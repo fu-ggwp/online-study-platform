@@ -13,7 +13,6 @@ export const PREMIUM_PLAN_TABLE = "premium_plans";
  * @property {Object} features        - jsonb
  * @property {boolean} is_active
  * @property {string} [display_name]
- * @property {boolean} is_recommended
  * @property {string} created_at
  * @property {string} updated_at
  * @property {string} [deleted_at]
