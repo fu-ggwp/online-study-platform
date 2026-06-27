@@ -101,15 +101,16 @@ function statusConfig(status) {
 }
 
 function formatScore(attempt) {
-  if (!attempt || attempt.status !== "submitted" || attempt.score === null || attempt.score === undefined) return "-";
+  const rawScore = attempt?.score ?? attempt?.total_score;
+  if (!attempt || attempt.status !== "submitted" || rawScore === null || rawScore === undefined) return "-";
 
-  const score = Number(attempt.score || 0);
+  const score = Number(rawScore || 0);
   const formatted = Number.isInteger(score) ? String(score) : score.toFixed(2);
   return `${formatted}/${attempt.max_score || 10}`;
 }
 
 function scoreValue(attempt) {
-  return attempt?.status === "submitted" ? Number(attempt.score || 0) : -1;
+  return attempt?.status === "submitted" ? Number(attempt.score ?? attempt.total_score ?? 0) : -1;
 }
 
 function optionLabel(index) {
@@ -236,12 +237,14 @@ function StatCard({ icon: Icon, label, value, tone = "blue" }) {
   };
 
   return (
-    <section className="rounded-md border border-border bg-card p-4 shadow-sm">
-      <div className={`mb-3 grid size-8 place-items-center rounded-md ${tones[tone] ?? tones.blue}`}>
-        <Icon className="size-4" />
+    <section className="rounded-md border border-border bg-card p-3 shadow-sm">
+      <div className="flex items-center gap-2">
+        <span className={`grid size-8 shrink-0 place-items-center rounded-md ${tones[tone] ?? tones.blue}`}>
+          <Icon className="size-4" />
+        </span>
+        <p className="min-w-0 text-sm font-semibold text-muted-foreground">{label}</p>
       </div>
-      <p className="text-2xl font-bold text-foreground">{value}</p>
-      <p className="mt-1 text-sm font-semibold text-muted-foreground">{label}</p>
+      <p className="mt-3 truncate text-2xl font-bold text-foreground">{value}</p>
     </section>
   );
 }
@@ -268,64 +271,74 @@ function WarningBadge({ count }) {
   );
 }
 
-function ExportMenu({ open, options, onChange, onExport }) {
+function ExportMenu({ open, options, onChange, onClose, onExport }) {
   if (!open) return null;
 
   return (
-    <section className="rounded-md border border-border bg-card shadow-sm">
-      <div className="border-b border-border px-4 py-3">
-        <h2 className="inline-flex items-center gap-2 text-sm font-bold text-foreground">
-          <FileSpreadsheet className="size-4 text-emerald-600" />
-          Export options
-        </h2>
-      </div>
-      <div className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-4">
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <input
-              checked={options.mode === "current"}
-              className="size-4 accent-blue-700"
-              name="export-mode"
-              onChange={() => onChange((current) => ({ ...current, mode: "current" }))}
-              type="radio"
-            />
-            Export current scoreboard view
-          </label>
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <input
-              checked={options.mode === "all"}
-              className="size-4 accent-blue-700"
-              name="export-mode"
-              onChange={() => onChange((current) => ({ ...current, mode: "all" }))}
-              type="radio"
-            />
-            Export all attempts
-          </label>
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <input
-              checked={options.includeTime}
-              className="size-4 accent-blue-700"
-              onChange={(event) => onChange((current) => ({ ...current, includeTime: event.target.checked }))}
-              type="checkbox"
-            />
-            Include time spent
-          </label>
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <input
-              checked={options.includeWarnings}
-              className="size-4 accent-blue-700"
-              onChange={(event) => onChange((current) => ({ ...current, includeWarnings: event.target.checked }))}
-              type="checkbox"
-            />
-            Include warnings
-          </label>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4 py-6">
+      <section className="w-full max-w-xl rounded-md border border-border bg-card shadow-xl">
+        <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
+          <h2 className="inline-flex items-center gap-2 text-base font-bold text-foreground">
+            <FileSpreadsheet className="size-4 text-emerald-600" />
+            Export results
+          </h2>
+          <Button size="sm" variant="ghost" onClick={onClose}>
+            Close
+          </Button>
         </div>
-        <Button onClick={onExport}>
-          <Download data-icon="inline-start" />
-          Export
-        </Button>
-      </div>
-    </section>
+        <div className="space-y-4 px-5 py-4">
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <input
+                checked={options.mode === "current"}
+                className="size-4 accent-blue-700"
+                name="export-mode"
+                onChange={() => onChange((current) => ({ ...current, mode: "current" }))}
+                type="radio"
+              />
+              Export current scoreboard view
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <input
+                checked={options.mode === "all"}
+                className="size-4 accent-blue-700"
+                name="export-mode"
+                onChange={() => onChange((current) => ({ ...current, mode: "all" }))}
+                type="radio"
+              />
+              Export all attempts
+            </label>
+          </div>
+          <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+            <label className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <input
+                checked={options.includeTime}
+                className="size-4 accent-blue-700"
+                onChange={(event) => onChange((current) => ({ ...current, includeTime: event.target.checked }))}
+                type="checkbox"
+              />
+              Include time spent
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <input
+                checked={options.includeWarnings}
+                className="size-4 accent-blue-700"
+                onChange={(event) => onChange((current) => ({ ...current, includeWarnings: event.target.checked }))}
+                type="checkbox"
+              />
+              Include warnings
+            </label>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={onExport}>
+            <Download data-icon="inline-start" />
+            Export
+          </Button>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -568,31 +581,31 @@ function DetailView({ data, detail, onBack, onSelectAttempt, selectedAttemptId, 
 
         {!loading && !error ? (
           <>
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <StatCard icon={ClipboardList} label="Score" value={formatScore(selectedAttempt)} />
               <StatCard icon={ClipboardList} label="Attempt" value={selectedAttempt ? `#${selectedAttempt.attempt_number}` : "-"} />
               <StatCard icon={selectedAttempt?.status === "submitted" ? CheckCircle2 : Hourglass} label="Status" value={selectedAttempt ? statusLabel(selectedAttempt.status) : "-"} tone={selectedAttempt?.status === "submitted" ? "green" : "amber"} />
-              <StatCard icon={ClockIconShim} label="Time spent" value={formatDuration(selectedAttempt?.duration_seconds)} />
+              <StatCard icon={Hourglass} label="Time spent" value={formatDuration(selectedAttempt?.duration_seconds)} />
               <StatCard icon={AlertTriangle} label="Warnings" value={selectedAttempt?.warning_count ?? 0} tone="rose" />
             </section>
 
             <section className="rounded-md border border-border bg-card p-4 shadow-sm">
-              <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                <div>
+              <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                <div className="min-w-0 rounded-md bg-muted/40 px-3 py-2">
                   <dt className="font-bold text-muted-foreground">Started at</dt>
-                  <dd className="mt-1 font-semibold text-foreground">{formatDateTime(selectedAttempt?.started_at)}</dd>
+                  <dd className="mt-1 truncate font-semibold text-foreground">{formatDateTime(selectedAttempt?.started_at)}</dd>
                 </div>
-                <div>
+                <div className="min-w-0 rounded-md bg-muted/40 px-3 py-2">
                   <dt className="font-bold text-muted-foreground">Submitted at</dt>
-                  <dd className="mt-1 font-semibold text-foreground">{formatDateTime(selectedAttempt?.submitted_at)}</dd>
+                  <dd className="mt-1 truncate font-semibold text-foreground">{formatDateTime(selectedAttempt?.submitted_at)}</dd>
                 </div>
-                <div>
+                <div className="min-w-0 rounded-md bg-muted/40 px-3 py-2">
                   <dt className="font-bold text-muted-foreground">Exam</dt>
-                  <dd className="mt-1 font-semibold text-foreground">{data.exam?.title}</dd>
+                  <dd className="mt-1 truncate font-semibold text-foreground">{data.exam?.title}</dd>
                 </div>
-                <div>
+                <div className="min-w-0 rounded-md bg-muted/40 px-3 py-2">
                   <dt className="font-bold text-muted-foreground">Class</dt>
-                  <dd className="mt-1 font-semibold text-foreground">{data.exam?.classes?.class_name || "Class"}</dd>
+                  <dd className="mt-1 truncate font-semibold text-foreground">{data.exam?.classes?.class_name || "Class"}</dd>
                 </div>
               </dl>
             </section>
@@ -644,10 +657,6 @@ function DetailView({ data, detail, onBack, onSelectAttempt, selectedAttemptId, 
       </section>
     </main>
   );
-}
-
-function ClockIconShim(props) {
-  return <Hourglass {...props} />;
 }
 
 export function ExamAttemptsClient({ examId }) {
@@ -794,7 +803,7 @@ export function ExamAttemptsClient({ examId }) {
           </Button>
         </header>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <StatCard icon={ClipboardList} label="Total attempts" value={data.summary.totalAttempts} />
           <StatCard icon={Hourglass} label="In progress" value={data.summary.inProgressCount} tone="amber" />
           <StatCard icon={CheckCircle2} label="Submitted" value={data.summary.submittedCount} tone="green" />
@@ -804,7 +813,11 @@ export function ExamAttemptsClient({ examId }) {
 
         <ExportMenu
           onChange={setExportOptions}
-          onExport={() => exportWorkbook(data, rows, data.attempts ?? [], exportOptions)}
+          onClose={() => setExportOpen(false)}
+          onExport={() => {
+            exportWorkbook(data, rows, data.attempts ?? [], exportOptions);
+            setExportOpen(false);
+          }}
           open={exportOpen}
           options={exportOptions}
         />
