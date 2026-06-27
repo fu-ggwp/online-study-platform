@@ -5,9 +5,18 @@ import { useEffect } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
 
+const ROLE_HOME = {
+  teacher: "/teacher",
+  learner: "/learner",
+};
+
 function getLoginPath(pathname) {
   const next = encodeURIComponent(pathname || "/");
   return `/login?next=${next}`;
+}
+
+function getRoleMismatchRedirect(role) {
+  return ROLE_HOME[role] || "/403";
 }
 
 export function RoleGuard({ allowedRole, children }) {
@@ -24,7 +33,7 @@ export function RoleGuard({ allowedRole, children }) {
     }
 
     if (role && role !== allowedRole) {
-      router.replace("/403");
+      router.replace(getRoleMismatchRedirect(role));
     }
   }, [allowedRole, isAuthenticated, loading, pathname, role, router]);
 
