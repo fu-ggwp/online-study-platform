@@ -15,6 +15,7 @@ export function useAuth() {
       user: state.user,
       profile: state.profile,
       role: state.role,
+      profileVerified: state.profileVerified,
       isAuthenticated: state.isAuthenticated,
       loading: state.loading,
       setProfile: state.setProfile,

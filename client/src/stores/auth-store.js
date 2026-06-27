@@ -19,6 +19,7 @@ export const useAuthStore = create((set, get) => ({
   user: null,
   profile: null,
   role: null,
+  profileVerified: false,
   hasAuthCookie: false,
   isAuthenticated: false,
   loading: true,
@@ -33,6 +34,7 @@ export const useAuthStore = create((set, get) => ({
     set({
       profile: initialProfile,
       role: initialRole,
+      profileVerified: false,
       hasAuthCookie: initialIsAuthenticated,
       isAuthenticated: initialIsAuthenticated,
       loading: initialIsAuthenticated && !initialRole,
@@ -47,6 +49,7 @@ export const useAuthStore = create((set, get) => ({
       user: null,
       profile: null,
       role: null,
+      profileVerified: false,
       hasAuthCookie: false,
       isAuthenticated: false,
     });
@@ -56,6 +59,7 @@ export const useAuthStore = create((set, get) => ({
     set({
       profile,
       role: profile?.activeRole ?? null,
+      profileVerified: Boolean(profile?.activeRole),
     });
     syncRoleCookie(profile?.activeRole);
   },
@@ -69,6 +73,7 @@ export const useAuthStore = create((set, get) => ({
       set({
         profile: null,
         role: null,
+        profileVerified: false,
       });
       syncRoleCookie(null);
       return null;
@@ -100,6 +105,7 @@ export const useAuthStore = create((set, get) => ({
       set({
         profile,
         role: profile?.activeRole ?? null,
+        profileVerified: Boolean(profile?.activeRole),
         loading: false,
       });
       syncRoleCookie(profile?.activeRole);
