@@ -1,12 +1,10 @@
-import { GoogleGenAI } from "@google/genai";
 import * as dao from "./study-sets.dao.js";
-import { env } from "../../config/env.js";
 import { buildPaginatedResponse } from "../../utils/pagination.js";
 import { notifyStudySetAssigned } from "../../utils/notification.service.js";
 import { logger } from "../../utils/logger.js";
+import * as aiService from "../ai/ai.service.js";
 
 const premiumRequiredMessage = "AI explanations are available for Premium accounts only. Please upgrade to continue.";
-const aiUnavailableMessage = "AI processing is currently unavailable. Please try again later.";
 
 function shouldNotify(payload = {}) {
   const flag = payload.notifyLearners ?? payload.notify_learners;
@@ -56,59 +54,6 @@ function notFound(message = "Study set not found") {
   return Object.assign(new Error(message), { status: 404 });
 }
 
-function formatOptionList(options = []) {
-  return options
-    .map((option, index) => {
-      const letter = String.fromCharCode(65 + index);
-      return `${letter}. ${option.option_text}`;
-    })
-    .join("\n");
-}
-
-function formatSelectedOptions(options = [], selectedOptionIds = []) {
-  if (!selectedOptionIds.length) return "No answer selected.";
-
-  const selected = options.filter((option) => selectedOptionIds.includes(option.answer_option_id));
-  if (!selected.length) return "No matching selected answer found.";
-
-  return formatOptionList(selected);
-}
-
-function buildAnswerExplanationPrompt({ studySet, question, attemptAnswer }) {
-  const options = question.answer_options || [];
-  const correctOptions = options.filter((option) => option.is_correct);
-
-  return [
-    "You are helping a learner understand a quiz answer.",
-    "Explain the answer clearly and briefly. Use the same language as the question or existing explanation.",
-    "Do not mention that you are an AI. Do not use markdown tables.",
-    "",
-    "Study set context:",
-    `Title: ${studySet.title || "Untitled"}`,
-    `Description: ${studySet.description || "No description"}`,
-    `Subject: ${studySet.subject || "Not specified"}`,
-    `Topic: ${studySet.topic || "Not specified"}`,
-    `Tags: ${(studySet.tags || []).join(", ") || "None"}`,
-    "",
-    "Question:",
-    question.question_text,
-    "",
-    "Answer options:",
-    formatOptionList(options),
-    "",
-    "Correct answer:",
-    formatOptionList(correctOptions),
-    "",
-    "Learner selected answer:",
-    formatSelectedOptions(options, attemptAnswer?.selected_answer_option_ids || []),
-    "",
-    "Existing explanation:",
-    question.explanation || "No existing explanation.",
-    "",
-    "Return one concise explanation paragraph plus, if helpful, one short sentence about why the selected answer is right or wrong.",
-  ].join("\n");
-}
-
 async function requirePremiumLearner(userId) {
   const { data, error } = await dao.getUserPremiumStatus(userId);
   if (error) {
@@ -117,33 +62,6 @@ async function requirePremiumLearner(userId) {
 
   if (!data?.is_premium) {
     throw serviceError(premiumRequiredMessage, 403);
-  }
-}
-
-async function callGeminiForAnswerExplanation(prompt) {
-  if (!env.geminiApiKey) {
-    throw serviceError(aiUnavailableMessage, 503);
-  }
-
-  try {
-    const ai = new GoogleGenAI({ apiKey: env.geminiApiKey });
-    const response = await ai.models.generateContent({
-      model: env.geminiModel,
-      contents: [{ text: prompt }],
-      config: {
-        temperature: 0.2,
-      },
-    });
-
-    const aiExplanation = String(response.text || "").trim();
-    if (!aiExplanation) {
-      throw serviceError(aiUnavailableMessage, 502);
-    }
-
-    return aiExplanation;
-  } catch (error) {
-    if (error.status || error.statusCode) throw error;
-    throw serviceError(aiUnavailableMessage, 502);
   }
 }
 
@@ -709,12 +627,11 @@ export async function generateAnswerExplanation(user, sessionId, questionId) {
     ),
   };
   const attemptAnswer = (answers || []).find((answer) => answer.question_id === questionId);
-  const prompt = buildAnswerExplanationPrompt({
+  const { aiExplanation } = await aiService.generateAnswerExplanation({
     studySet,
     question: sortedQuestion,
     attemptAnswer,
   });
-  const aiExplanation = await callGeminiForAnswerExplanation(prompt);
 
   return { aiExplanation };
 }
