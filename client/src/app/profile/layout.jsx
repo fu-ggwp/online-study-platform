@@ -11,7 +11,7 @@ export default function ProfileLayout({ children }) {
     <main className="flex min-h-screen flex-col bg-background text-foreground">
       <Navbar />
       <div className="flex-1 md:flex">
-        <AppSidebar role={role || "learner"} />
+        {role ? <AppSidebar role={role} /> : null}
         <section className="min-w-0 flex-1">{children}</section>
       </div>
     </main>

@@ -19,7 +19,7 @@ const ROLE_HOME = {
 
 export function Navbar() {
   const router = useRouter();
-  const { isAuthenticated, loading, role, refreshProfile } = useAuth();
+  const { isAuthenticated, loading, role, setProfile } = useAuth();
   const [searchInput, setSearchInput] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
@@ -47,10 +47,9 @@ export function Navbar() {
     setIsSwitchingRole(true);
 
     try {
-      await profileService.switchRole(targetRole);
-      await refreshProfile();
+      const profile = await profileService.switchRole(targetRole);
+      setProfile(profile);
       router.replace(ROLE_HOME[targetRole]);
-      router.refresh();
     } catch (error) {
       console.error("Role switch failed", error);
     } finally {
@@ -109,7 +108,7 @@ export function Navbar() {
             <Link href="/plans">Plans</Link>
           </Button>
 
-          {!loading && isAuthenticated ? (
+          {isAuthenticated ? (
             <>
               {targetRole ? (
                 <Button

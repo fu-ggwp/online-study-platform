@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
 const ROLE_HOME = {
+  admin: "/admin/dashboard",
   teacher: "/teacher",
   learner: "/learner",
 };
