@@ -17,6 +17,12 @@ const ROLE_HOME = {
   learner: "/learner",
 };
 
+function getBrandHref({ isAuthenticated, role }) {
+  if (!isAuthenticated) return "/";
+
+  return ROLE_HOME[role] ?? "/";
+}
+
 export function Navbar() {
   const router = useRouter();
   const { isAuthenticated, loading, role, refreshProfile } = useAuth();
@@ -26,6 +32,10 @@ export function Navbar() {
 
   const targetRole =
     role === "learner" ? "teacher" : role === "teacher" ? "learner" : null;
+  const brandHref = getBrandHref({
+    isAuthenticated: !loading && isAuthenticated,
+    role,
+  });
 
   async function handleLogout() {
     setIsLoggingOut(true);
@@ -83,7 +93,7 @@ export function Navbar() {
               <Menu />
             </Button>
           ) : null}
-          <Link href="/" className="text-lg font-bold text-foreground">
+          <Link href={brandHref} className="text-lg font-bold text-foreground">
             Smart Quiz Platform
           </Link>
         </div>
