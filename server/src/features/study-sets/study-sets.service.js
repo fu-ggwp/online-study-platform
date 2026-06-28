@@ -55,12 +55,12 @@ function notFound(message = "Study set not found") {
 }
 
 async function requirePremiumLearner(userId) {
-  const { data, error } = await dao.getUserPremiumStatus(userId);
+  const { data, error } = await dao.getActiveSubscriptionForUser(userId);
   if (error) {
     throw dbError(error, 500);
   }
 
-  if (!data?.is_premium) {
+  if (!data?.subscription_id) {
     throw serviceError(premiumRequiredMessage, 403);
   }
 }

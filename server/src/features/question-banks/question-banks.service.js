@@ -48,8 +48,8 @@ async function requireActiveTeacher(userId) {
   return profile;
 }
 
-function requirePremiumTeacher(profile) {
-  if (!profile?.is_premium) {
+function requireActiveSubscription(subscription) {
+  if (!subscription?.subscription_id) {
     throw serviceError(premiumRequiredMessage, 403);
   }
 }
@@ -196,8 +196,17 @@ function handleLoadError(error) {
 }
 
 export async function generateQuestionsFromMaterial(userId, { file, questionCount, focus }) {
-  const profile = await requireActiveTeacher(userId);
-  requirePremiumTeacher(profile);
+  await requireActiveTeacher(userId);
+
+  const { data: subscription, error: subscriptionError } =
+    await questionBanksDao.findActiveSubscriptionForUser(userId);
+
+  if (subscriptionError) {
+    throw serviceError(subscriptionError.message || "Failed to load subscription status.", 500);
+  }
+
+  requireActiveSubscription(subscription);
+
   return aiService.generateQuestionsFromMaterial({ file, questionCount, focus });
 }
 
