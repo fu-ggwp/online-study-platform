@@ -67,11 +67,11 @@ export default function LearnerExamsPage() {
     setPrevQueryKey(queryKey);
     setPrevActiveTab(activeTab);
     setLoading(true);
+    setError("");
   }
 
   useEffect(() => {
     let ignore = false;
-    setError("");
 
     const fetchPromise = activeTab === "available"
       ? examsService.listAvailable(JSON.parse(queryKey))
