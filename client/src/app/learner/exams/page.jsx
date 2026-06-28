@@ -1,12 +1,15 @@
 "use client";
 
-import { LockKeyhole, Search, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppPagination } from "@/components/common/app-pagination";
-
 import { Button } from "@/components/ui/button";
 import { examsService } from "@/services/exams.service";
+
+import { ExamFilters } from "./_components/exam-filters";
+import { AvailableExamsTable } from "./_components/available-exams-table";
+import { CompletedExamsTable } from "./_components/completed-exams-table";
 
 const PAGE_SIZE = 5;
 const INITIAL_FILTERS = {
@@ -29,39 +32,6 @@ const COMPLETED_SORT_OPTIONS = [
   { value: "title_asc", label: "Exam title A-Z" },
 ];
 
-function formatDateTime(value) {
-  if (!value) return "Not scheduled";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not scheduled";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
-}
-
-function formatSubmittedDate(dateString) {
-  if (!dateString) return "N/A";
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "N/A";
-
-  const allMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const month = allMonths[date.getMonth()];
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${month} ${day} ${hours}:${minutes}`;
-}
-
-function formatDuration(seconds) {
-  if (seconds === null || seconds === undefined || Number.isNaN(seconds)) return "N/A";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}m ${String(s).padStart(2, "0")}s`;
-}
-
 function getErrorMessage(error) {
   return error?.response?.data?.error || error?.message || "Unable to load exams. Please try again.";
 }
@@ -70,17 +40,16 @@ export default function LearnerExamsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Initialize active tab from query parameter, defaulting to "available"
-  const initialTab = searchParams.get("tab") === "completed" ? "completed" : "available";
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const tabParam = searchParams.get("tab");
+  const activeTab = tabParam === "completed" ? "completed" : "available";
 
   const [filters, setFilters] = useState(() => {
-    const defaultSort = initialTab === "available" ? "latest" : "latest_submitted";
+    const defaultSort = activeTab === "available" ? "latest" : "latest_submitted";
     return { ...INITIAL_FILTERS, sortBy: defaultSort };
   });
 
   const [appliedFilters, setAppliedFilters] = useState(() => {
-    const defaultSort = initialTab === "available" ? "latest" : "latest_submitted";
+    const defaultSort = activeTab === "available" ? "latest" : "latest_submitted";
     return { ...INITIAL_FILTERS, sortBy: defaultSort, page: 1, pageSize: PAGE_SIZE };
   });
 
@@ -91,17 +60,17 @@ export default function LearnerExamsPage() {
 
   const queryKey = useMemo(() => JSON.stringify(appliedFilters), [appliedFilters]);
 
-  // Synchronize active tab state when URL search params change
-  useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    if (tabParam === "completed" || tabParam === "available") {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams]);
+  const [prevQueryKey, setPrevQueryKey] = useState(queryKey);
+  const [prevActiveTab, setPrevActiveTab] = useState(activeTab);
+
+  if (queryKey !== prevQueryKey || activeTab !== prevActiveTab) {
+    setPrevQueryKey(queryKey);
+    setPrevActiveTab(activeTab);
+    setLoading(true);
+  }
 
   useEffect(() => {
     let ignore = false;
-    setLoading(true);
     setError("");
 
     const fetchPromise = activeTab === "available"
@@ -131,7 +100,6 @@ export default function LearnerExamsPage() {
   }, [queryKey, activeTab]);
 
   function handleTabChange(tab) {
-    setActiveTab(tab);
     router.replace(`/learner/exams?tab=${tab}`);
     const defaultSort = tab === "available" ? "latest" : "latest_submitted";
     const newFilters = {
@@ -170,6 +138,10 @@ export default function LearnerExamsPage() {
     router.push(`/learner/exams/${examId}`);
   }
 
+  function viewAttemptDetail(examSessionId, examAttemptId) {
+    router.push(`/learner/exams/${examSessionId}/result?attempt=${examAttemptId}`);
+  }
+
   const sortOptions = activeTab === "available" ? SORT_OPTIONS : COMPLETED_SORT_OPTIONS;
 
   return (
@@ -206,56 +178,20 @@ export default function LearnerExamsPage() {
           </button>
         </div>
 
-        <section className="rounded-md border border-border bg-card p-4 shadow-sm">
-          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
-            <label className="space-y-2 text-sm font-bold">
-              <span>Search Exams</span>
-              <input
-                value={filters.search}
-                onChange={(event) => updateFilter("search", event.target.value)}
-                placeholder="Search exams..."
-                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none"
-              />
-            </label>
-            <label className="space-y-2 text-sm font-bold">
-              <span>Class Filter</span>
-              <select
-                value={filters.classId}
-                onChange={(event) => updateFilter("classId", event.target.value)}
-                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none"
-              >
-                <option value="">All classes</option>
-                {(meta.classes ?? []).map((item) => (
-                  <option key={item.class_id || item.class_name} value={item.class_id}>{item.class_name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-2 text-sm font-bold">
-              <span>Sort By</span>
-              <select
-                value={filters.sortBy}
-                onChange={(event) => updateFilter("sortBy", event.target.value)}
-                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none"
-              >
-                {sortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
-            <div className="flex items-end">
-              <Button type="button" variant="outline" onClick={applyFilters}>
-                <Search className="size-4" />
-                Apply
-              </Button>
-            </div>
-            <div className="flex items-center gap-2 lg:col-span-4">
-              <Button type="button" variant="ghost" onClick={resetFilters}>
-                <SlidersHorizontal className="size-4" />
-                Reset Filters
-              </Button>
-            </div>
-          </div>
-        </section>
+        <ExamFilters
+          filters={filters}
+          updateFilter={updateFilter}
+          classes={meta.classes}
+          sortOptions={sortOptions}
+          applyFilters={applyFilters}
+        />
+
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="ghost" onClick={resetFilters}>
+            <SlidersHorizontal className="size-4" />
+            Reset Filters
+          </Button>
+        </div>
 
         {error ? <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</div> : null}
         {loading ? <div className="rounded-md border border-border bg-card px-4 py-6 text-sm text-muted-foreground">Loading exams...</div> : null}
@@ -288,102 +224,11 @@ export default function LearnerExamsPage() {
             </div>
 
             <section className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
-              <div className="overflow-x-auto">
-                {activeTab === "available" ? (
-                  <table className="w-full min-w-[860px] table-fixed border-collapse text-left text-sm">
-                    <thead className="bg-muted text-xs font-bold uppercase text-muted-foreground">
-                      <tr>
-                        <th className="w-[35%] px-4 py-3">Exam</th>
-                        <th className="w-[18%] px-4 py-3">Class</th>
-                        <th className="w-[14%] px-4 py-3">Duration</th>
-                        <th className="w-[18%] px-4 py-3">Start time</th>
-                        <th className="w-[15%] px-4 py-3 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {exams.map((exam, index) => (
-                        <tr
-                          key={`available-${index}`}
-                          className="align-middle transition hover:bg-muted/40"
-                        >
-                          <td className="px-4 py-4 font-bold text-foreground truncate">
-                            {exam.title}
-                          </td>
-                          <td className="px-4 py-4 font-medium text-muted-foreground truncate">
-                            {exam.classes?.class_name ?? "Class"}
-                          </td>
-                          <td className="px-4 py-4 font-medium text-muted-foreground truncate">
-                            {exam.duration_minutes} minutes
-                          </td>
-                          <td className="px-4 py-4 font-medium text-muted-foreground">
-                            {formatDateTime(exam.start_at)}
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <Button type="button" variant="outline" size="sm" onClick={() => openExam(exam.exam_session_id)}>
-                              <LockKeyhole className="size-4" />
-                              Enter Code
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <table className="w-full min-w-[860px] table-fixed border-collapse text-left text-sm">
-                    <thead className="bg-muted text-xs font-bold uppercase text-muted-foreground">
-                      <tr>
-                        <th className="w-[25%] px-4 py-3">Exam</th>
-                        <th className="w-[13%] px-4 py-3">Class</th>
-                        <th className="w-[8%] px-4 py-3">Score</th>
-                        <th className="w-[12%] px-4 py-3">Attempt used</th>
-                        <th className="w-[16%] px-4 py-3">Submitted</th>
-                        <th className="w-[11%] px-4 py-3">Time spent</th>
-                        <th className="w-[15%] px-4 py-3 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {exams.map((attempt, index) => {
-                        const exam = attempt.exam_sessions ?? {};
-                        return (
-                          <tr
-                            key={`completed-${index}`}
-                            className="align-middle transition hover:bg-muted/40"
-                          >
-                            <td className="px-4 py-4 font-bold text-foreground truncate">
-                              {exam.title}
-                            </td>
-                            <td className="px-4 py-4 font-medium text-muted-foreground truncate">
-                              {exam.classes?.class_name ?? "Class"}
-                            </td>
-                            <td className="px-4 py-4 font-bold text-foreground">
-                              {attempt.total_score}/{attempt.max_score ?? 10}
-                            </td>
-                            <td className="px-4 py-4 font-medium text-muted-foreground">
-                              Attempt #{attempt.attempt_number}
-                            </td>
-                            <td className="px-4 py-4 font-medium text-muted-foreground">
-                              {formatSubmittedDate(attempt.submitted_at)}
-                            </td>
-                            <td className="px-4 py-4 font-medium text-muted-foreground">
-                              {formatDuration(attempt.duration_seconds)}
-                            </td>
-                            <td className="px-4 py-4 text-center">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push(`/learner/exams/${exam.exam_session_id}/result?attempt=${attempt.exam_attempt_id}`)}
-                              >
-                                View detail
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              {activeTab === "available" ? (
+                <AvailableExamsTable exams={exams} onOpenExam={openExam} />
+              ) : (
+                <CompletedExamsTable exams={exams} onViewDetail={viewAttemptDetail} />
+              )}
             </section>
 
             <AppPagination
