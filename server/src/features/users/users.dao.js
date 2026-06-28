@@ -60,6 +60,7 @@ export async function findPublicUsers(filters = {}) {
     .from(USER_TABLE)
     .select("username, full_name, avatar_url, active_role, created_at", { count: "exact" })
     .eq("account_status", "active")
+    .neq("active_role", "admin")
     .is("deleted_at", null);
 
   if (keyword) {
@@ -79,6 +80,7 @@ export function findPublicUserByUsername(username) {
     .select("user_id, username, full_name, avatar_url, bio, active_role, created_at")
     .eq("username", username)
     .eq("account_status", "active")
+    .neq("active_role", "admin")
     .is("deleted_at", null)
     .maybeSingle();
 }
