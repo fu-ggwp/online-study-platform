@@ -1,10 +1,5 @@
 import * as dao from "./study-sets.dao.js";
-<<<<<<< HEAD
-import { env } from "../../config/env.js";
 import { buildPaginatedResponse, getPagination } from "../../utils/pagination.js";
-=======
-import { buildPaginatedResponse } from "../../utils/pagination.js";
->>>>>>> master
 import { notifyStudySetAssigned } from "../../utils/notification.service.js";
 import { logger } from "../../utils/logger.js";
 import * as aiService from "../ai/ai.service.js";
@@ -77,34 +72,6 @@ async function requirePremiumLearner(userId) {
   }
 }
 
-<<<<<<< HEAD
-async function callGeminiForAnswerExplanation(prompt) {
-  if (!env.geminiApiKey) {
-    throw serviceError(aiUnavailableMessage, 503);
-  }
-
-  try {
-    const ai = new GoogleGenAI({ apiKey: env.geminiApiKey });
-    const response = await ai.models.generateContent({
-      model: env.geminiModel,
-      contents: [{ text: prompt }],
-      config: {
-        temperature: 0.2,
-      },
-    });
-
-    const aiExplanation = String(response.text || "").trim();
-    if (!aiExplanation) {
-      throw serviceError(aiUnavailableMessage, 502);
-    }
-
-    return aiExplanation;
-  } catch (error) {
-    if (error.status || error.statusCode) throw error;
-    throw serviceError(aiUnavailableMessage, 502);
-  }
-}
-
 function buildQuery(teacherId, filters, assignedIds) {
   let dbQuery = dao.findByTeacher(teacherId);
 
@@ -167,8 +134,6 @@ function formatItems(items) {
   });
 }
 
-=======
->>>>>>> master
 // List toàn bộ study set của giáo viên
 export async function listMine(teacherId, query = {}) {
   const filters = {
