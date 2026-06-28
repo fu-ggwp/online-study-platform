@@ -1,6 +1,11 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { AuthProvider } from "@/components/layout/auth-provider";
+import {
+  ACCESS_TOKEN_COOKIE,
+  ACTIVE_ROLE_COOKIE,
+  VALID_ROLES,
+} from "@/lib/auth-constants";
 import "../styles/globals.css";
 
 const geistSans = Geist({
@@ -19,12 +24,12 @@ export const metadata = {
     "Create, share, discover, and practice public study sets with CardIO.",
 };
 
-const VALID_ROLES = new Set(["admin", "teacher", "learner"]);
-
 export default async function RootLayout({ children }) {
   const cookieStore = await cookies();
-  const initialIsAuthenticated = Boolean(cookieStore.get("access_token")?.value);
-  const roleCookie = cookieStore.get("active_role")?.value;
+  const initialIsAuthenticated = Boolean(
+    cookieStore.get(ACCESS_TOKEN_COOKIE)?.value
+  );
+  const roleCookie = cookieStore.get(ACTIVE_ROLE_COOKIE)?.value;
   const initialRole = VALID_ROLES.has(roleCookie) ? roleCookie : null;
 
   return (

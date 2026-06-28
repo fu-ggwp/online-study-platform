@@ -1,15 +1,12 @@
 import supabase from "@/lib/supabaseClient";
+import {
+  ACCESS_TOKEN_COOKIE,
+  ACTIVE_ROLE_COOKIE,
+  BLOCKED_NEXT_ROUTES,
+  ROLE_HOME,
+  VALID_ROLES,
+} from "@/lib/auth-constants";
 import { profileService } from "@/services/profile.service";
-
-const ACCESS_TOKEN_COOKIE = "access_token";
-const ACTIVE_ROLE_COOKIE = "active_role";
-const VALID_ROLES = new Set(["admin", "teacher", "learner"]);
-const ROLE_HOME = {
-  admin: "/admin/dashboard",
-  teacher: "/teacher",
-  learner: "/learner",
-};
-const BLOCKED_NEXT_ROUTES = ["/login", "/register", "/auth/callback"];
 
 function getCookieMaxAge(session) {
   if (!session?.expires_at) return 60 * 60;
@@ -87,6 +84,15 @@ export function getPostLoginRedirect(profile, nextPath) {
   if (isSafeNextPath(nextPath)) return nextPath;
 
   return ROLE_HOME[profile?.activeRole] ?? "/";
+}
+
+export function getOAuthCallbackUrl(nextPath) {
+  if (typeof window === "undefined") return undefined;
+
+  const callbackUrl = new URL("/auth/callback", window.location.origin);
+  if (nextPath) callbackUrl.searchParams.set("next", nextPath);
+
+  return callbackUrl.toString();
 }
 
 export const authService = {
@@ -183,8 +189,6 @@ export const authService = {
   },
 
   getSession: getCurrentSession,
-  getProfile: getCurrentProfile,
-  me: getCurrentProfile,
 };
 
 export function cleanOAuthHash() {

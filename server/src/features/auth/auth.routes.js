@@ -4,8 +4,10 @@ import { requireAuth } from "../../middlewares/auth.middleware.js";
 
 const authRouter = Router();
 
-authRouter.get("/me", requireAuth, me);
-authRouter.patch("/me", requireAuth, updateMe);
-authRouter.patch("/role", requireAuth, switchRole);
+authRouter.use(requireAuth);
+
+authRouter.get("/me", me);
+authRouter.patch("/me", updateMe);
+authRouter.patch("/role", switchRole);
 
 export default authRouter;

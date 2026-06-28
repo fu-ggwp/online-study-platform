@@ -19,13 +19,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { toggleSavedSidebarCollapsed } from "@/components/layout/sidebar-state";
 import { useAuth } from "@/hooks/use-auth";
+import { SWITCHABLE_ROLE_HOME } from "@/lib/auth-constants";
 import { authService } from "@/services/auth.service";
 import { profileService } from "@/services/profile.service";
-
-const ROLE_HOME = {
-  teacher: "/teacher",
-  learner: "/learner",
-};
 
 export function Navbar() {
   const router = useRouter();
@@ -70,7 +66,7 @@ export function Navbar() {
     try {
       const profile = await profileService.switchRole(targetRole);
       setProfile(profile);
-      router.replace(ROLE_HOME[targetRole]);
+      router.replace(SWITCHABLE_ROLE_HOME[targetRole]);
     } catch (error) {
       console.error("Role switch failed", error);
     } finally {
