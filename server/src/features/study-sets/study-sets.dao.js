@@ -4,7 +4,6 @@ import { PRACTICE_ATTEMPT_TABLE } from "../../models/practice-attempt.model.js";
 import { ATTEMPT_ANSWER_TABLE } from "../../models/attempt-answer.model.js";
 import { QUESTION_TABLE } from "../../models/question.model.js";
 import { ANSWER_OPTION_TABLE } from "../../models/answer-option.model.js";
-import { USER_TABLE } from "../../models/user.model.js";
 import { STUDY_SET_ASSIGNMENT_TABLE } from "../../models/study-set-assignment.model.js";
 import { CLASS_MEMBER_TABLE } from "../../models/join-request.model.js";
 import { getPagination } from "../../utils/pagination.js";
@@ -152,11 +151,6 @@ export function listAnswersByAttempt(attemptId) {
   return db.from(ATTEMPT_ANSWER_TABLE).select("*").eq("practice_attempt_id", attemptId);
 }
 
-
-//Check tkhoan premium
-export function checkPremium(userId) {
-  return db.from(USER_TABLE).select("is_premium").eq("user_id", userId).single();
-}
 
 //Thêm câu hỏi
 export function creationQuestions(questionPayload) {
@@ -340,10 +334,16 @@ export function adminSetHidden(studySetId, hidden) {
     .select(ADMIN_MODERATION_SELECT)
     .single();
 }
-export function getUserPremiumStatus(userId) {
+export function getActiveSubscriptionForUser(userId) {
+  const now = new Date().toISOString();
+
   return db
-    .from(USER_TABLE)
-    .select("is_premium")
+    .from("user_subscriptions")
+    .select("subscription_id")
     .eq("user_id", userId)
-    .single();
+    .eq("status", "active")
+    .lte("start_at", now)
+    .gte("end_at", now)
+    .limit(1)
+    .maybeSingle();
 }
