@@ -12,4 +12,9 @@ router.get("/", requireAuth, requireRole("admin"), usersController.listAll);
 router.get("/public", usersController.listPublic);
 router.get("/public/:username", usersController.getPublicProfile);
 
+// Admin: user detail + account-status update (UC-52 / §3.9.2)
+// Registered after the "/public" routes so those aren't captured by "/:id".
+router.get("/:id", requireAuth, requireRole("admin"), usersController.getOne);
+router.patch("/:id/status", requireAuth, requireRole("admin"), usersController.updateStatus);
+
 export default router;

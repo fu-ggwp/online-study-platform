@@ -36,6 +36,43 @@ export async function listForAdmin(query = {}) {
   return buildPaginatedResponse({ items: data || [], count, page, limit });
 }
 
+// ── Admin user detail + status update (UC-52 / §3.9.2) ─────────────────────
+
+export async function getForAdmin(userId) {
+  const { data, error } = await dao.findUserByIdForAdmin(userId);
+  if (error) throw dbError(error, 500);
+  if (!data) throw notFound();
+  return data;
+}
+
+/**
+ * Update a user's account status (UC-52 / §3.9.2). The UI maps its verbs to
+ * the DB enum: Restore → active, Ban → disabled.
+ * Guards: valid enum (MSG03), and an admin cannot change their own status.
+ */
+export async function updateAccountStatus(adminId, userId, body = {}) {
+  const status = String(body.status ?? "").trim();
+
+  if (!ACCOUNT_STATUSES.has(status)) {
+    throw Object.assign(
+      new Error("The information is invalid. Please check and try again."),
+      { status: 400 },
+    );
+  }
+  if (adminId === userId) {
+    throw Object.assign(new Error("You cannot change your own account status."), {
+      status: 400,
+    });
+  }
+
+  await getForAdmin(userId); // 404 if missing
+
+  const { data, error } = await dao.updateUserAccountStatus(userId, status);
+  if (error) throw dbError(error, 500);
+
+  return data;
+}
+
 export async function listPublic(query = {}) {
   const filters = {
     page: parseInt(query.page, 10) || 1,
