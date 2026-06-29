@@ -1,6 +1,5 @@
 import * as dao from "./users.dao.js";
 import { buildPaginatedResponse } from "../../utils/pagination.js";
-import { logger } from "../../utils/logger.js";
 
 function dbError(error, status = 400) {
   return Object.assign(new Error(error.message), { status });
@@ -48,14 +47,11 @@ export async function getForAdmin(userId) {
 
 /**
  * Update a user's account status (UC-52 / §3.9.2). The UI maps its verbs to
- * the DB enum: Activate/Restore → active, Suspend → locked, Ban → disabled.
+ * the DB enum: Restore → active, Ban → disabled.
  * Guards: valid enum (MSG03), and an admin cannot change their own status.
- * The action + reason are logged for accountability (BR-40). NOTE: the schema
- * has no reason/audit column, so the reason is recorded to the app log only.
  */
 export async function updateAccountStatus(adminId, userId, body = {}) {
   const status = String(body.status ?? "").trim();
-  const reason = body.reason != null ? String(body.reason).trim() : null;
 
   if (!ACCOUNT_STATUSES.has(status)) {
     throw Object.assign(
@@ -69,16 +65,10 @@ export async function updateAccountStatus(adminId, userId, body = {}) {
     });
   }
 
-  const target = await getForAdmin(userId); // 404 if missing
+  await getForAdmin(userId); // 404 if missing
 
   const { data, error } = await dao.updateUserAccountStatus(userId, status);
   if (error) throw dbError(error, 500);
-
-  logger.info(
-    `[ADMIN ACTION] account_status by admin=${adminId} target=${userId} ` +
-      `${target.account_status} -> ${status}` +
-      (reason ? ` reason="${reason}"` : ""),
-  );
 
   return data;
 }

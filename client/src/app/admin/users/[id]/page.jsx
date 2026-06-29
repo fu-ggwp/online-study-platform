@@ -7,27 +7,18 @@ import { useParams } from "next/navigation";
 import { usersService } from "@/services/users.service";
 import { useAuth } from "@/hooks/use-auth";
 
-// Action verbs (§3.9.2) mapped to the DB account_status enum.
+// Action verbs (§3.9.2) mapped to the DB account_status enum: Ban → disabled,
+// Restore → active.
 const ACTIONS = {
-  activate: { label: "Activate", status: "active", tone: "bg-emerald-600" },
   restore: { label: "Restore", status: "active", tone: "bg-emerald-600" },
-  suspend: { label: "Suspend", status: "locked", tone: "bg-amber-600" },
   ban: { label: "Ban", status: "disabled", tone: "bg-red-600" },
 };
 
 function availableActions(current) {
-  switch (current) {
-    case "active":
-      return ["suspend", "ban"];
-    case "locked":
-      return ["restore", "ban"];
-    case "disabled":
-      return ["restore"];
-    case "pending":
-      return ["activate", "ban"];
-    default:
-      return ["activate"];
-  }
+  if (current === "active") return ["ban"];
+  if (current === "disabled") return ["restore"];
+  // Any other status (legacy locked/pending) → can restore to active or ban.
+  return ["restore", "ban"];
 }
 
 const STATUS_TONE = {
@@ -60,7 +51,6 @@ export default function AdminUserDetailPage() {
   const [updating, setUpdating] = useState(false);
 
   const [pending, setPending] = useState(null); // { key, label, status }
-  const [reason, setReason] = useState("");
   const [modalError, setModalError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -90,7 +80,6 @@ export default function AdminUserDetailPage() {
 
   const openConfirm = (key) => {
     setPending({ key, ...ACTIONS[key] });
-    setReason("");
     setModalError("");
   };
   const closeConfirm = () => setPending(null);
@@ -101,7 +90,6 @@ export default function AdminUserDetailPage() {
     try {
       const updated = await usersService.updateStatus(id, {
         status: pending.status,
-        reason: reason.trim() || undefined,
       });
       setUser(updated ?? null);
       setNotice("User account status has been updated successfully.");
@@ -207,7 +195,7 @@ export default function AdminUserDetailPage() {
         )}
       </section>
 
-      {/* Confirmation modal with reason input */}
+      {/* Confirmation modal */}
       {pending && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl">
@@ -217,18 +205,7 @@ export default function AdminUserDetailPage() {
               <span className="font-medium capitalize">{pending.status}</span>.
             </p>
 
-            <label className="mt-4 block text-sm font-medium">
-              Reason <span className="font-normal text-muted-foreground">(optional)</span>
-            </label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={3}
-              placeholder="Note why you are taking this action"
-              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            />
-
-            {modalError && <p className="mt-2 text-sm text-red-600">{modalError}</p>}
+            {modalError && <p className="mt-3 text-sm text-red-600">{modalError}</p>}
 
             <div className="mt-5 flex justify-end gap-2">
               <button

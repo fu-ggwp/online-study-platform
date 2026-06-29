@@ -20,14 +20,21 @@ export async function requireAuth(req, res, next) {
   try {
     const { data: dbUser } = await supabase
       .from(USER_TABLE)
-      .select("active_role")
+      .select("active_role, account_status")
       .eq("user_id", data.user.id)
       .single();
     if (dbUser) {
+      // Block banned / non-active accounts from every protected feature (BR-11).
+      if (dbUser.account_status !== "active") {
+        return res.status(403).json({
+          ok: false,
+          error: "This account is not available. Please contact support.",
+        });
+      }
       req.user.role = dbUser.active_role; // Gán quyền từ DB vào đối tượng user
     }
   } catch (dbErr) {
-    console.error("Failed to query user role in requireAuth:", dbErr);
+    console.error("Failed to query user in requireAuth:", dbErr);
   }
   next();
 }
