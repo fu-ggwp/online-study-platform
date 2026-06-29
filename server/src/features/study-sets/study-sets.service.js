@@ -53,6 +53,14 @@ function notFound(message = "Study set not found") {
   return Object.assign(new Error(message), { status: 404 });
 }
 
+// Làm sạch keyword tìm kiếm trước khi đưa vào câu .or() ilike.
+function sanitizeSearchKeyword(value) {
+  return String(value || "")
+    .trim()
+    .replace(/[%,()]/g, " ")
+    .replace(/\s+/g, " ");
+}
+
 async function requirePremiumLearner(userId) {
   const { data, error } = await dao.getActiveSubscriptionForUser(userId);
   if (error) {

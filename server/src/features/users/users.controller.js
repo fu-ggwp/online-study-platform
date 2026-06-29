@@ -28,3 +28,21 @@ export const listAll = async (req, res) => {
     return fail(res, err, err.status || 500);
   }
 };
+
+// GET /api/users/:id — admin user detail (UC-52 / §3.9.2)
+export const getOne = async (req, res) => {
+  try {
+    return ok(res, await service.getForAdmin(req.params.id));
+  } catch (err) {
+    return fail(res, err, err.status || 500);
+  }
+};
+
+// PATCH /api/users/:id/status — admin updates account status { status, reason? }
+export const updateStatus = async (req, res) => {
+  try {
+    return ok(res, await service.updateAccountStatus(req.user.id, req.params.id, req.body));
+  } catch (err) {
+    return fail(res, err, err.status || 500);
+  }
+};

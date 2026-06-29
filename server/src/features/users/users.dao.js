@@ -97,3 +97,32 @@ export function findPublicStudySetsByTeacher(teacherId) {
     .eq("is_admin_hidden", false)
     .order("updated_at", { ascending: false });
 }
+
+// ── Admin user detail + status update (UC-52 / §3.9.2) ─────────────────────
+// Safe detail columns (no auth secrets / payment records).
+const ADMIN_USER_DETAIL_COLUMNS =
+  "user_id, full_name, email, username, avatar_url, bio, phone_number, " +
+  "active_role, account_status, is_premium, created_at, updated_at";
+
+export async function findUserByIdForAdmin(userId) {
+  const db = supabase;
+  const { data, error } = await db
+    .from(USER_TABLE)
+    .select(ADMIN_USER_DETAIL_COLUMNS)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  return { data, error };
+}
+
+export async function updateUserAccountStatus(userId, accountStatus) {
+  const db = supabase;
+  const { data, error } = await db
+    .from(USER_TABLE)
+    .update({ account_status: accountStatus, updated_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .select(ADMIN_USER_DETAIL_COLUMNS)
+    .single();
+  return { data, error };
+}
