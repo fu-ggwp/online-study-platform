@@ -124,7 +124,6 @@ CREATE TABLE public.study_sets (
   target_accuracy numeric CHECK (target_accuracy IS NULL OR target_accuracy >= 0::numeric AND target_accuracy <= 100::numeric),
   estimated_study_minutes integer CHECK (estimated_study_minutes IS NULL OR estimated_study_minutes > 0),
   card_order character varying NOT NULL DEFAULT 'default'::character varying CHECK (card_order::text = ANY (ARRAY['default'::character varying, 'random'::character varying, 'difficulty_asc'::character varying, 'difficulty_desc'::character varying]::text[])),
-  tags ARRAY NOT NULL DEFAULT '{}'::text[],
   include_explanations boolean NOT NULL DEFAULT true,
   allow_copy_by_other_teachers boolean NOT NULL DEFAULT false,
   question_count integer NOT NULL DEFAULT 0 CHECK (question_count >= 0),

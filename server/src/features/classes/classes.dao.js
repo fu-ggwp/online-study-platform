@@ -352,7 +352,7 @@ export async function getAssignmentsByClass(classId) {
       assignment_id, study_set_id, class_id, assigned_by, release_at, due_at, instructions, created_at,
       study_set:study_sets!study_set_id(
         study_set_id, title, description, topic, visibility,
-        is_admin_hidden, question_count, tags, deleted_at
+        is_admin_hidden, question_count, deleted_at
       )
     `)
     .eq("class_id", classId)
