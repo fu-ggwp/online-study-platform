@@ -97,25 +97,18 @@ export async function notifyJoinRequestResolved({ learner, className, status }) 
  * @param {Array<{email:string, full_name?:string}>} args.learners
  * @param {string} args.studySetTitle
  * @param {string} [args.className]
- * @param {string} [args.instructions]
- * @param {string} [args.dueAt]  ISO date string
  */
 export async function notifyStudySetAssigned({
   learners,
   studySetTitle,
   className,
-  instructions,
-  dueAt,
 }) {
   const where = className ? ` in <strong>${className}</strong>` : "";
-  const due = dueAt ? `<p>Due: ${new Date(dueAt).toLocaleString()}</p>` : "";
-  const note = instructions ? `<p>Instructions: ${instructions}</p>` : "";
 
   const sent = await dispatch(learners, (recipient) => ({
     subject: `New study set assigned: ${studySetTitle}`,
     htmlContent: `<p>${greeting(recipient.full_name)}</p>
-       <p>A new study set, <strong>${studySetTitle}</strong>, has been assigned to you${where}.</p>
-       ${due}${note}`,
+       <p>A new study set, <strong>${studySetTitle}</strong>, has been assigned to you${where}.</p>`,
   }));
 
   if (sent) logger.info(`Study set "${studySetTitle}" assignment notified to ${sent} learner(s).`);

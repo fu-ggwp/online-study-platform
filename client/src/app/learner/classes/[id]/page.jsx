@@ -240,12 +240,6 @@ export default function LearnerClassDetailPage() {
                         </p>
                       )}
 
-                      {a.due_at && (
-                        <p className="mt-2 text-xs text-amber-600">
-                          Due {new Date(a.due_at).toLocaleDateString()}
-                        </p>
-                      )}
-
                       <ProgressBar progress={a.progress} />
 
                       <span className="mt-4 inline-block text-sm font-medium text-neutral-700">

@@ -432,14 +432,12 @@ export async function getLearnerClassDetail(classId, learnerId) {
   const { data: assignments, error: assignError } = await getAssignmentsByClass(classId);
   if (assignError) throw new Error(assignError.message);
 
-  const now = Date.now();
   const visible = (assignments ?? []).filter((row) => {
     const set = row.study_set;
     if (!set) return false;                                         // study set missing
     if (set.deleted_at) return false;                               // soft-deleted (BR-23)
     if (set.is_admin_hidden) return false;                          // admin-hidden (MSG34)
     if (HIDDEN_VISIBILITIES.has(set.visibility)) return false;      // hidden/archived
-    if (row.release_at && new Date(row.release_at).getTime() > now) return false; // not yet released
     return true;
   });
 
@@ -465,9 +463,6 @@ export async function getLearnerClassDetail(classId, learnerId) {
       description: set.description,
       topic: set.topic,
       question_count: set.question_count,
-      release_at: row.release_at,
-      due_at: row.due_at,
-      instructions: row.instructions,
       progress: deriveProgress(attemptsBySet[set.study_set_id]),
     };
   });
