@@ -91,14 +91,11 @@ export async function listTeacherClasses(teacherId) {
 export async function createClass({
   teacherId,
   className,
-  subject,
   gradeLevel,
   academicYear,
   description,
   learnerCapacity,
   joinPolicy,
-  startDate,
-  endDate,
 }) {
   // Generate a unique class code
   let classCode = null;
@@ -117,7 +114,6 @@ export async function createClass({
   const { data, error } = await insertClass({
     teacher_id: teacherId,
     class_name: className,
-    subject: subject || null,
     grade_level: gradeLevel || null,
     academic_year: academicYear || null,
     description: description || null,
@@ -125,8 +121,6 @@ export async function createClass({
     join_policy: joinPolicy || ClassJoinPolicy.TEACHER_APPROVAL,
     class_code: classCode,
     invitation_token: generateInvitationToken(),
-    start_date: startDate || null,
-    end_date: endDate || null,
   });
 
   if (error) throw new Error(error.message);
@@ -181,7 +175,6 @@ export async function updateClass(classId, teacherId, body = {}) {
     changes.class_name = name;
   }
 
-  if (body.subject !== undefined) changes.subject = body.subject ? String(body.subject).trim() : null;
   if (body.grade_level !== undefined) changes.grade_level = body.grade_level || null;
   if (body.academic_year !== undefined) changes.academic_year = body.academic_year || null;
   if (body.description !== undefined) changes.description = body.description ? String(body.description) : null;
@@ -607,7 +600,6 @@ export async function getLearnerClassDetail(classId, learnerId) {
     class: {
       class_id: cls.class_id,
       class_name: cls.class_name,
-      subject: cls.subject,
       grade_level: cls.grade_level,
       academic_year: cls.academic_year,
       class_code: cls.class_code,

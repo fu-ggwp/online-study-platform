@@ -35,7 +35,6 @@ const STATUS_OPTIONS = [
 
 const DEFAULTS = {
   class_name: "",
-  subject: "",
   grade_level: "",
   academic_year: "",
   description: "",
@@ -73,7 +72,6 @@ export default function ClassForm({
 
     const payload = {
       class_name: String(form.class_name).trim(),
-      subject: String(form.subject ?? "").trim(),
       grade_level: form.grade_level,
       academic_year: String(form.academic_year ?? "").trim(),
       description: form.description ?? "",
@@ -97,18 +95,6 @@ export default function ClassForm({
           value={form.class_name}
           onChange={handleChange}
           placeholder="e.g. Math Grade 10 - 2024"
-          className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400"
-        />
-      </div>
-
-      {/* Subject */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium">Subject</label>
-        <input
-          name="subject"
-          value={form.subject}
-          onChange={handleChange}
-          placeholder="e.g. Mathematics"
           className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400"
         />
       </div>

@@ -159,9 +159,6 @@ export default function TeacherClassesPage() {
 
                     </div>
 
-                    {cls.subject && (
-                      <p className="text-sm text-neutral-500">{cls.subject}</p>
-                    )}
                     {cls.grade_level && (
                       <p className="text-sm text-neutral-500">{cls.grade_level}</p>
                     )}

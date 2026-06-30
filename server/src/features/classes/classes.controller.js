@@ -62,14 +62,11 @@ export async function getMyClasses(req, res) {
 export async function createClass(req, res) {
   const {
     class_name,
-    subject,
     grade_level,
     academic_year,
     description,
     learner_capacity,
     join_policy,
-    start_date,
-    end_date,
   } = req.body;
 
   if (!class_name?.trim()) {
@@ -80,14 +77,11 @@ export async function createClass(req, res) {
     const newClass = await createClassService({
       teacherId: req.user.id,
       className: class_name.trim(),
-      subject,
       gradeLevel: grade_level,
       academicYear: academic_year,
       description,
       learnerCapacity: learner_capacity,
       joinPolicy: join_policy,
-      startDate: start_date,
-      endDate: end_date,
     });
     res.status(201).json({ ok: true, data: newClass });
   } catch (err) {

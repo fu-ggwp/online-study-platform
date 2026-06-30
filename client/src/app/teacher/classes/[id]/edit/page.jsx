@@ -32,7 +32,6 @@ export default function EditClassPage() {
       setClassCode(cls.class_code ?? "");
       setInitial({
         class_name: cls.class_name ?? "",
-        subject: cls.subject ?? "",
         grade_level: cls.grade_level ?? "",
         academic_year: cls.academic_year ?? "",
         description: cls.description ?? "",

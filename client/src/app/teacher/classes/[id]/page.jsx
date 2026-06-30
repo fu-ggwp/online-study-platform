@@ -152,7 +152,6 @@ export default function ClassDetailPage() {
             Class Info
           </h2>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
-            <InfoRow label="Subject" value={cls.subject} />
             <InfoRow label="Grade Level" value={cls.grade_level} />
             <InfoRow label="Academic Year" value={cls.academic_year} />
             <InfoRow
@@ -167,8 +166,6 @@ export default function ClassDetailPage() {
                   : "Teacher Approval"
               }
             />
-            <InfoRow label="Start Date" value={cls.start_date} />
-            <InfoRow label="End Date" value={cls.end_date} />
           </div>
         </div>
 
@@ -222,11 +219,6 @@ export default function ClassDetailPage() {
                       <span className="text-xs text-neutral-400">
                         {req.user?.email}
                       </span>
-                      {req.request_message && (
-                        <span className="mt-0.5 text-xs italic text-neutral-500">
-                          &quot;{req.request_message}&quot;
-                        </span>
-                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
