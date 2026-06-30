@@ -13,7 +13,6 @@ function authHeaders() {
 export const examsService = {
   listMine: (params) => axiosClient.get("/api/exams", { params }).then((r) => r.data),
   listAvailable: (params) => axiosClient.get("/api/exams/learner", { params }).then((r) => r.data),
-  listForClass: (classId) => axiosClient.get(`/api/exams/class/${classId}`).then((r) => r.data),
   getOne: (id) => axiosClient.get(`/api/exams/${id}`).then((r) => r.data.data),
   getAttempts: (id) => axiosClient.get(`/api/exams/${id}/attempts`).then((r) => r.data.data),
   getTeacherAttemptResults: (attemptId) =>
@@ -22,8 +21,6 @@ export const examsService = {
   create: (payload) => axiosClient.post("/api/exams", payload).then((r) => r.data),
   updateSettings: (id, changes) =>
     axiosClient.patch(`/api/exams/${id}/settings`, changes).then((r) => r.data),
-  remove: (id) => axiosClient.delete(`/api/exams/${id}`).then((r) => r.data),
-  listAttempts: (id) => axiosClient.get(`/api/exams/${id}/attempts`).then((r) => r.data.data),
 
   // Learner: take exams
   startAttempt: (id, payload) => axiosClient.post(`/api/exams/${id}/attempts`, payload).then((r) => r.data.data),

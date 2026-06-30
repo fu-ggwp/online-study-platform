@@ -15,16 +15,17 @@ import {
   submitLearnerExamAttempt as submitLearnerExamAttemptService,
   updateExamSettings as updateExamSettingsService,
 } from "./exams.service.js";
+import { ok } from "../../utils/api-response.js";
 
 function getUserId(req) {
   return req.user?.id || req.user?.user_id;
 }
 
-function sendError(res, error) {
-  res.status(error.status || error.statusCode || 500).json({
+function sendExamError(res, error) {
+  return res.status(error.status || error.statusCode || 500).json({
     ok: false,
     error: error.message || "Exam request failed.",
-    fields: error.fields,
+    ...(error.fields ? { fields: error.fields } : {}),
   });
 }
 
@@ -35,9 +36,9 @@ function sendError(res, error) {
 export async function getMyExamSessions(req, res) {
   try {
     const data = await listTeacherExamSessions(getUserId(req), req.query);
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
@@ -48,9 +49,9 @@ export async function getMyExamSessions(req, res) {
 export async function createExamSession(req, res) {
   try {
     const data = await createExamSessionService(getUserId(req), req.body);
-    res.status(201).json({ ok: true, data });
+    return ok(res, data, 201);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
@@ -60,18 +61,18 @@ export async function createExamSession(req, res) {
 export async function getExamDetail(req, res) {
   try {
     const exam = await getExamDetailService(req.params.id, getUserId(req));
-    res.json({ ok: true, data: exam });
+    return ok(res, exam);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
 export async function getExamAttempts(req, res) {
   try {
     const data = await getExamAttemptsService(req.params.id, getUserId(req));
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
@@ -81,9 +82,9 @@ export async function getExamAttempts(req, res) {
 export async function updateExamSettings(req, res) {
   try {
     const data = await updateExamSettingsService(req.params.id, getUserId(req), req.body);
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
@@ -93,9 +94,9 @@ export async function updateExamSettings(req, res) {
 export async function getAvailableExamSessions(req, res) {
   try {
     const data = await listLearnerExamSessions(getUserId(req), req.query);
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
@@ -105,81 +106,80 @@ export async function getAvailableExamSessions(req, res) {
 export async function getLearnerExamDetail(req, res) {
   try {
     const data = await getLearnerExamDetailService(req.params.id, getUserId(req));
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
 export async function startLearnerExamAttempt(req, res) {
   try {
     const data = await startLearnerExamAttemptService(req.params.id, getUserId(req), req.body);
-    res.status(201).json({ ok: true, data });
+    return ok(res, data, 201);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
 export async function getLearnerExamAttempt(req, res) {
   try {
     const data = await getLearnerExamAttemptService(req.params.attemptId, getUserId(req));
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
 export async function getLearnerExamAttemptResults(req, res) {
   try {
     const data = await getLearnerExamAttemptResultsService(req.params.attemptId, getUserId(req));
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
 export async function getTeacherExamAttemptResults(req, res) {
   try {
     const data = await getTeacherExamAttemptResultsService(req.params.attemptId, getUserId(req));
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
 export async function saveLearnerExamAnswer(req, res) {
   try {
     const data = await saveLearnerExamAnswerService(req.params.attemptId, getUserId(req), req.body);
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
 export async function submitLearnerExamAttempt(req, res) {
   try {
     const data = await submitLearnerExamAttemptService(req.params.attemptId, getUserId(req), Boolean(req.body?.is_auto_submitted));
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
 export async function recordLearnerExamEvent(req, res) {
   try {
     const data = await recordLearnerExamEventService(req.params.attemptId, getUserId(req), req.body);
-    res.status(201).json({ ok: true, data });
+    return ok(res, data, 201);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
 
 export async function getMyExamAttempts(req, res) {
   try {
     const data = await listLearnerCompletedAttempts(getUserId(req), req.query);
-    res.json({ ok: true, data });
+    return ok(res, data);
   } catch (error) {
-    sendError(res, error);
+    return sendExamError(res, error);
   }
 }
-
