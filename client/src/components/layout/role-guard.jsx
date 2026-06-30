@@ -4,12 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
-
-const ROLE_HOME = {
-  admin: "/admin/dashboard",
-  teacher: "/teacher",
-  learner: "/learner",
-};
+import { ROLE_HOME } from "@/lib/auth-constants";
 
 function getLoginPath(pathname) {
   const next = encodeURIComponent(pathname || "/");

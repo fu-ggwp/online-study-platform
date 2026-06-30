@@ -8,12 +8,7 @@ import { BookOpen, Search, Sparkles, Users } from "lucide-react";
 import { PublicStudySets } from "@/components/public/public-study-sets";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-
-const ROLE_HOME = {
-  admin: "/admin/dashboard",
-  teacher: "/teacher",
-  learner: "/learner",
-};
+import { ROLE_HOME } from "@/lib/auth-constants";
 
 export default function HomeRedirectPage() {
   const router = useRouter();

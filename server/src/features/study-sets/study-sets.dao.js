@@ -42,7 +42,7 @@ export function findPublicStudySets() {
   return db
     .from(STUDY_SET_TABLE)
     .select(
-      "study_set_id, title, description, topic, tags, question_count, created_at, updated_at, teacher:users!teacher_id(full_name, username, avatar_url)",
+      "study_set_id, title, description, topic, question_count, created_at, updated_at, teacher:users!teacher_id(full_name, username, avatar_url)",
       { count: "exact" },
     )
     .eq("visibility", "public")
@@ -333,17 +333,4 @@ export function adminSetHidden(studySetId, hidden) {
     .is("deleted_at", null)
     .select(ADMIN_MODERATION_SELECT)
     .single();
-}
-export function getActiveSubscriptionForUser(userId) {
-  const now = new Date().toISOString();
-
-  return db
-    .from("user_subscriptions")
-    .select("subscription_id")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .lte("start_at", now)
-    .gte("end_at", now)
-    .limit(1)
-    .maybeSingle();
 }

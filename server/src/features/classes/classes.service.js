@@ -465,7 +465,6 @@ export async function getLearnerClassDetail(classId, learnerId) {
       description: set.description,
       topic: set.topic,
       question_count: set.question_count,
-      tags: set.tags ?? [],
       release_at: row.release_at,
       due_at: row.due_at,
       instructions: row.instructions,

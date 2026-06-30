@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { ACCESS_TOKEN_COOKIE } from "@/lib/auth-constants";
+
 const guestRoutes = ["/login", "/register"];
 const publicRoutes = [
   "/",
@@ -38,7 +40,7 @@ function redirectToLogin(request) {
 
 export function proxy(request) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get("access_token")?.value;
+  const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const isLoggedIn = Boolean(token);
 
   if (matches(pathname, guestRoutes)) {

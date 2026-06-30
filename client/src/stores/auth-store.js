@@ -10,17 +10,12 @@ import {
   syncRoleCookie,
 } from "@/services/auth.service";
 
-function getInitialProfile(initialRole) {
-  return initialRole ? { activeRole: initialRole } : null;
-}
-
 export const useAuthStore = create((set, get) => ({
   session: null,
   user: null,
   profile: null,
   role: null,
   profileVerified: false,
-  hasAuthCookie: false,
   isAuthenticated: false,
   loading: true,
   initialized: false,
@@ -29,13 +24,10 @@ export const useAuthStore = create((set, get) => ({
   hydrateInitialAuth: ({ initialIsAuthenticated = false, initialRole = null } = {}) => {
     if (get().initialized) return;
 
-    const initialProfile = getInitialProfile(initialRole);
-
     set({
-      profile: initialProfile,
+      profile: initialRole ? { activeRole: initialRole } : null,
       role: initialRole,
       profileVerified: false,
-      hasAuthCookie: initialIsAuthenticated,
       isAuthenticated: initialIsAuthenticated,
       loading: initialIsAuthenticated && !initialRole,
       initialized: true,
@@ -53,7 +45,6 @@ export const useAuthStore = create((set, get) => ({
       profile: null,
       role: null,
       profileVerified: false,
-      hasAuthCookie: false,
       isAuthenticated: false,
       loading: false,
     });
@@ -98,7 +89,6 @@ export const useAuthStore = create((set, get) => ({
     set({
       session: authSession,
       user: authSession.user ?? null,
-      hasAuthCookie: true,
       isAuthenticated: true,
     });
 

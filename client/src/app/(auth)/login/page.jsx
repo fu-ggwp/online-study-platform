@@ -23,6 +23,7 @@ import {
   authService,
   clearAuthCookie,
   getCurrentProfile,
+  getOAuthCallbackUrl,
   getPostLoginRedirect,
   syncAuthCookie,
 } from "@/services/auth.service";
@@ -70,15 +71,6 @@ function getLoginNextPath() {
   return new URLSearchParams(window.location.search).get("next");
 }
 
-function getOAuthCallbackUrl() {
-  const callbackUrl = new URL("/auth/callback", window.location.origin);
-  const nextPath = getLoginNextPath();
-
-  if (nextPath) callbackUrl.searchParams.set("next", nextPath);
-
-  return callbackUrl.toString();
-}
-
 function GoogleMark() {
   return (
     <span className="grid size-5 place-items-center rounded-full bg-background text-xs font-semibold text-primary">
@@ -108,7 +100,7 @@ export default function LoginPage() {
     setFormMessage("");
 
     try {
-      await authService.signInWithGoogle(getOAuthCallbackUrl());
+      await authService.signInWithGoogle(getOAuthCallbackUrl(getLoginNextPath()));
     } catch {
       setFormMessage("Google login failed. Please try again.");
     }

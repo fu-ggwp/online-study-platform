@@ -56,12 +56,7 @@ async function buildProfileChanges(userId, body = {}) {
 
   if (body.phoneNumber !== undefined) {
     const phoneNumber = String(body.phoneNumber ?? "").trim() || null;
-
-    if (phoneNumber !== null && (phoneNumber.length < 7 || phoneNumber.length > 30)) {
-      errors.phoneNumber = "Phone number must be between 7 and 30 characters.";
-    } else {
-      changes[userColumns.phoneNumber] = phoneNumber;
-    }
+    changes[userColumns.phoneNumber] = phoneNumber;
   }
 
   if (body.bio !== undefined) {
