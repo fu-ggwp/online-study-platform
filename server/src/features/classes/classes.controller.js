@@ -10,6 +10,7 @@ import {
   removeMember as removeMemberService,
   getLearnerClassDetail as getLearnerClassDetailService,
   updateClass as updateClassService,
+  deleteClass as deleteClassService,
 } from "./classes.service.js";
 import { JoinRequestStatus } from "../../models/join-request.model.js";
 
@@ -114,6 +115,20 @@ export async function updateClass(req, res) {
   try {
     const updated = await updateClassService(req.params.id, req.user.id, req.body);
     res.json({ ok: true, data: updated });
+  } catch (err) {
+    res.status(err.status || 500).json({ ok: false, error: err.message });
+  }
+}
+
+/**
+ * DELETE /api/classes/:id?action=delete|archive|disable
+ * Delete / archive / disable a class (UC-32 / §2.3.6). Teacher-only, owner-gated.
+ */
+export async function deleteClass(req, res) {
+  try {
+    const action = req.query.action || req.body?.action || "delete";
+    const result = await deleteClassService(req.params.id, req.user.id, action);
+    res.json({ ok: true, data: result });
   } catch (err) {
     res.status(err.status || 500).json({ ok: false, error: err.message });
   }

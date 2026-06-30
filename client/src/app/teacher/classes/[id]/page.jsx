@@ -27,6 +27,8 @@ export default function ClassDetailPage() {
   const [error, setError] = useState("");
   const [resolving, setResolving] = useState(null); // requestId currently being resolved
   const [toast, setToast] = useState({ message: "", type: "success" });
+  const [confirmAction, setConfirmAction] = useState(null); // "delete" | "archive" | "disable"
+  const [processing, setProcessing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,6 +77,57 @@ export default function ClassDetailPage() {
       setResolving(null);
     }
   }
+
+  async function runAction() {
+    if (!confirmAction) return;
+    setProcessing(true);
+    try {
+      const res = await classesService.remove(id, confirmAction);
+      const performed = res?.data?.action;
+      const forced = res?.data?.forced;
+      // MSG52 — class deletion/archive/disable success
+      let message = "Class deleted successfully.";
+      if (performed === "archived") {
+        message = forced
+          ? "This class has linked records, so it was archived instead of permanently deleted."
+          : "Class archived successfully.";
+      } else if (performed === "disabled") {
+        message = "Class disabled successfully.";
+      }
+      setConfirmAction(null);
+      setToast({ message, type: "success" });
+      setTimeout(() => router.push("/teacher/classes"), 900);
+    } catch (err) {
+      setConfirmAction(null);
+      setToast({
+        message: err?.response?.data?.error || err.message || "Action failed.",
+        type: "error",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  const CONFIRM_COPY = {
+    delete: {
+      title: "Delete this class?",
+      body: "Learners will lose access to future class-only activities. Historical records, exam attempts, and reports are preserved. If the class is linked to existing data, it will be archived instead of permanently removed.",
+      confirmLabel: "Delete Class",
+      tone: "bg-red-600 hover:bg-red-700",
+    },
+    archive: {
+      title: "Archive this class?",
+      body: "The class will be removed from your active classes and learners can no longer access future activities, but all records are kept. You can keep it for reference.",
+      confirmLabel: "Archive Class",
+      tone: "bg-black hover:bg-neutral-800",
+    },
+    disable: {
+      title: "Disable this class?",
+      body: "The class will be set inactive and learners can no longer access it. Records are preserved and you can re-enable it later by editing the class.",
+      confirmLabel: "Disable Class",
+      tone: "bg-black hover:bg-neutral-800",
+    },
+  };
 
   if (loading) {
     return (
@@ -292,7 +345,66 @@ export default function ClassDetailPage() {
             </p>
           )}
         </div>
+
+        {/* Manage Class — delete / archive / disable (UC-32) */}
+        <div className="rounded-xl border border-red-200 p-5">
+          <h2 className="text-sm font-semibold text-red-700">Manage Class</h2>
+          <p className="mt-1 text-xs text-neutral-500">
+            Archive or disable a class you no longer use, or delete it. Historical
+            records are always preserved.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => setConfirmAction("archive")}
+              className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              Archive Class
+            </button>
+            <button
+              onClick={() => setConfirmAction("disable")}
+              className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              Disable Class
+            </button>
+            <button
+              onClick={() => setConfirmAction("delete")}
+              className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              Delete Class
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Confirmation modal (Normal Flow step 3 / Alt 4.1 Cancel) */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-neutral-900">
+              {CONFIRM_COPY[confirmAction].title}
+            </h3>
+            <p className="mt-2 text-sm text-neutral-600">
+              {CONFIRM_COPY[confirmAction].body}
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmAction(null)}
+                disabled={processing}
+                className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={runAction}
+                disabled={processing}
+                className={`rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${CONFIRM_COPY[confirmAction].tone}`}
+              >
+                {processing ? "Processing..." : CONFIRM_COPY[confirmAction].confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ToastNotification
         message={toast.message}

@@ -83,6 +83,55 @@ export async function updateClassById(classId, changes) {
 }
 
 /**
+ * Soft-delete a class (UC-32). Sets deleted_at so the row — and all historical
+ * records that reference it — are preserved, while it drops out of every active
+ * listing (which all filter on deleted_at IS NULL).
+ */
+export async function softDeleteClass(classId) {
+  const { data, error } = await db
+    .from(CLASS_TABLE)
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("class_id", classId)
+    .is("deleted_at", null)
+    .select("class_id")
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Any active or upcoming exam session for the class (UC-32 Alt 7.2). Presence
+ * of one of these blocks permanent deletion until it is closed/resolved.
+ */
+export async function getBlockingExamSessionsByClass(classId) {
+  const nowIso = new Date().toISOString();
+  const { data, error } = await db
+    .from(EXAM_SESSION_TABLE)
+    .select("exam_session_id, status, start_at")
+    .eq("class_id", classId)
+    .is("deleted_at", null)
+    .neq("status", "closed")
+    .or(`status.eq.active,start_at.gte.${nowIso}`)
+    .limit(1);
+
+  return { data, error };
+}
+
+/**
+ * Count of (non-deleted) exam sessions linked to a class — an integrity signal
+ * that the class carries historical data (UC-32 Alt 7.1).
+ */
+export async function countExamSessionsByClass(classId) {
+  const { count, error } = await db
+    .from(EXAM_SESSION_TABLE)
+    .select("exam_session_id", { count: "exact", head: true })
+    .eq("class_id", classId)
+    .is("deleted_at", null);
+
+  return { count: count ?? 0, error };
+}
+
+/**
  * Get a single class by ID (not deleted).
  */
 export async function getClassById(classId) {

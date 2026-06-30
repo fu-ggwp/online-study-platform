@@ -3,6 +3,9 @@ import {
   getClassesByTeacher,
   insertClass,
   updateClassById,
+  softDeleteClass,
+  getBlockingExamSessionsByClass,
+  countExamSessionsByClass,
   findClassByCode,
   getClassById,
   getClassMembers,
@@ -207,6 +210,66 @@ export async function updateClass(classId, teacherId, body = {}) {
   const { data, error } = await updateClassById(classId, changes);
   if (error) throw new Error(error.message);
   return data;
+}
+
+/**
+ * Delete / archive / disable a class (UC-32 / §2.3.6). Ownership-gated.
+ * - archive  → status = "archived"
+ * - disable  → status = "inactive"   (enum has no "disabled")
+ * - delete   → soft delete (deleted_at) so historical records are preserved,
+ *              BUT if the class is linked to members / assigned study sets /
+ *              exam sessions it is archived instead of permanently removed
+ *              (Alt 7.1), and an active/upcoming exam session blocks it (Alt 7.2).
+ */
+const DELETE_ACTIONS = new Set(["delete", "archive", "disable"]);
+
+export async function deleteClass(classId, teacherId, action = "delete") {
+  if (!DELETE_ACTIONS.has(action)) throw invalidInput(); // MSG03
+
+  // Existence (404 / MSG03) + ownership (403 / MSG11, BR-18)
+  await getClassDetail(classId, teacherId);
+
+  // Explicit archive / disable — straightforward status change.
+  if (action === "archive" || action === "disable") {
+    const status = action === "archive" ? "archived" : "inactive";
+    const { data, error } = await updateClassById(classId, { status });
+    if (error) throw new Error(error.message); // MSG13
+    return { action: action === "archive" ? "archived" : "disabled", class: data };
+  }
+
+  // action === "delete"
+  // Alt 7.2 — active / upcoming exam session blocks permanent deletion.
+  const { data: blocking, error: blockErr } = await getBlockingExamSessionsByClass(classId);
+  if (blockErr) throw new Error(blockErr.message);
+  if ((blocking?.length ?? 0) > 0) {
+    const err = new Error(
+      "This class has an active or upcoming exam session. Please close or resolve it before deleting."
+    );
+    err.status = 409;
+    throw err;
+  }
+
+  // Alt 7.1 — if the class carries integrity-sensitive data, archive instead.
+  const [memberCounts, assignments, examSessions] = await Promise.all([
+    getActiveMemberCounts([classId]),
+    getAssignmentsByClass(classId),
+    countExamSessionsByClass(classId),
+  ]);
+  const integritySensitive =
+    (memberCounts.data?.length ?? 0) > 0 ||
+    (assignments.data?.length ?? 0) > 0 ||
+    (examSessions.count ?? 0) > 0;
+
+  if (integritySensitive) {
+    const { data, error } = await updateClassById(classId, { status: "archived" });
+    if (error) throw new Error(error.message); // MSG13
+    return { action: "archived", forced: true, class: data };
+  }
+
+  // Safe to permanently (soft) delete.
+  const { error } = await softDeleteClass(classId);
+  if (error) throw new Error(error.message); // MSG13
+  return { action: "deleted", class: null };
 }
 
 /**
