@@ -9,14 +9,6 @@ export const listPlans = async (req, res) => {
   }
 };
 
-export const listMine = async (req, res) => {
-  try {
-    return ok(res, await service.listMine(req.user.id));
-  } catch (err) {
-    return fail(res, err, err.status || 500);
-  }
-};
-
 export const getOne = async (req, res) => {
   try {
     return ok(res, await service.getOne(req.user.id, req.params.paymentId));

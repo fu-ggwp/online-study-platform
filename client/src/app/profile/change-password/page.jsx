@@ -182,7 +182,7 @@ export default function ChangePasswordPage() {
         });
         syncAuthCookie(response?.session);
       } else {
-        await authService.setPassword({ newPassword: values.newPassword });
+        await authService.resetPassword({ password: values.newPassword });
       }
 
       reset();

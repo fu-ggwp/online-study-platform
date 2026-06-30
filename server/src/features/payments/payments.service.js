@@ -77,12 +77,6 @@ export async function listPlans(req) {
   };
 }
 
-export async function listMine(userId) {
-  const { data, error } = await dao.findPaymentsForUser(userId);
-  if (error) throw dbError(error);
-  return { payments: data || [] };
-}
-
 export async function getOne(userId, paymentId) {
   const { data: payment, error } = await dao.findPaymentById(paymentId);
   if (error) throw dbError(error);

@@ -67,14 +67,6 @@ export function findPaymentById(paymentId) {
   return db.from(PAYMENT_TABLE).select("*").eq("payment_id", paymentId).maybeSingle();
 }
 
-export function findPaymentsForUser(userId) {
-  return db
-    .from(PAYMENT_TABLE)
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-}
-
 export function findPaymentByOrderCode(orderCode) {
   return db
     .from(PAYMENT_TABLE)

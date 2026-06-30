@@ -155,8 +155,10 @@ export const authService = {
     return data;
   },
 
-  async resetPassword({ password }) {
-    const { data, error } = await supabase.auth.updateUser({ password });
+  async resetPassword({ password, newPassword }) {
+    const { data, error } = await supabase.auth.updateUser({
+      password: password ?? newPassword,
+    });
 
     if (error) throw error;
     return data;
@@ -179,16 +181,6 @@ export const authService = {
     return { ...data, session: signInData?.session };
   },
 
-  async setPassword({ newPassword }) {
-    const { data, error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (error) throw error;
-    return data;
-  },
-
-  getSession: getCurrentSession,
 };
 
 export function cleanOAuthHash() {
