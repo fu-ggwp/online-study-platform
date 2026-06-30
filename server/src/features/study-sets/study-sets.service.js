@@ -34,8 +34,6 @@ async function notifyAssignment(targetClassIds, studySetTitle, options = {}) {
       learners,
       studySetTitle,
       className,
-      instructions: options.instructions,
-      dueAt: options.dueAt,
     });
   } catch (err) {
     logger.error("Failed to notify learners of study set assignment:", err.message);
@@ -343,8 +341,6 @@ async function assignAndNotify(studySet, teacherId, classId, payload) {
 
     notifyAssignment(targetClassIds, studySet.title, {
       notify: shouldNotify(payload),
-      instructions: payload.instructions,
-      dueAt: payload.dueAt ?? payload.due_at,
     });
   }
 }
@@ -386,7 +382,6 @@ async function updateSingleQuestion(existingQ, payloadQ) {
     question_text: payloadQ.question_text,
     explanation: payloadQ.explanation || null,
     chapter: payloadQ.chapter || null,
-    score: payloadQ.score ?? 1,
   };
 
   const { error: upQError } = await dao.updateQuestion(payloadQ.question_id, qPayload);
@@ -442,7 +437,6 @@ async function insertNewQuestion(studySetId, teacherId, payloadQ) {
     question_text: payloadQ.question_text,
     explanation: payloadQ.explanation || null,
     chapter: payloadQ.chapter || null,
-    score: payloadQ.score ?? 1,
   };
 
   const { data: newQ, error: insQError } = await dao.creationQuestions([
@@ -494,7 +488,7 @@ async function syncQuestions(id, teacherId, existingQuestions, payloadQuestions)
 }
 
 async function updateAssignments(id, teacherId, classId, changes, currentTitle) {
-  const { visibility, notifyLearners, notify_learners, instructions, dueAt, due_at } = changes;
+  const { visibility, notifyLearners, notify_learners } = changes;
 
   if (visibility === "class_only" || classId) {
     const { error: delAssignError } = await dao.deleteAssignments(id);
@@ -517,8 +511,6 @@ async function updateAssignments(id, teacherId, classId, changes, currentTitle) 
 
       notifyAssignment(targetClassIds, currentTitle, {
         notify: shouldNotify({ notifyLearners, notify_learners }),
-        instructions,
-        dueAt: dueAt ?? due_at,
       });
     }
   } else if (visibility && visibility !== "class_only") {
@@ -579,9 +571,6 @@ export async function update(id, teacherId, changes) {
     visibility: changes.visibility,
     notifyLearners,
     notify_learners,
-    instructions: assignInstructions,
-    dueAt: assignDueAt,
-    due_at: assignDueAtSnake,
   }, data.title || set.title);
 
   // 2. Synchronize questions and options if provided in the changes payload
@@ -620,7 +609,7 @@ export async function startSession(user, studySetId, mode) {
   if (questions.length === 0) {
     throw Object.assign(new Error("No questions available for quiz mode."), { status: 400 });
   }
-  const maxScore = questions.reduce((sum, q) => sum + (parseFloat(q.score) || 1), 0);
+  const maxScore = questions.length;
   const { data, error } = await dao.createAttempt({
     learner_id: userId,
     study_set_id: studySetId,
@@ -668,7 +657,7 @@ export async function submitAnswer(sessionId, payload) {
       selectedIds.length === correctIds.length &&
       selectedIds.every((id) => correctIds.includes(id));
 
-    scoreAwarded = isCorrect ? (payload.score_awarded ?? 1) : 0;
+    scoreAwarded = isCorrect ? 1 : 0;
     reviewStatus = isCorrect ? "mastered" : "marked_for_retry";
   }
   const answerPayload = {
