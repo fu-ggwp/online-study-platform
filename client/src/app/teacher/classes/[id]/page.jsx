@@ -111,12 +111,20 @@ export default function ClassDetailPage() {
               <p className="text-sm text-neutral-500">{cls.description}</p>
             )}
           </div>
-          <Link
-            href="/teacher/classes"
-            className="shrink-0 text-sm text-neutral-400 hover:text-neutral-700"
-          >
-            ← Back
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href={`/teacher/classes/${id}/edit`}
+              className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              Edit
+            </Link>
+            <Link
+              href="/teacher/classes"
+              className="text-sm text-neutral-400 hover:text-neutral-700"
+            >
+              ← Back
+            </Link>
+          </div>
         </div>
 
         {/* Class Info */}
