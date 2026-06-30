@@ -98,6 +98,92 @@ Once the server is running, API docs are available at:
 http://localhost:5000/api-docs
 ```
 
+## SonarQube
+
+This repository includes a local SonarQube setup for code quality analysis.
+
+### Prerequisites
+
+- Docker Desktop or Docker Engine with Docker Compose
+- Node.js and npm
+
+### Start SonarQube locally
+
+From the repository root:
+
+```
+npm run sonar:up
+```
+
+Open:
+
+```
+http://localhost:9000
+```
+
+The first login is:
+
+```
+Username: admin
+Password: admin
+```
+
+SonarQube will ask you to change the password. After logging in, create a project with this key:
+
+```
+smart-quiz-platform
+```
+
+Then create a user token in SonarQube and set it in your terminal.
+
+PowerShell:
+
+```
+$env:SONAR_TOKEN="your-sonarqube-token"
+```
+
+If PowerShell blocks `npm` scripts because of the execution policy, run the npm commands with `npm.cmd` instead. For example:
+
+```
+npm.cmd run sonar:scan
+```
+
+Command Prompt:
+
+```
+set SONAR_TOKEN=your-sonarqube-token
+```
+
+macOS/Linux:
+
+```
+export SONAR_TOKEN="your-sonarqube-token"
+```
+
+### Run analysis
+
+From the repository root:
+
+```
+npm run sonar:scan
+```
+
+The scanner uses `sonar-project.properties` and analyzes `client/src`, `server/src`, and `server/index.js`.
+
+If you later add tests with coverage, generate LCOV before scanning. SonarQube is already configured to read:
+
+```
+coverage/lcov.info
+client/coverage/lcov.info
+server/coverage/lcov.info
+```
+
+### Stop SonarQube
+
+```
+npm run sonar:down
+```
+
 ## Team
 
 Developed by Group fu-ggwp — FPT University SWP391 project.

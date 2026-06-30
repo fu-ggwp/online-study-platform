@@ -3,6 +3,13 @@
     "concurrently": "^9.2.1"
   },
   "scripts": {
-    "dev": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\""
+    "dev": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\"",
+    "sonar:up": "docker compose -f docker-compose.sonar.yml up -d",
+    "sonar:down": "docker compose -f docker-compose.sonar.yml down",
+    "sonar:logs": "docker compose -f docker-compose.sonar.yml logs -f sonarqube",
+    "sonar:scan": "sonar -Dsonar.host.url=http://localhost:9000"
+  },
+  "devDependencies": {
+    "@sonar/scan": "^4.3.8"
   }
 }

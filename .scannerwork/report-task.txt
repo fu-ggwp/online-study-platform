@@ -1,0 +1,6 @@
+projectKey=smart-quiz-platform
+serverUrl=http://localhost:9000
+serverVersion=26.6.0.123539
+dashboardUrl=http://localhost:9000/dashboard?id=smart-quiz-platform
+ceTaskId=f4197c39-3a0d-4f7d-b10d-23fcc3a99930
+ceTaskUrl=http://localhost:9000/api/ce/task?id=f4197c39-3a0d-4f7d-b10d-23fcc3a99930
