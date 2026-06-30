@@ -2,6 +2,8 @@ import { randomBytes } from "crypto";
 import {
   getClassesByTeacher,
   insertClass,
+  updateClassById,
+  markClassDeleted,
   findClassByCode,
   getClassById,
   getClassMembers,
@@ -87,14 +89,11 @@ export async function listTeacherClasses(teacherId) {
 export async function createClass({
   teacherId,
   className,
-  subject,
   gradeLevel,
   academicYear,
   description,
   learnerCapacity,
   joinPolicy,
-  startDate,
-  endDate,
 }) {
   // Generate a unique class code
   let classCode = null;
@@ -113,7 +112,6 @@ export async function createClass({
   const { data, error } = await insertClass({
     teacher_id: teacherId,
     class_name: className,
-    subject: subject || null,
     grade_level: gradeLevel || null,
     academic_year: academicYear || null,
     description: description || null,
@@ -121,8 +119,6 @@ export async function createClass({
     join_policy: joinPolicy || ClassJoinPolicy.TEACHER_APPROVAL,
     class_code: classCode,
     invitation_token: generateInvitationToken(),
-    start_date: startDate || null,
-    end_date: endDate || null,
   });
 
   if (error) throw new Error(error.message);
@@ -145,6 +141,84 @@ export async function getClassDetail(classId, teacherId) {
     throw err;
   }
   return data;
+}
+
+/**
+ * Update class information (UC-31 / §2.3.5). Ownership-gated; only metadata
+ * columns are editable. `class_code` / `invitation_token` are intentionally
+ * never touched so existing membership and join links keep working.
+ */
+const VALID_JOIN_POLICIES = new Set(["auto_approve", "teacher_approval"]);
+const VALID_CLASS_STATUSES = new Set(["active", "deleted"]);
+
+function invalidInput() {
+  const err = new Error("The information is invalid. Please check and try again.");
+  err.status = 400;
+  return err;
+}
+
+export async function updateClass(classId, teacherId, body = {}) {
+  // Existence (404) + ownership (403 → MSG11 / BR-18).
+  await getClassDetail(classId, teacherId);
+
+  const changes = {};
+
+  if (body.class_name !== undefined) {
+    const name = String(body.class_name).trim();
+    if (!name) {
+      const err = new Error("Please complete all required information.");
+      err.status = 400;
+      throw err;
+    }
+    changes.class_name = name;
+  }
+
+  if (body.grade_level !== undefined) changes.grade_level = body.grade_level || null;
+  if (body.academic_year !== undefined) changes.academic_year = body.academic_year || null;
+  if (body.description !== undefined) changes.description = body.description ? String(body.description) : null;
+
+  if (body.learner_capacity !== undefined) {
+    const cap = Number(body.learner_capacity);
+    if (!Number.isInteger(cap) || cap <= 0) throw invalidInput();
+    changes.learner_capacity = cap;
+  }
+
+  if (body.join_policy !== undefined) {
+    if (!VALID_JOIN_POLICIES.has(body.join_policy)) throw invalidInput();
+    changes.join_policy = body.join_policy;
+  }
+
+  if (body.status !== undefined) {
+    if (!VALID_CLASS_STATUSES.has(body.status)) throw invalidInput();
+    changes.status = body.status;
+  }
+
+  if (Object.keys(changes).length === 0) {
+    const { data } = await getClassById(classId);
+    return data;
+  }
+
+  const { data, error } = await updateClassById(classId, changes);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/**
+ * Delete a class from the web by marking its DB row deleted. Related FK rows
+ * are left untouched.
+ */
+export async function deleteClass(classId, teacherId) {
+  await getClassDetail(classId, teacherId);
+
+  const { data, error } = await markClassDeleted(classId);
+  if (error) throw new Error(error.message); // MSG13
+
+  return {
+    action: "deleted",
+    class_id: data.class_id,
+    status: data.status,
+    deleted_at: data.deleted_at,
+  };
 }
 
 /**
@@ -234,15 +308,18 @@ export async function listJoinedClasses(learnerId) {
   const { data, error } = await getJoinedClasses(learnerId);
   if (error) throw new Error(error.message);
 
-  const classIds = data.map((row) => row.class?.class_id).filter(Boolean);
+  const visibleRows = data.filter(
+    (row) => row.class && row.class.status === "active" && !row.class.deleted_at
+  );
+  const classIds = visibleRows.map((row) => row.class.class_id);
   const { data: activeRows, error: countError } = await getActiveMemberCounts(classIds);
   if (countError) throw new Error(countError.message);
   const counts = tallyByClassId(activeRows);
 
-  return data.map((row) => ({
+  return visibleRows.map((row) => ({
     ...row.class,
     joined_at: row.joined_at,
-    member_count: counts[row.class?.class_id] ?? 0,
+    member_count: counts[row.class.class_id] ?? 0,
   }));
 }
 
@@ -482,7 +559,6 @@ export async function getLearnerClassDetail(classId, learnerId) {
     class: {
       class_id: cls.class_id,
       class_name: cls.class_name,
-      subject: cls.subject,
       grade_level: cls.grade_level,
       academic_year: cls.academic_year,
       class_code: cls.class_code,

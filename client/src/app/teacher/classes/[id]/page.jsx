@@ -25,6 +25,10 @@ export default function ClassDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [resolving, setResolving] = useState(null); // requestId currently being resolved
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [processing, setProcessing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,6 +57,16 @@ export default function ClassDetailPage() {
     }, 0);
   }, [load]);
 
+  useEffect(() => {
+    if (!deleteSuccess) return;
+
+    const timer = setTimeout(() => {
+      router.replace("/teacher/classes");
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [deleteSuccess, router]);
+
   async function handleResolve(requestId, status) {
     setResolving(requestId);
     try {
@@ -68,6 +82,21 @@ export default function ClassDetailPage() {
       alert(err?.response?.data?.error || err.message || "Failed to resolve request.");
     } finally {
       setResolving(null);
+    }
+  }
+
+  async function handleDelete() {
+    setProcessing(true);
+    setDeleteError("");
+    try {
+      await classesService.remove(id);
+      setConfirmingDelete(false);
+      setDeleteSuccess(true);
+    } catch (err) {
+      setConfirmingDelete(false);
+      setDeleteError(err?.response?.data?.error || err.message || "Failed to delete class.");
+    } finally {
+      setProcessing(false);
     }
   }
 
@@ -106,12 +135,20 @@ export default function ClassDetailPage() {
               <p className="text-sm text-neutral-500">{cls.description}</p>
             )}
           </div>
-          <Link
-            href="/teacher/classes"
-            className="shrink-0 text-sm text-neutral-400 hover:text-neutral-700"
-          >
-            ← Back
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href={`/teacher/classes/${id}/edit`}
+              className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              Edit
+            </Link>
+            <Link
+              href="/teacher/classes"
+              className="text-sm text-neutral-400 hover:text-neutral-700"
+            >
+              ← Back
+            </Link>
+          </div>
         </div>
 
         {/* Class Info */}
@@ -120,7 +157,6 @@ export default function ClassDetailPage() {
             Class Info
           </h2>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
-            <InfoRow label="Subject" value={cls.subject} />
             <InfoRow label="Grade Level" value={cls.grade_level} />
             <InfoRow label="Academic Year" value={cls.academic_year} />
             <InfoRow
@@ -135,8 +171,6 @@ export default function ClassDetailPage() {
                   : "Teacher Approval"
               }
             />
-            <InfoRow label="Start Date" value={cls.start_date} />
-            <InfoRow label="End Date" value={cls.end_date} />
           </div>
         </div>
 
@@ -190,11 +224,6 @@ export default function ClassDetailPage() {
                       <span className="text-xs text-neutral-400">
                         {req.user?.email}
                       </span>
-                      {req.request_message && (
-                        <span className="mt-0.5 text-xs italic text-neutral-500">
-                          &quot;{req.request_message}&quot;
-                        </span>
-                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -279,7 +308,96 @@ export default function ClassDetailPage() {
             </p>
           )}
         </div>
+
+        {/* Manage Class — delete (UC-32) */}
+        <div className="rounded-xl border border-red-200 p-5">
+          <h2 className="text-sm font-semibold text-red-700">Manage Class</h2>
+          <p className="mt-1 text-xs text-neutral-500">
+            Delete a class you no longer need. It will be removed from class
+            lists.
+          </p>
+          <div className="mt-4">
+            <button
+              onClick={() => setConfirmingDelete(true)}
+              className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              Delete Class
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Confirmation modal (Normal Flow step 3 / Alt 4.1 Cancel) */}
+      {confirmingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-neutral-900">
+              Delete this class?
+            </h3>
+            <p className="mt-2 text-sm text-neutral-600">
+              This class will be removed from the web class lists. Learners
+              will no longer be able to access it.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmingDelete(false)}
+                disabled={processing}
+                className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={processing}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {processing ? "Deleting..." : "Delete Class"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-neutral-900">
+              Class deleted successfully
+            </h3>
+            <p className="mt-2 text-sm text-neutral-600">
+              The class has been removed from your class list.
+              Redirecting...
+            </p>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => router.replace("/teacher/classes")}
+                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+              >
+                Back to Classes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-neutral-900">
+              Delete failed
+            </h3>
+            <p className="mt-2 text-sm text-neutral-600">{deleteError}</p>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setDeleteError("")}
+                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
