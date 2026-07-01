@@ -10,15 +10,12 @@ import {
   updateQuestionBank,
 } from "./question-banks.service.js";
 import {
+  getUserId,
   validateCreatePayload,
   validateGenerateMaterialPayload,
   validateUpdatePayload,
 } from "./question-banks.validation.js";
 import { fail, ok } from "../../utils/api-response.js";
-
-function getUserId(req) {
-  return req.user?.id || req.user?.user_id;
-}
 
 export async function list(req, res) {
   try {

@@ -7,6 +7,17 @@ const supportedMaterialTypes = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 
+export function getUserId(req) {
+  return req.user?.id || req.user?.user_id;
+}
+
+export function questionBankLoadError() {
+  return httpError(
+    "Failed to load data. Please check your connection and try again.",
+    500,
+  );
+}
+
 function normalizeText(value) {
   if (value === undefined) return undefined;
   if (value === null) return null;

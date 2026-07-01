@@ -1,47 +1,17 @@
 import { supabase } from "../../config/supabase.js";
-import { createUserModel } from "../../models/user.model.js";
 import { httpError } from "../../utils/api-response.js";
 import { requirePremiumFeature } from "../../utils/premium-access.js";
 import * as aiService from "../ai/ai.service.js";
 import * as questionBanksDao from "./question-banks.dao.js";
-import { normalizeListFilters } from "./question-banks.validation.js";
+import {
+  normalizeListFilters,
+  questionBankLoadError,
+} from "./question-banks.validation.js";
 
 const db = supabase;
-const userModel = createUserModel(db);
 
 const materialQuestionGenerationFeature = "ai_generate_from_material";
 const premiumRequiredMessage = "This feature is available for Premium accounts only. Please upgrade to continue.";
-
-function requireUserId(userId) {
-  if (!userId) {
-    throw httpError("Missing authenticated user.", 401);
-  }
-}
-
-async function requireActiveTeacher(userId) {
-  requireUserId(userId);
-
-  const profile = await userModel.findById(userId);
-
-  if (!profile || profile.deleted_at) {
-    throw httpError(
-      "You do not have permission to access or perform this action.",
-      403,
-    );
-  }
-
-  if (
-    profile.account_status !== "active" ||
-    profile.active_role !== "teacher"
-  ) {
-    throw httpError(
-      "You do not have permission to access or perform this action.",
-      403,
-    );
-  }
-
-  return profile;
-}
 
 async function attachQuestionCount(questionBank) {
   return {
@@ -138,23 +108,17 @@ async function syncQuestionAnswerOptions(questionId, currentOptions, answerOptio
 
 function handleLoadError(error) {
   if (error) {
-    throw httpError(
-      "Failed to load data. Please check your connection and try again.",
-      500,
-    );
+    throw questionBankLoadError();
   }
 }
 
 export async function generateQuestionsFromMaterial(userId, { file, questionCount, focus }) {
-  await requireActiveTeacher(userId);
   await requirePremiumFeature(userId, materialQuestionGenerationFeature, premiumRequiredMessage);
 
   return aiService.generateQuestionsFromMaterial({ file, questionCount, focus });
 }
 
 export async function listQuestionBanks(userId, query) {
-  await requireActiveTeacher(userId);
-
   const filters = normalizeListFilters(query);
   const { data, error, count, page, limit } =
     await questionBanksDao.listByTeacher(userId, filters);
@@ -175,8 +139,6 @@ export async function listQuestionBanks(userId, query) {
 }
 
 export async function listReadyQuestionBanks(userId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.listReadyByTeacher(userId);
   handleLoadError(error);
 
@@ -184,8 +146,6 @@ export async function listReadyQuestionBanks(userId) {
 }
 
 export async function getQuestionBank(userId, questionBankId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.findOwnedById(
     questionBankId,
     userId,
@@ -200,8 +160,6 @@ export async function getQuestionBank(userId, questionBankId) {
 }
 
 export async function getReadyQuestionBank(userId, questionBankId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.findReadyOwnedById(
     questionBankId,
     userId,
@@ -219,8 +177,6 @@ export async function getReadyQuestionBank(userId, questionBankId) {
 }
 
 export async function listQuestionBankQuestions(userId, questionBankId) {
-  await requireActiveTeacher(userId);
-
   const bankResult = await questionBanksDao.findOwnedById(
     questionBankId,
     userId,
@@ -253,8 +209,6 @@ export async function listReadyQuestionBankQuestions(userId, questionBankId) {
 }
 
 async function getQuestion(userId, questionId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.findOwnedQuestionById(
     questionId,
     userId,
@@ -269,8 +223,6 @@ async function getQuestion(userId, questionId) {
 }
 
 async function updateQuestion(userId, questionId, payload) {
-  await requireActiveTeacher(userId);
-
   const current = await questionBanksDao.findOwnedQuestionById(
     questionId,
     userId,
@@ -378,7 +330,6 @@ async function syncQuestionBankQuestions(userId, questionBankId, questions) {
 }
 
 export async function createQuestionBank(userId, payload) {
-  await requireActiveTeacher(userId);
   const { questions, ...bankPayload } = payload;
 
   const { data, error } = await questionBanksDao.create({
@@ -399,8 +350,6 @@ export async function createQuestionBank(userId, payload) {
 }
 
 export async function updateQuestionBank(userId, questionBankId, changes) {
-  await requireActiveTeacher(userId);
-
   const { questions, ...metadataChanges } = changes;
   let data;
 
@@ -435,8 +384,6 @@ export async function updateQuestionBank(userId, questionBankId, changes) {
 }
 
 export async function archiveQuestionBank(userId, questionBankId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.archive(
     questionBankId,
     userId,
