@@ -28,9 +28,7 @@ export default function JoinClassPage() {
       const result = await classesService.joinClass({ classCode: trimmed });
       setSuccess(result);
     } catch (err) {
-      const message = err?.response?.data?.error || err.message || "Failed to join class.";
-      setError(message);
-      alert(message); // pop-up (e.g. "You already own this class as a teacher...")
+      setError(err?.response?.data?.error || err.message || "Failed to join class.");
     } finally {
       setSubmitting(false);
     }
@@ -116,12 +114,6 @@ export default function JoinClassPage() {
             </p>
           </div>
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </p>
-          )}
-
           <button
             type="submit"
             disabled={submitting || code.trim().length === 0}
@@ -132,6 +124,26 @@ export default function JoinClassPage() {
         </form>
 
       </section>
+
+      {/* In-page popup for join errors (e.g. owner trying to join own class) */}
+      {error && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-neutral-900">
+              Cannot join class
+            </h3>
+            <p className="mt-2 text-sm text-neutral-600">{error}</p>
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setError("")}
+                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
