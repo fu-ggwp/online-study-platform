@@ -1,54 +1,17 @@
 import { supabase } from "../../config/supabase.js";
-import { createUserModel } from "../../models/user.model.js";
+import { httpError } from "../../utils/api-response.js";
 import { requirePremiumFeature } from "../../utils/premium-access.js";
 import * as aiService from "../ai/ai.service.js";
 import * as questionBanksDao from "./question-banks.dao.js";
-import { normalizeListFilters } from "./question-banks.validation.js";
+import {
+  normalizeListFilters,
+  questionBankLoadError,
+} from "./question-banks.validation.js";
 
 const db = supabase;
-const userModel = createUserModel(db);
 
 const materialQuestionGenerationFeature = "ai_generate_from_material";
 const premiumRequiredMessage = "This feature is available for Premium accounts only. Please upgrade to continue.";
-
-function serviceError(message, statusCode = 400, fields) {
-  const error = new Error(message);
-  error.status = statusCode;
-  error.statusCode = statusCode;
-  error.fields = fields;
-  return error;
-}
-
-function requireUserId(userId) {
-  if (!userId) {
-    throw serviceError("Missing authenticated user.", 401);
-  }
-}
-
-async function requireActiveTeacher(userId) {
-  requireUserId(userId);
-
-  const profile = await userModel.findById(userId);
-
-  if (!profile || profile.deleted_at) {
-    throw serviceError(
-      "You do not have permission to access or perform this action.",
-      403,
-    );
-  }
-
-  if (
-    profile.account_status !== "active" ||
-    profile.active_role !== "teacher"
-  ) {
-    throw serviceError(
-      "You do not have permission to access or perform this action.",
-      403,
-    );
-  }
-
-  return profile;
-}
 
 async function attachQuestionCount(questionBank) {
   return {
@@ -71,7 +34,7 @@ function sortQuestionAnswerOptions(question) {
 function optionUpdateError(error) {
   if (!error) return;
 
-  throw serviceError(
+  throw httpError(
     error.message || "Question answer options could not be updated.",
     400,
   );
@@ -145,23 +108,17 @@ async function syncQuestionAnswerOptions(questionId, currentOptions, answerOptio
 
 function handleLoadError(error) {
   if (error) {
-    throw serviceError(
-      "Failed to load data. Please check your connection and try again.",
-      500,
-    );
+    throw questionBankLoadError();
   }
 }
 
 export async function generateQuestionsFromMaterial(userId, { file, questionCount, focus }) {
-  await requireActiveTeacher(userId);
   await requirePremiumFeature(userId, materialQuestionGenerationFeature, premiumRequiredMessage);
 
   return aiService.generateQuestionsFromMaterial({ file, questionCount, focus });
 }
 
 export async function listQuestionBanks(userId, query) {
-  await requireActiveTeacher(userId);
-
   const filters = normalizeListFilters(query);
   const { data, error, count, page, limit } =
     await questionBanksDao.listByTeacher(userId, filters);
@@ -182,8 +139,6 @@ export async function listQuestionBanks(userId, query) {
 }
 
 export async function listReadyQuestionBanks(userId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.listReadyByTeacher(userId);
   handleLoadError(error);
 
@@ -191,8 +146,6 @@ export async function listReadyQuestionBanks(userId) {
 }
 
 export async function getQuestionBank(userId, questionBankId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.findOwnedById(
     questionBankId,
     userId,
@@ -200,15 +153,13 @@ export async function getQuestionBank(userId, questionBankId) {
   handleLoadError(error);
 
   if (!data) {
-    throw serviceError("Question bank not found.", 404);
+    throw httpError("Question bank not found.", 404);
   }
 
   return attachQuestionCount(data);
 }
 
 export async function getReadyQuestionBank(userId, questionBankId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.findReadyOwnedById(
     questionBankId,
     userId,
@@ -216,7 +167,7 @@ export async function getReadyQuestionBank(userId, questionBankId) {
   handleLoadError(error);
 
   if (!data) {
-    throw serviceError("Select one of your ready question banks.", 400, {
+    throw httpError("Select one of your ready question banks.", 400, {
       questionBankId: "Select one of your ready question banks.",
       question_bank_id: "Select one of your ready question banks.",
     });
@@ -226,8 +177,6 @@ export async function getReadyQuestionBank(userId, questionBankId) {
 }
 
 export async function listQuestionBankQuestions(userId, questionBankId) {
-  await requireActiveTeacher(userId);
-
   const bankResult = await questionBanksDao.findOwnedById(
     questionBankId,
     userId,
@@ -235,7 +184,7 @@ export async function listQuestionBankQuestions(userId, questionBankId) {
   handleLoadError(bankResult.error);
 
   if (!bankResult.data) {
-    throw serviceError("Question bank not found.", 404);
+    throw httpError("Question bank not found.", 404);
   }
 
   const { data, error } = await questionBanksDao.listQuestionsByBank(
@@ -260,8 +209,6 @@ export async function listReadyQuestionBankQuestions(userId, questionBankId) {
 }
 
 async function getQuestion(userId, questionId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.findOwnedQuestionById(
     questionId,
     userId,
@@ -269,15 +216,13 @@ async function getQuestion(userId, questionId) {
   handleLoadError(error);
 
   if (!data) {
-    throw serviceError("Question not found.", 404);
+    throw httpError("Question not found.", 404);
   }
 
   return sortQuestionAnswerOptions(data);
 }
 
 async function updateQuestion(userId, questionId, payload) {
-  await requireActiveTeacher(userId);
-
   const current = await questionBanksDao.findOwnedQuestionById(
     questionId,
     userId,
@@ -285,7 +230,7 @@ async function updateQuestion(userId, questionId, payload) {
   handleLoadError(current.error);
 
   if (!current.data) {
-    throw serviceError("Question not found.", 404);
+    throw httpError("Question not found.", 404);
   }
 
   const { answer_options: answerOptions, ...changes } = payload;
@@ -299,11 +244,11 @@ async function updateQuestion(userId, questionId, payload) {
     );
 
     if (error) {
-      throw serviceError(error.message || "Question could not be updated.", 400);
+      throw httpError(error.message || "Question could not be updated.", 400);
     }
 
     if (!data) {
-      throw serviceError("Question not found.", 404);
+      throw httpError("Question not found.", 404);
     }
   }
 
@@ -325,7 +270,7 @@ async function createQuestionInBank(userId, questionBankId, payload) {
   );
 
   if (error) {
-    throw serviceError(error.message || "Question could not be created.", 400);
+    throw httpError(error.message || "Question could not be created.", 400);
   }
 
   await syncQuestionAnswerOptions(data.question_id, [], answerOptions);
@@ -341,7 +286,7 @@ async function updateQuestionInBank(userId, questionBankId, payload) {
   handleLoadError(current.error);
 
   if (!current.data || current.data.question_bank_id !== questionBankId) {
-    throw serviceError("Question not found.", 404);
+    throw httpError("Question not found.", 404);
   }
 
   return updateQuestion(userId, questionId, questionPayload);
@@ -380,12 +325,11 @@ async function syncQuestionBankQuestions(userId, questionBankId, questions) {
   );
 
   if (deleteResult.error) {
-    throw serviceError(deleteResult.error.message || "Questions could not be deleted.", 400);
+    throw httpError(deleteResult.error.message || "Questions could not be deleted.", 400);
   }
 }
 
 export async function createQuestionBank(userId, payload) {
-  await requireActiveTeacher(userId);
   const { questions, ...bankPayload } = payload;
 
   const { data, error } = await questionBanksDao.create({
@@ -394,7 +338,7 @@ export async function createQuestionBank(userId, payload) {
   });
 
   if (error) {
-    throw serviceError(
+    throw httpError(
       error.message || "Question bank could not be created.",
       400,
     );
@@ -406,8 +350,6 @@ export async function createQuestionBank(userId, payload) {
 }
 
 export async function updateQuestionBank(userId, questionBankId, changes) {
-  await requireActiveTeacher(userId);
-
   const { questions, ...metadataChanges } = changes;
   let data;
 
@@ -419,7 +361,7 @@ export async function updateQuestionBank(userId, questionBankId, changes) {
     );
 
     if (updateResult.error) {
-      throw serviceError(
+      throw httpError(
         updateResult.error.message || "Question bank could not be updated.",
         400,
       );
@@ -433,7 +375,7 @@ export async function updateQuestionBank(userId, questionBankId, changes) {
   }
 
   if (!data) {
-    throw serviceError("Question bank not found.", 404);
+    throw httpError("Question bank not found.", 404);
   }
 
   await syncQuestionBankQuestions(userId, questionBankId, questions);
@@ -442,19 +384,17 @@ export async function updateQuestionBank(userId, questionBankId, changes) {
 }
 
 export async function archiveQuestionBank(userId, questionBankId) {
-  await requireActiveTeacher(userId);
-
   const { data, error } = await questionBanksDao.archive(
     questionBankId,
     userId,
   );
 
   if (error) {
-    throw serviceError(error.message || "Question bank delete failed.", 400);
+    throw httpError(error.message || "Question bank delete failed.", 400);
   }
 
   if (!data) {
-    throw serviceError("Question bank not found.", 404);
+    throw httpError("Question bank not found.", 404);
   }
 
   return data;
