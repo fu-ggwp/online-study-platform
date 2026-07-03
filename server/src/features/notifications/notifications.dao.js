@@ -20,6 +20,10 @@ export function countUnreadForUser(userId) {
     .is("deleted_at", null);
 }
 
+export function insertNotification(payload) {
+  return db.from(NOTIFICATION_TABLE).insert(payload).select("*").single();
+}
+
 export function markNotificationAsRead(notificationId, userId) {
   return db
     .from(NOTIFICATION_TABLE)

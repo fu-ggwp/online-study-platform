@@ -8,6 +8,10 @@ function notFound() {
   return Object.assign(new Error("Notification not found."), { status: 404 });
 }
 
+function missingField(fieldName) {
+  return Object.assign(new Error(`${fieldName} is required.`), { status: 400 });
+}
+
 function normalizeLimit(value) {
   const limit = Number.parseInt(value, 10);
   if (!Number.isFinite(limit)) return 20;
@@ -47,6 +51,23 @@ export async function getUnreadCount(userId) {
   if (error) throw dbError(error);
 
   return { count: count || 0 };
+}
+
+export async function createNotification({ userId, title, message, targetUrl = null }) {
+  if (!userId) throw missingField("userId");
+  if (!title?.trim()) throw missingField("title");
+  if (!message?.trim()) throw missingField("message");
+
+  const { data, error } = await dao.insertNotification({
+    user_id: userId,
+    title: title.trim(),
+    message: message.trim(),
+    target_url: targetUrl || null,
+  });
+
+  if (error) throw dbError(error);
+
+  return data;
 }
 
 export async function markOneAsRead(userId, notificationId) {
