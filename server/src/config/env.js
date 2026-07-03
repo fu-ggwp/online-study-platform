@@ -23,7 +23,6 @@ export const env = {
   brevoSenderEmail: process.env.BREVO_SENDER_EMAIL,
   brevoSenderName: process.env.BREVO_SENDER_NAME,
 
-  paymentProvider: process.env.PAYMENT_PROVIDER || "stripe",
   payosClientId: process.env.PAYOS_CLIENT_ID,
   payosApiKey: process.env.PAYOS_API_KEY,
   payosChecksumKey: process.env.PAYOS_CHECKSUM_KEY,

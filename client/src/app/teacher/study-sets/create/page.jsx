@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Save, ArrowLeft, Database, FileSpreadsheet, Sparkles } from "lucide-react";
-import axiosClient from "@/services/axiosClient";
+import { studySetsService } from "@/services/study-sets.service";
 import { questionBanksService } from "@/services/question-banks.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -365,7 +365,7 @@ export default function CreateStudySetPage() {
     // C. Send POST request
     setSaving(true);
     try {
-      await axiosClient.post("/api/study-sets", {
+      await studySetsService.create({
         title,
         description,
         topic: topic || null,

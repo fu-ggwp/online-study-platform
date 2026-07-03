@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, Download, FileCheck, FileX } from "lucide-react";
 import { Button } from "@/components/ui/button";

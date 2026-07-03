@@ -1,7 +1,5 @@
 "use client";
 
-import React from "react";
-
 export default function FlashcardProgress({ progressPercent, savingProgress }) {
   return (
     <div className="space-y-1.5">

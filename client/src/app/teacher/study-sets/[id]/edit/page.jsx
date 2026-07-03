@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Plus, Save, ArrowLeft, Database, FileSpreadsheet, Sparkles } from "lucide-react";
-import axiosClient from "@/services/axiosClient";
+import { studySetsService } from "@/services/study-sets.service";
 import { questionBanksService } from "@/services/question-banks.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,8 +56,8 @@ export default function EditStudySetPage() {
     async function loadStudySet() {
       setLoading(true);
       try {
-        const res = await axiosClient.get(`/api/study-sets/${id}`);
-        const data = res.data?.data;
+        const res = await studySetsService.getOne(id);
+        const data = res.data;
         if (data) {
           setTitle(data.title || "");
           setDescription(data.description || "");
@@ -401,7 +401,7 @@ export default function EditStudySetPage() {
 
     setSaving(true);
     try {
-      await axiosClient.patch(`/api/study-sets/${id}`, {
+      await studySetsService.update(id, {
         title,
         description,
         topic: topic || null,

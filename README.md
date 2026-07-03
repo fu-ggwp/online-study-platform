@@ -51,7 +51,6 @@ CORS_ORIGINS=http://localhost:3000
 For PayOS premium upgrades, add these backend variables in `server/.env`:
 
 ```
-PAYMENT_PROVIDER=payos
 CLIENT_URL=http://localhost:3000
 CORS_ORIGINS=http://localhost:3000,https://your-frontend-domain.com
 PAYOS_CLIENT_ID=your-payos-client-id

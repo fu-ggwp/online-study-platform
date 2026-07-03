@@ -41,9 +41,7 @@ export function findPremiumPlanById(planId) {
 export function findActivePremiumPlanById(planId) {
   return db
     .from(PREMIUM_PLAN_TABLE)
-    .select(
-      "premium_plan_id, plan_name, display_name, plan_code, price_vnd, duration_days, billing_period, description, features",
-    )
+    .select(PLAN_COLUMNS)
     .eq("premium_plan_id", planId)
     .eq("is_active", true)
     .is("deleted_at", null)
@@ -64,7 +62,11 @@ export function updatePayment(paymentId, changes) {
 }
 
 export function findPaymentById(paymentId) {
-  return db.from(PAYMENT_TABLE).select("*").eq("payment_id", paymentId).maybeSingle();
+  return db
+    .from(PAYMENT_TABLE)
+    .select("*")
+    .eq("payment_id", paymentId)
+    .maybeSingle();
 }
 
 export function findPaymentByOrderCode(orderCode) {
@@ -84,7 +86,11 @@ export function findSubscriptionByPaymentId(paymentId) {
 }
 
 export function createSubscription(subscription) {
-  return db.from(USER_SUBSCRIPTION_TABLE).insert(subscription).select("*").single();
+  return db
+    .from(USER_SUBSCRIPTION_TABLE)
+    .insert(subscription)
+    .select("*")
+    .single();
 }
 
 export function updateSubscription(subscriptionId, changes) {

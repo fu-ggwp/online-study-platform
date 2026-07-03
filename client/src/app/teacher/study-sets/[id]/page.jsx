@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Edit3, Trash2, Calendar, Layers, Eye, EyeOff, AlertCircle, UserPlus } from "lucide-react";
-import axiosClient from "@/services/axiosClient";
+import { studySetsService } from "@/services/study-sets.service";
 import { Button } from "@/components/ui/button";
 import { QuestionPreviewCard } from "@/components/questions/question-preview-card";
 import ClassSelectorModal from "../create/ClassSelectorModal";
@@ -39,8 +39,8 @@ export default function TeacherStudySetDetailPage() {
     async function fetchDetails() {
       setLoading(true);
       try {
-        const res = await axiosClient.get(`/api/study-sets/${id}`);
-        setStudySet(res.data?.data || null);
+        const res = await studySetsService.getOne(id);
+        setStudySet(res.data || null);
       } catch (err) {
         console.error("Failed to load study set:", err);
         setError("Failed to load study set details. Please try again.");
@@ -55,7 +55,7 @@ export default function TeacherStudySetDetailPage() {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await axiosClient.delete(`/api/study-sets/${id}`);
+      await studySetsService.remove(id);
       router.push("/teacher/study-sets");
     } catch (err) {
       console.error("Failed to delete study set:", err);
@@ -90,12 +90,12 @@ export default function TeacherStudySetDetailPage() {
         payload.visibility = "private";
       }
 
-      await axiosClient.patch(`/api/study-sets/${id}`, payload);
+      await studySetsService.update(id, payload);
       setShowClassSelector(false);
 
       // Re-fetch details to update UI immediately
-      const res = await axiosClient.get(`/api/study-sets/${id}`);
-      setStudySet(res.data?.data || null);
+      const res = await studySetsService.getOne(id);
+      setStudySet(res.data || null);
     } catch (err) {
       console.error("Failed to update assignments:", err);
     } finally {

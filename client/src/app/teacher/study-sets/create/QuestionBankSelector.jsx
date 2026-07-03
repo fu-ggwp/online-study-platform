@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, BookOpen, AlertTriangle } from "lucide-react";
 import { questionBanksService } from "@/services/question-banks.service";
 import { Button } from "@/components/ui/button";

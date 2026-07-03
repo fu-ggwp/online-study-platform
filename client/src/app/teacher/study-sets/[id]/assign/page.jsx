@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, BookOpen, Save, UserPlus, Users, AlertCircle } from "lucide-react";
-import axiosClient from "@/services/axiosClient";
+import { studySetsService } from "@/services/study-sets.service";
 import { Button } from "@/components/ui/button";
 import ClassSelectorModal from "../../create/ClassSelectorModal";
 
@@ -26,8 +26,8 @@ export default function AssignStudySetPage() {
     async function fetchDetails() {
       setLoading(true);
       try {
-        const res = await axiosClient.get(`/api/study-sets/${id}`);
-        const data = res.data?.data || null;
+        const res = await studySetsService.getOne(id);
+        const data = res.data || null;
         setStudySet(data);
         if (data) {
           const assignments = data.study_set_assignments || [];
@@ -61,7 +61,7 @@ export default function AssignStudySetPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await axiosClient.patch(`/api/study-sets/${id}`, {
+      await studySetsService.update(id, {
         classId: selectedClassIds,
       });
 

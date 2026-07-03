@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AlertCircle, Eye, Layers3, Plus, Search, SlidersHorizontal, Users } from "lucide-react";
 import { AppPagination } from "@/components/common/app-pagination";
-import axiosClient from "@/services/axiosClient";
+import { studySetsService } from "@/services/study-sets.service";
 import ClassSelectorModal from "./create/ClassSelectorModal";
 import ConfirmModal from "@/components/common/ConfirmModal";
 
@@ -119,8 +119,8 @@ export default function TeacherStudySetsPage() {
     const proceedWithAssign = async () => {
       setAssignLoadingId(studySetId);
       try {
-        const res = await axiosClient.get(`/api/study-sets/${studySetId}`);
-        const data = res.data?.data || null;
+        const res = await studySetsService.getOne(studySetId);
+        const data = res.data || null;
         if (data) {
           const assignments = data.study_set_assignments || [];
           const classIds = assignments.map((a) => a.class_id);
@@ -165,7 +165,7 @@ export default function TeacherStudySetsPage() {
         payload.visibility = "private";
       }
 
-      await axiosClient.patch(`/api/study-sets/${studySetId}`, payload);
+      await studySetsService.update(studySetId, payload);
       setActiveAssignSet(null);
       reload();
     } catch (err) {

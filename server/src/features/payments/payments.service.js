@@ -90,7 +90,7 @@ export async function getOne(userId, paymentId) {
 }
 
 function buildClientUrl(path) {
-  const base = env.clientUrl || env.paymentRedirectBaseUrl || "http://localhost:3000";
+  const base = env.clientUrl || "http://localhost:3000";
   return new URL(path, base).toString();
 }
 

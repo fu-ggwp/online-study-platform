@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { AlertCircle, BookOpen, Check, Search } from "lucide-react";
 import classesService from "@/services/classes.service";
 import { Button } from "@/components/ui/button";
