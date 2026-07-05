@@ -19,8 +19,6 @@ export const StudySetPracticeMode = Object.freeze({
 export const StudySetCardOrder = Object.freeze({
   DEFAULT: "default",
   RANDOM: "random",
-  DIFFICULTY_ASC: "difficulty_asc",
-  DIFFICULTY_DESC: "difficulty_desc",
 });
 
 /**

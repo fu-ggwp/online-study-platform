@@ -38,3 +38,32 @@ export async function requireAuth(req, res, next) {
   }
   next();
 }
+
+export async function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const { data, error } = await supabaseClient.auth.getUser(token);
+    if (error || !data?.user) {
+      return next();
+    }
+
+    req.user = data.user;
+    const { data: dbUser } = await supabase
+      .from(USER_TABLE)
+      .select("active_role")
+      .eq("user_id", data.user.id)
+      .single();
+    if (dbUser) {
+      req.user.role = dbUser.active_role;
+    }
+  } catch (err) {
+    console.error("Error in optionalAuth middleware:", err);
+  }
+  next();
+}
