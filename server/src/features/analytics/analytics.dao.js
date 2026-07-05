@@ -40,7 +40,6 @@ export function listExamAttemptsForProgress(learnerId) {
       started_at,
       submitted_at,
       status,
-      is_auto_submitted,
       total_score,
       exam_sessions:exam_sessions (
         exam_session_id,

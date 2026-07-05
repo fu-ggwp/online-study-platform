@@ -206,21 +206,24 @@ function LearningRhythm({ data, loading }) {
 
   return (
     <section className="rounded-md border border-border bg-card p-5 shadow-sm">
-      <SectionHeader title="Learning Rhythm" description="Activity count across the last 30 days." />
+      <SectionHeader
+        title="Learning Rhythm"
+        description="Completed quizzes, submitted exams, and completed flashcard sessions across the last 30 days."
+      />
 
       {loading ? (
         <div className="mt-6 h-36 animate-pulse rounded-md bg-muted" />
       ) : data.length === 0 ? (
         <StatePanel message="No rhythm data yet." />
       ) : (
-        <div className="mt-6 overflow-x-auto pb-1">
-          <div className="flex min-w-[720px] items-end gap-2">
+        <div className="mt-6">
+          <div className="grid grid-cols-[repeat(30,minmax(0,1fr))] items-end gap-1 sm:gap-2">
             {data.map((item, index) => {
               const height = item.activityCount === 0 ? 8 : Math.max(18, Math.round((item.activityCount / maxCount) * 112));
               const showLabel = index % 5 === 0 || index === data.length - 1;
 
               return (
-                <div className="flex min-w-0 flex-1 flex-col items-center gap-2" key={item.date}>
+                <div className="flex min-w-0 flex-col items-center gap-2" key={item.date}>
                   <div className="flex h-32 w-full items-end justify-center rounded-md bg-muted/40 px-1">
                     <div
                       aria-label={`${formatDateLabel(item.date)}: ${item.activityCount} activities`}
@@ -288,7 +291,7 @@ function RecentPerformance({ data, loading }) {
 function LearningMix({ data, loading }) {
   const items = [
     { icon: BookOpenCheck, label: "Quiz Attempts", value: data.practiceQuizzes || 0 },
-    { icon: Activity, label: "Flashcard Sessions", value: data.flashcards || 0 },
+    { icon: Activity, label: "Completed Flashcards", value: data.flashcards || 0 },
     { icon: BarChart3, label: "Submitted Exams", value: data.exams || 0 },
   ];
   const total = items.reduce((sum, item) => sum + item.value, 0);

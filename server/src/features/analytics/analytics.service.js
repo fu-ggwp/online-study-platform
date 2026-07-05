@@ -2,7 +2,6 @@ import * as dao from "./analytics.dao.js";
 
 const EXAM_MAX_SCORE = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SCORED_STATUSES = new Set(["submitted", "auto_submitted"]);
 
 function asNumber(value) {
   const number = Number(value);
@@ -36,11 +35,13 @@ function buildDateRange(days) {
 }
 
 function activityDatesFromPractice(attempt) {
-  return [attempt.started_at, attempt.submitted_at].map(toDateKey).filter(Boolean);
+  if (attempt.status !== "submitted") return [];
+  return [attempt.submitted_at].map(toDateKey).filter(Boolean);
 }
 
 function activityDatesFromExam(attempt) {
-  return [attempt.started_at, attempt.submitted_at].map(toDateKey).filter(Boolean);
+  if (attempt.status !== "submitted") return [];
+  return [attempt.submitted_at || attempt.started_at].map(toDateKey).filter(Boolean);
 }
 
 function uniqueActivityDates(practiceAttempts, examAttempts) {
@@ -137,9 +138,8 @@ function practiceScoreItem(attempt) {
 
 function examScoreItem(attempt) {
   const completedAt = attempt.submitted_at || attempt.started_at;
-  const status = attempt.is_auto_submitted ? "auto_submitted" : attempt.status;
 
-  if (!SCORED_STATUSES.has(status) || !completedAt) return null;
+  if (attempt.status !== "submitted" || !completedAt) return null;
 
   const score = asNumber(attempt.total_score);
 
@@ -171,8 +171,7 @@ function buildSnapshot({ practiceAttempts, examAttempts, learningRhythm, scoredI
   const activityDates = uniqueActivityDates(practiceAttempts, examAttempts);
   const submittedPracticeCount = practiceAttempts.filter((attempt) => attempt.status === "submitted").length;
   const submittedExamAttempts = examAttempts.filter((attempt) => {
-    const status = attempt.is_auto_submitted ? "auto_submitted" : attempt.status;
-    return SCORED_STATUSES.has(status);
+    return attempt.status === "submitted";
   });
   const latestScoredItems = scoredItems.slice(0, 10);
   const recentScoreTotal = latestScoredItems.reduce((sum, item) => sum + item.score, 0);
@@ -194,11 +193,10 @@ function buildSnapshot({ practiceAttempts, examAttempts, learningRhythm, scoredI
 
 function buildLearningMix(practiceAttempts, examAttempts) {
   return {
-    practiceQuizzes: practiceAttempts.filter((attempt) => attempt.mode === "quiz").length,
-    flashcards: practiceAttempts.filter((attempt) => attempt.mode === "flashcard").length,
+    practiceQuizzes: practiceAttempts.filter((attempt) => attempt.mode === "quiz" && attempt.status === "submitted").length,
+    flashcards: practiceAttempts.filter((attempt) => attempt.mode === "flashcard" && attempt.status === "submitted").length,
     exams: examAttempts.filter((attempt) => {
-      const status = attempt.is_auto_submitted ? "auto_submitted" : attempt.status;
-      return SCORED_STATUSES.has(status);
+      return attempt.status === "submitted";
     }).length,
   };
 }
