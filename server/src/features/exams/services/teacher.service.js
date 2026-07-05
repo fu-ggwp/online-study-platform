@@ -14,7 +14,6 @@ import {
   createSavedMessage,
   dbError,
   EXAM_MAX_SCORE,
-  examQuestionScore,
   fail,
   notFound,
   requireUser,
@@ -56,8 +55,6 @@ function validQuestion(question) {
 }
 
 function toExamQuestionRows(examSessionId, questions) {
-  const questionScore = examQuestionScore(questions.length);
-
   return questions.map((question, index) => {
     const options = [...(question.answer_options ?? [])].sort(
       (left, right) => left.display_order - right.display_order
@@ -67,7 +64,6 @@ function toExamQuestionRows(examSessionId, questions) {
       exam_session_id: examSessionId,
       source_question_id: question.question_id,
       question_text: question.question_text,
-      score: questionScore,
       explanation: question.explanation || null,
       chapter: question.chapter || null,
       answer_options_json: options.map((option, optionIndex) => ({
