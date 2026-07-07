@@ -9,6 +9,9 @@ const statusOptions = [
   { value: "Ready", label: "Ready" },
 ];
 
+/**
+ * Draft filter controls. Parent decides when values are applied to the API query.
+ */
 export function QuestionBanksFilterBar({
   keyword,
   onApply,
@@ -47,6 +50,9 @@ export function QuestionBanksFilterBar({
   );
 }
 
+/**
+ * Shared label wrapper for filter controls.
+ */
 function Field({ children, label }) {
   return (
     <label className="block space-y-1.5">
@@ -56,6 +62,9 @@ function Field({ children, label }) {
   );
 }
 
+/**
+ * Small select field used by the status filter.
+ */
 function SelectField({ label, onChange, options, value }) {
   return (
     <Field label={label}>

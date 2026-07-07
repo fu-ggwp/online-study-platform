@@ -3,6 +3,9 @@ import { DoorOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
+/**
+ * Top action area for learner dashboard shortcuts.
+ */
 export function DashboardHeader() {
   return (
     <header className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-end md:justify-between">

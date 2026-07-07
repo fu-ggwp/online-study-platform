@@ -60,14 +60,23 @@ const EMPTY_DASHBOARD = {
   },
 };
 
+/**
+ * Pick a readable message from dashboard API failures.
+ */
 function getErrorMessage(error) {
   return error?.response?.data?.error || error?.message || "Unable to load dashboard.";
 }
 
+/**
+ * Small plural helper for summary copy.
+ */
 function pluralize(count, singular, plural = singular + "s") {
   return count === 1 ? singular : plural;
 }
 
+/**
+ * Format exam/request timestamps for dashboard cards.
+ */
 function formatDateTime(value) {
   if (!value) return "Not scheduled";
 
@@ -82,6 +91,9 @@ function formatDateTime(value) {
   });
 }
 
+/**
+ * Prefer end time for active exams and start time for upcoming/draft exams.
+ */
 function formatTimeHint(startAt, endAt) {
   if (endAt) return "Ends " + formatDateTime(endAt);
   if (startAt) return "Starts " + formatDateTime(startAt);
@@ -92,6 +104,9 @@ function hasExamWork(examWork) {
   return Boolean(examWork.active.length || examWork.upcoming.length || examWork.drafts.length);
 }
 
+/**
+ * Teacher dashboard page: quick actions, join request queue, and exam work queues.
+ */
 export default function TeacherDashboardPage() {
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
   const [loading, setLoading] = useState(true);
@@ -100,6 +115,7 @@ export default function TeacherDashboardPage() {
   useEffect(() => {
     let ignore = false;
 
+    // Load once on mount; ignore late responses after unmount.
     async function loadDashboard() {
       setLoading(true);
       setError("");
@@ -160,6 +176,7 @@ export default function TeacherDashboardPage() {
 
         <QuickActions />
 
+        {/* Dashboard States and Summary */}
         {error ? <StatePanel icon={AlertCircle} message={error} tone="error" /> : null}
 
         <WorkSummary actions={summaryActions} loading={loading} />
@@ -179,6 +196,9 @@ export default function TeacherDashboardPage() {
   );
 }
 
+/**
+ * Fill missing API fields so child components can render without null checks everywhere.
+ */
 function normalizeDashboard(data) {
   return {
     summary: {
@@ -194,6 +214,9 @@ function normalizeDashboard(data) {
   };
 }
 
+/**
+ * Shortcuts for common teacher creation flows.
+ */
 function QuickActions() {
   return (
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -221,6 +244,9 @@ function QuickActions() {
   );
 }
 
+/**
+ * Top metric cards for urgent dashboard work.
+ */
 function WorkSummary({ actions, loading }) {
   return (
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -248,6 +274,9 @@ function WorkSummary({ actions, loading }) {
   );
 }
 
+/**
+ * Groups pending learner join requests by class.
+ */
 function JoinRequestsPanel({ items, loading }) {
   return (
     <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
@@ -271,6 +300,9 @@ function JoinRequestsPanel({ items, loading }) {
   );
 }
 
+/**
+ * One class row in the join-request review queue.
+ */
 function JoinRequestItem({ item }) {
   return (
     <article className="rounded-md border border-border bg-background p-4">
@@ -290,6 +322,9 @@ function JoinRequestItem({ item }) {
   );
 }
 
+/**
+ * Shows active, upcoming, and draft exams returned by the teacher dashboard API.
+ */
 function ExamWorkPanel({ examWork, loading }) {
   const empty = !hasExamWork(examWork);
 
@@ -337,6 +372,9 @@ function ExamWorkPanel({ examWork, loading }) {
   );
 }
 
+/**
+ * One exam status bucket inside the work panel.
+ */
 function ExamSection({ items, title, tone }) {
   return (
     <section className="space-y-3">
@@ -354,6 +392,9 @@ function ExamSection({ items, title, tone }) {
   );
 }
 
+/**
+ * One exam row with the main action for its current state.
+ */
 function ExamWorkItem({ item, tone }) {
   return (
     <article className="rounded-md border border-border bg-background p-4">
@@ -377,6 +418,9 @@ function ExamWorkItem({ item, tone }) {
   );
 }
 
+/**
+ * Small status pill for exam work sections.
+ */
 function StatusPill({ tone }) {
   const className = {
     active: "border-primary/30 bg-primary/10 text-primary",
@@ -391,6 +435,9 @@ function StatusPill({ tone }) {
   );
 }
 
+/**
+ * Shared panel title/action header.
+ */
 function PanelHeader({ actionHref, actionLabel, description, title }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -405,6 +452,9 @@ function PanelHeader({ actionHref, actionLabel, description, title }) {
   );
 }
 
+/**
+ * Loading rows that preserve list layout while data is fetched.
+ */
 function ListSkeleton({ rows }) {
   return Array.from({ length: rows }).map((_, index) => (
     <div className="rounded-md border border-border bg-background p-4" key={index}>
@@ -414,6 +464,9 @@ function ListSkeleton({ rows }) {
   ));
 }
 
+/**
+ * Empty state used inside dashboard panels.
+ */
 function EmptyState({ actionHref, actionLabel, compact = false, message }) {
   return (
     <div className={`rounded-md border border-dashed border-border bg-background text-muted-foreground ${compact ? "p-3" : "p-5"}`}>
@@ -429,6 +482,9 @@ function EmptyState({ actionHref, actionLabel, compact = false, message }) {
   );
 }
 
+/**
+ * Inline dashboard message for loading/error/neutral states.
+ */
 function StatePanel({ icon: Icon, message, tone = "muted" }) {
   const toneClass = tone === "error" ? "text-destructive" : "text-muted-foreground";
 

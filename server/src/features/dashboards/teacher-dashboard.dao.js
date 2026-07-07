@@ -18,6 +18,9 @@ const EXAM_DASHBOARD_SELECT = `
   )
 `;
 
+/**
+ * Preferred query: read pending join requests and join the class owner in one request.
+ */
 export function listPendingJoinRequestsForTeacher(teacherId) {
   return db
     .from(JOIN_REQUEST_TABLE)
@@ -40,6 +43,9 @@ export function listPendingJoinRequestsForTeacher(teacherId) {
     .order("created_at", { ascending: false });
 }
 
+/**
+ * Load active/draft exam sessions for the dashboard work queue.
+ */
 export function listTeacherExamWork(teacherId) {
   return db
     .from(EXAM_SESSION_TABLE)
@@ -50,6 +56,9 @@ export function listTeacherExamWork(teacherId) {
     .order("updated_at", { ascending: false, nullsFirst: false });
 }
 
+/**
+ * Fallback query for environments where the direct join-request relation is unavailable.
+ */
 export function listTeacherClassesForRequestFallback(teacherId) {
   return db
     .from(CLASS_TABLE)

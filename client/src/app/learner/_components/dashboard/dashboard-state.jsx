@@ -3,6 +3,9 @@ import { BookOpen, ClipboardList } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
+/**
+ * Reusable empty/error state row with an optional action button.
+ */
 export function DashboardState({ actionHref, actionLabel, icon: Icon = ClipboardList, message, tone = "muted" }) {
   const toneClass = tone === "error" ? "border-destructive/40 text-destructive" : "border-border text-muted-foreground";
 
@@ -21,6 +24,9 @@ export function DashboardState({ actionHref, actionLabel, icon: Icon = Clipboard
   );
 }
 
+/**
+ * Full dashboard empty state shown when the learner has no work at all.
+ */
 export function EmptyDashboard() {
   return (
     <section className="rounded-md border border-dashed border-border bg-card px-4 py-10 text-center shadow-sm">
@@ -36,6 +42,9 @@ export function EmptyDashboard() {
   );
 }
 
+/**
+ * Skeleton layout that matches the learner dashboard card structure.
+ */
 export function LoadingDashboard() {
   return (
     <div className="space-y-5">

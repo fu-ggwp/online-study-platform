@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { DashboardBadge } from "./dashboard-badge";
 import { DashboardState } from "./dashboard-state";
 
+/**
+ * Shows teacher-assigned practice, already sorted and limited by the backend.
+ */
 export function AssignedStudySetsPanel({ items }) {
   return (
     <section className="rounded-md border border-border bg-card p-5 shadow-sm">
@@ -17,6 +20,7 @@ export function AssignedStudySetsPanel({ items }) {
         </Button>
       </div>
 
+      {/* Assigned Study Set Cards */}
       {items.length === 0 ? (
         <div className="mt-5">
           <DashboardState

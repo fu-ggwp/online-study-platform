@@ -15,10 +15,16 @@ const EMPTY_DASHBOARD = {
   classes: [],
 };
 
+/**
+ * Pick a readable message from dashboard API failures.
+ */
 function getErrorMessage(error) {
   return error?.response?.data?.error || error?.message || "Unable to load dashboard. Please try again.";
 }
 
+/**
+ * Learner dashboard page: loads dashboard payload once and renders state panels.
+ */
 export default function LearnerDashboardPage() {
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
   const [loading, setLoading] = useState(true);
@@ -27,6 +33,7 @@ export default function LearnerDashboardPage() {
   useEffect(() => {
     let ignore = false;
 
+    // Guard with `ignore` so late responses do not update an unmounted page.
     dashboardsService
       .getLearnerDashboard()
       .then((data) => {
@@ -54,6 +61,7 @@ export default function LearnerDashboardPage() {
       <section className="mx-auto max-w-7xl space-y-5">
         <DashboardHeader />
 
+        {/* Dashboard States */}
         {error ? <DashboardState icon={AlertCircle} message={error} tone="error" /> : null}
         {loading ? <LoadingDashboard /> : null}
         {!loading && !error ? <LearnerDashboard dashboard={dashboard} /> : null}

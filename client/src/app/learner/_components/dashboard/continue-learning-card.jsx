@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { DashboardBadge } from "./dashboard-badge";
 import { DashboardState } from "./dashboard-state";
 
+/**
+ * Format the last-study timestamp for the continue-learning card.
+ */
 function formatDateTime(value) {
   if (!value) return "Not recorded";
   const date = new Date(value);
@@ -18,6 +21,9 @@ function formatDateTime(value) {
   });
 }
 
+/**
+ * Highlights the most recently studied set, or shows a join-class call to action.
+ */
 export function ContinueLearningCard({ item }) {
   return (
     <section className="rounded-md border border-border bg-card p-5 shadow-sm">
@@ -28,6 +34,7 @@ export function ContinueLearningCard({ item }) {
         </div>
       </div>
 
+      {/* Empty State or Latest Study Set */}
       {!item ? (
         <div className="mt-5">
           <DashboardState

@@ -10,6 +10,7 @@ const LIMITS = {
 const UPCOMING_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// Date helpers keep dashboard sorting readable and safe for null dates.
 function parseTime(value) {
   if (!value) return null;
   const time = new Date(value).getTime();
@@ -25,12 +26,18 @@ function compareTimeDesc(left, right, field) {
   return (parseTime(right[field]) ?? 0) - (parseTime(left[field]) ?? 0);
 }
 
+/**
+ * Wrap database errors with one dashboard-level message for the controller.
+ */
 function dbError(error) {
   return Object.assign(new Error(error.message || "Failed to load teacher dashboard."), {
     status: 500,
   });
 }
 
+/**
+ * Active now means the exam is active and the current time is inside its window.
+ */
 function isExamOpenNow(exam, now = Date.now()) {
   const start = parseTime(exam.start_at);
   const end = parseTime(exam.end_at);
@@ -40,6 +47,9 @@ function isExamOpenNow(exam, now = Date.now()) {
   return exam.status === "active";
 }
 
+/**
+ * Upcoming means active, starts within the next dashboard window, and not open yet.
+ */
 function isUpcomingExam(exam, now = Date.now()) {
   const start = parseTime(exam.start_at);
   if (!start) return false;
@@ -52,6 +62,9 @@ function examHref(examId) {
   return "/teacher/exams/" + examId;
 }
 
+/**
+ * Shape one exam for the frontend work-list cards.
+ */
 function formatExam(exam, actionLabel, actionHref) {
   const id = exam.exam_session_id;
 
@@ -67,6 +80,9 @@ function formatExam(exam, actionLabel, actionHref) {
   };
 }
 
+/**
+ * Group pending requests by class so teachers review one class at a time.
+ */
 function groupJoinRequests(rows) {
   const grouped = new Map();
 
@@ -97,6 +113,9 @@ function groupJoinRequests(rows) {
   });
 }
 
+/**
+ * Convert fallback class rows into the same request shape as the direct query.
+ */
 function groupJoinRequestsFromClasses(classes) {
   const rows = [];
 
@@ -117,6 +136,9 @@ function groupJoinRequestsFromClasses(classes) {
   return groupJoinRequests(rows);
 }
 
+/**
+ * Try the direct join-request query first, then fall back to class-embedded requests.
+ */
 async function loadJoinRequests(teacherId) {
   const direct = await dao.listPendingJoinRequestsForTeacher(teacherId);
   if (!direct.error) return groupJoinRequests(direct.data || []);
@@ -126,6 +148,9 @@ async function loadJoinRequests(teacherId) {
   return groupJoinRequestsFromClasses(fallback.data || []);
 }
 
+/**
+ * Split exam sessions into active, upcoming, and draft work queues.
+ */
 function buildExamWork(exams, now = Date.now()) {
   const activeRaw = exams.filter((exam) => isExamOpenNow(exam, now));
   const upcomingRaw = exams.filter((exam) => isUpcomingExam(exam, now));
@@ -147,6 +172,9 @@ function buildExamWork(exams, now = Date.now()) {
   };
 }
 
+/**
+ * Build small counter cards shown at the top of the teacher dashboard.
+ */
 function buildSummary(joinRequests, exams, now = Date.now()) {
   return {
     pendingJoinRequests: joinRequests.reduce((sum, item) => sum + item.pendingCount, 0),
@@ -156,6 +184,9 @@ function buildSummary(joinRequests, exams, now = Date.now()) {
   };
 }
 
+/**
+ * Build the full dashboard payload from join requests and exam work.
+ */
 export async function getTeacherDashboard(teacherId) {
   if (!teacherId) {
     throw Object.assign(new Error("Unauthorized."), { status: 401 });

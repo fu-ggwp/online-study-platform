@@ -25,6 +25,9 @@ function normalizeParamId(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+/**
+ * Edit page loads existing metadata/questions, then reuses the shared editor form.
+ */
 export default function EditQuestionBankPage() {
   const router = useRouter();
   const params = useParams();
@@ -39,6 +42,7 @@ export default function EditQuestionBankPage() {
   const [archiving, setArchiving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  // Submit hook sends the whole editor draft so the backend can sync questions exactly.
   const { handleSubmit } = useQuestionBankEditorSubmit({
     editor,
     fallbackErrorMessage: "Question bank could not be updated.",
@@ -46,6 +50,9 @@ export default function EditQuestionBankPage() {
     onSuccess: () => router.push(detailHref),
   });
 
+  /**
+   * Load metadata and questions in parallel, then convert server rows to editor drafts.
+   */
   const loadQuestionBank = useCallback(async () => {
     if (!questionBankId) return;
 
@@ -72,6 +79,9 @@ export default function EditQuestionBankPage() {
     void Promise.resolve().then(loadQuestionBank);
   }, [loadQuestionBank]);
 
+  /**
+   * Soft-delete the bank through the API, then return to the list page.
+   */
   async function executeDelete() {
     editor.setErrors({});
     setArchiving(true);
@@ -114,6 +124,7 @@ export default function EditQuestionBankPage() {
 
   return (
     <>
+      {/* Edit Editor */}
       <QuestionBankEditorForm
         actionSlot={(
           <Button disabled={archiving || submitting} onClick={() => setShowDeleteModal(true)} type="button" variant="destructive">
@@ -139,6 +150,7 @@ export default function EditQuestionBankPage() {
         submitting={submitting || archiving}
       />
 
+      {/* Excel Import Modal */}
       {editor.showExcelImporter && (
         <QuestionBankExcelImportModal
           onCancel={editor.closeExcelImporter}
@@ -146,6 +158,7 @@ export default function EditQuestionBankPage() {
         />
       )}
 
+      {/* AI Material Generator Modal */}
       {editor.showMaterialGenerator && (
         <QuestionBankMaterialGenerateModal
           generateQuestions={questionBanksService.generateFromMaterial}
@@ -154,6 +167,7 @@ export default function EditQuestionBankPage() {
         />
       )}
 
+      {/* Delete Confirmation */}
       <ConfirmModal
         isOpen={showDeleteModal}
         title="Delete Question Bank?"

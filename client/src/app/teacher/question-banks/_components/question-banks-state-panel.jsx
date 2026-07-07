@@ -1,3 +1,6 @@
+/**
+ * Reusable loading/error/empty panel for question-bank pages.
+ */
 export function QuestionBanksStatePanel({ action, description, icon, title }) {
   return (
     <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">

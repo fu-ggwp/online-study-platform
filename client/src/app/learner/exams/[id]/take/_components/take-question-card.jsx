@@ -1,5 +1,8 @@
 import { Star } from "lucide-react";
 
+/**
+ * Exam-taking question card. Keeps answer selection separate from sidebar navigation state.
+ */
 export function TakeQuestionCard({
   activeQuestion,
   activeIndex,
@@ -9,12 +12,14 @@ export function TakeQuestionCard({
   onSelectOption,
   fontScale,
 }) {
+  // Exam question options are already shaped for taking: { index, text }.
   const activeOptions = Array.isArray(activeQuestion?.answer_options)
     ? activeQuestion.answer_options
     : [];
 
   return (
     <section className="min-h-[398px] border border-slate-300 bg-white shadow-sm">
+      {/* Question Header */}
       <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
         <h1 className="text-sm font-bold text-[#53608a]">
           QUESTION {activeIndex + 1} (SINGLE CHOICE)
@@ -35,6 +40,7 @@ export function TakeQuestionCard({
 
       {activeQuestion ? (
         <div>
+          {/* Question Prompt */}
           <div className="min-h-[210px] border-b border-slate-200 px-6 py-9">
             <p
               className="max-w-4xl font-semibold leading-7 text-slate-800"
@@ -44,6 +50,7 @@ export function TakeQuestionCard({
             </p>
           </div>
 
+          {/* Answer Options */}
           <div
             className="space-y-4 px-5 py-5"
             style={{ fontSize: `${fontScale}rem` }}

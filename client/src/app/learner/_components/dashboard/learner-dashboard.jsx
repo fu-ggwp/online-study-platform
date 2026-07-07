@@ -4,7 +4,11 @@ import { ContinueLearningCard } from "./continue-learning-card";
 import { EmptyDashboard } from "./dashboard-state";
 import { UpcomingExamsPanel } from "./upcoming-exams-panel";
 
+/**
+ * Layout component for the normalized learner dashboard payload.
+ */
 export function LearnerDashboard({ dashboard }) {
+  // Empty dashboard appears only when every card list is empty.
   const hasAnyWork = Boolean(
     dashboard.continueLearning ||
       dashboard.upcomingExams.length ||

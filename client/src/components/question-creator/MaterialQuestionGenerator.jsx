@@ -12,6 +12,9 @@ const acceptedTypes = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
+/**
+ * Read an API error from either validation or AI service failure responses.
+ */
 function getErrorMessage(error) {
   return error?.response?.data?.message
     || error?.response?.data?.error
@@ -19,6 +22,9 @@ function getErrorMessage(error) {
     || "AI processing is currently unavailable. Please try again later.";
 }
 
+/**
+ * Upload PDF/DOCX material, generate question drafts, preview them, then add to editor.
+ */
 export default function MaterialQuestionGenerator({
   generateQuestions,
   onCancel,
@@ -32,6 +38,9 @@ export default function MaterialQuestionGenerator({
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
 
+  /**
+   * Accept one supported material file and clear stale preview results.
+   */
   function handleFileChange(event) {
     const selectedFile = event.target.files?.[0];
     event.target.value = "";
@@ -50,6 +59,9 @@ export default function MaterialQuestionGenerator({
     setError("");
   }
 
+  /**
+   * Validate inputs, call the AI generation API, and store preview questions.
+   */
   async function handleGenerate() {
     const count = Number(questionCount);
 
@@ -87,6 +99,9 @@ export default function MaterialQuestionGenerator({
     }
   }
 
+  /**
+   * Send previewed questions back to the question-bank draft editor.
+   */
   function handleAddToDraft() {
     if (!generatedQuestions.length) return;
     onQuestionsGenerated(generatedQuestions);
@@ -109,6 +124,7 @@ export default function MaterialQuestionGenerator({
       </div>
 
       <div className="space-y-5">
+        {/* Material Upload */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -136,6 +152,7 @@ export default function MaterialQuestionGenerator({
           </span>
         </button>
 
+        {/* Generation Settings */}
         <div className="grid gap-4 md:grid-cols-[180px_1fr]">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-foreground">Number of Question</label>
@@ -167,6 +184,7 @@ export default function MaterialQuestionGenerator({
         )}
 
         {hasPreview && (
+          /* Generated Question Preview */
           <div className="space-y-4 rounded-2xl border border-border bg-muted/20 p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -200,6 +218,7 @@ export default function MaterialQuestionGenerator({
         )}
       </div>
 
+      {/* Modal Actions */}
       <div className="mt-6 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
         <Button onClick={onCancel} variant="outline" size="sm" type="button">
           Cancel

@@ -14,10 +14,16 @@ const STATUS_TONES = {
   completed: "bg-muted text-muted-foreground ring-border",
 };
 
+/**
+ * Convert backend status keys into learner-facing badge text.
+ */
 export function statusLabel(status) {
   return STATUS_LABELS[status] || status || "Open";
 }
 
+/**
+ * Shared dashboard status badge for study sets and exams.
+ */
 export function DashboardBadge({ status }) {
   const tone = STATUS_TONES[status] || "bg-muted text-muted-foreground ring-border";
 

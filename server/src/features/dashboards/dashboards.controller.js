@@ -6,6 +6,9 @@ function getUserId(req) {
   return req.user?.id || req.user?.user_id;
 }
 
+/**
+ * Return the learner dashboard payload for the authenticated learner.
+ */
 export async function getLearnerDashboard(req, res) {
   try {
     return ok(res, await learnerService.getLearnerDashboard(getUserId(req)));
@@ -14,6 +17,9 @@ export async function getLearnerDashboard(req, res) {
   }
 }
 
+/**
+ * Return the teacher dashboard payload for the authenticated teacher.
+ */
 export async function getTeacherDashboard(req, res) {
   try {
     return ok(res, await teacherService.getTeacherDashboard(getUserId(req)));

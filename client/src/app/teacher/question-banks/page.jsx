@@ -14,6 +14,9 @@ import { QuestionBanksTable } from "./_components/question-banks-table";
 
 const itemsPerPage = 10;
 
+/**
+ * Translate table UI state into backend list query parameters.
+ */
 function buildQuestionBankParams({ keyword, page, status }) {
   return {
     keyword: keyword.trim() || undefined,
@@ -25,6 +28,9 @@ function buildQuestionBankParams({ keyword, page, status }) {
   };
 }
 
+/**
+ * Teacher question-bank index: search/filter repositories and open create/detail flows.
+ */
 export default function QuestionBanksPage() {
   const [pendingKeyword, setPendingKeyword] = useState("");
   const [pendingStatus, setPendingStatus] = useState("all");
@@ -45,6 +51,7 @@ export default function QuestionBanksPage() {
     questionBanks,
   } = useQuestionBanksPage({ params });
 
+  // Apply/Reset semantics: draft filter inputs do not hit the API until Apply.
   function applyFilters() {
     setAppliedKeyword(pendingKeyword);
     setAppliedStatus(pendingStatus);
@@ -85,6 +92,7 @@ export default function QuestionBanksPage() {
           status={pendingStatus}
         />
 
+        {/* List State */}
         {loading ? (
           <QuestionBanksStatePanel title="Loading question banks" description="Fetching your teacher repositories." />
         ) : error ? (
