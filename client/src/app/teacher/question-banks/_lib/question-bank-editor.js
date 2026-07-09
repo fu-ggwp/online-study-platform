@@ -65,16 +65,13 @@ export function sortQuestionOptions(options = []) {
 }
 
 /**
- * Normalize server/imported options and guarantee at least two visible choices.
+ * Normalize server/imported options into the editor option shape.
  */
-export function normalizeMultipleChoiceOptions(options = []) {
-  const next = sortQuestionOptions(options).map((option) => ({
+export function toEditorOptions(options = []) {
+  return sortQuestionOptions(options).map((option) => ({
     option_text: option.option_text || "",
     is_correct: Boolean(option.is_correct),
   }));
-
-  while (next.length < 2) next.push(emptyOption());
-  return next;
 }
 
 /**
@@ -90,7 +87,7 @@ export function toQuestionDraft(question) {
     explanation: question?.explanation || "",
     chapter: question?.chapter || "",
     groupChapter: getQuestionChapterLabel(question),
-    options: normalizeMultipleChoiceOptions(sourceOptions),
+    options: toEditorOptions(sourceOptions),
   };
 }
 
@@ -247,7 +244,7 @@ export function useQuestionBankEditorState({
       explanation: question.explanation || "",
       chapter: question.chapter || "",
       groupChapter: getQuestionChapterLabel(question),
-      options: normalizeMultipleChoiceOptions(question.options || question.answer_options || []),
+      options: toEditorOptions(question.options || question.answer_options || []),
     }));
 
     if (drafts.length === 0) return;
