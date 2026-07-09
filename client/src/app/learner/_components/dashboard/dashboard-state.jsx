@@ -7,11 +7,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 /**
  * Reusable empty/error state row with an optional action button.
  */
-export function DashboardState({ actionHref, actionLabel, icon: Icon = ClipboardList, message, tone = "muted" }) {
-  const toneClass = tone === "error" ? "border-destructive/40 text-destructive" : "border-border text-muted-foreground";
+export function DashboardState({
+  actionHref,
+  actionLabel,
+  icon: Icon = ClipboardList,
+  message,
+  tone = "muted",
+}) {
+  const toneClass =
+    tone === "error"
+      ? "border-destructive/40 text-destructive"
+      : "border-border text-muted-foreground";
 
   return (
-    <div className={`flex flex-col gap-3 rounded-md border border-dashed bg-background px-4 py-5 text-sm font-semibold sm:flex-row sm:items-center sm:justify-between ${toneClass}`}>
+    <div
+      className={`flex flex-col gap-3 rounded-md border border-dashed bg-background px-4 py-5 text-sm font-semibold sm:flex-row sm:items-center sm:justify-between ${toneClass}`}
+    >
       <div className="flex min-w-0 items-center gap-2">
         <Icon className="size-4 shrink-0" />
         <p>{message}</p>
@@ -22,24 +33,6 @@ export function DashboardState({ actionHref, actionLabel, icon: Icon = Clipboard
         </Button>
       ) : null}
     </div>
-  );
-}
-
-/**
- * Full dashboard empty state shown when the learner has no work at all.
- */
-export function EmptyDashboard() {
-  return (
-    <section className="rounded-md border border-dashed border-border bg-card px-4 py-10 text-center shadow-sm">
-      <BookOpen className="mx-auto size-10 text-muted-foreground" />
-      <h2 className="mt-4 text-lg font-bold text-foreground">No learning work yet</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        Join a class to receive teacher-assigned study sets and exams.
-      </p>
-      <Button asChild className="mt-5">
-        <Link href="/learner/classes/join">Join Class</Link>
-      </Button>
-    </section>
   );
 }
 

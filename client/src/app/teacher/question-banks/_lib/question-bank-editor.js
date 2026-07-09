@@ -12,8 +12,8 @@ export const initialQuestionBankForm = {
 /**
  * Create one empty option in the editor draft shape.
  */
-export function emptyOption(label = "") {
-  return { option_text: label, is_correct: false };
+export function emptyOption() {
+  return { option_text: "", is_correct: false };
 }
 
 /**
