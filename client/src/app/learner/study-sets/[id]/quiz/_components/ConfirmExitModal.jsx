@@ -6,7 +6,7 @@ export default function ConfirmExitModal({ isOpen, onClose, onConfirm }) {
   return (
     <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white border border-neutral-100 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
-        <div className="size-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto animate-bounce">
+        <div className="size-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto">
           <AlertTriangle size={32} />
         </div>
         <div className="space-y-2">
