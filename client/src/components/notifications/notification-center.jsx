@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, MoreHorizontal } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import ConfirmModal from "@/components/common/ConfirmModal";
@@ -11,6 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,16 +24,18 @@ const SWITCHABLE_NOTIFICATION_ROLES = new Set(["learner", "teacher"]);
 
 function getRequiredRoleFromUrl(targetUrl) {
   if (!targetUrl) return null;
-  if (targetUrl === "/teacher" || targetUrl.startsWith("/teacher/")) return "teacher";
-  if (targetUrl === "/learner" || targetUrl.startsWith("/learner/")) return "learner";
+  if (targetUrl === "/teacher" || targetUrl.startsWith("/teacher/"))
+    return "teacher";
+  if (targetUrl === "/learner" || targetUrl.startsWith("/learner/"))
+    return "learner";
   return null;
 }
 
 function needsRoleSwitch(currentRole, requiredRole) {
   return Boolean(
     requiredRole &&
-      SWITCHABLE_NOTIFICATION_ROLES.has(currentRole) &&
-      currentRole !== requiredRole,
+    SWITCHABLE_NOTIFICATION_ROLES.has(currentRole) &&
+    currentRole !== requiredRole,
   );
 }
 
@@ -83,38 +86,41 @@ export function NotificationCenter() {
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [switchError, setSwitchError] = useState("");
 
-  const loadNotifications = useCallback(async ({ offset = 0, reset = false } = {}) => {
-    if (reset) {
-      setIsInitialLoading(true);
-    } else {
-      setIsLoadingMore(true);
-    }
+  const loadNotifications = useCallback(
+    async ({ offset = 0, reset = false } = {}) => {
+      if (reset) {
+        setIsInitialLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
 
-    setError(null);
+      setError(null);
 
-    try {
-      const [listResult, countResult] = await Promise.all([
-        notificationsService.list({ limit: PAGE_SIZE, offset }),
-        reset ? notificationsService.getUnreadCount() : Promise.resolve(null),
-      ]);
+      try {
+        const [listResult, countResult] = await Promise.all([
+          notificationsService.list({ limit: PAGE_SIZE, offset }),
+          reset ? notificationsService.getUnreadCount() : Promise.resolve(null),
+        ]);
 
-      setNotifications((current) =>
-        reset
-          ? listResult.notifications || []
-          : [...current, ...(listResult.notifications || [])],
-      );
-      setNextOffset(listResult.nextOffset);
-      setHasMore(Boolean(listResult.hasMore));
-      if (countResult) setUnreadCount(countResult.count || 0);
-      setHasLoadedOnce(true);
-    } catch (loadError) {
-      console.error("Failed to load notifications", loadError);
-      setError("Could not load notifications.");
-    } finally {
-      setIsInitialLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, []);
+        setNotifications((current) =>
+          reset
+            ? listResult.notifications || []
+            : [...current, ...(listResult.notifications || [])],
+        );
+        setNextOffset(listResult.nextOffset);
+        setHasMore(Boolean(listResult.hasMore));
+        if (countResult) setUnreadCount(countResult.count || 0);
+        setHasLoadedOnce(true);
+      } catch (loadError) {
+        console.error("Failed to load notifications", loadError);
+        setError("Could not load notifications.");
+      } finally {
+        setIsInitialLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [],
+  );
 
   function handleOpenChange(open) {
     setIsOpen(open);
@@ -159,7 +165,21 @@ export function NotificationCenter() {
       console.error("Failed to mark notification as read", markError);
     }
   }
-
+  async function handleDeleteNotification(notification) {
+    try {
+      await notificationsService.remove(notification.notification_id);
+      setNotifications((current) =>
+        current.filter(
+          (item) => item.notification_id !== notification.notification_id,
+        ),
+      );
+      if (!notification.is_read) {
+        setUnreadCount((count) => Math.max(count - 1, 0));
+      }
+    } catch (deleteError) {
+      console.error("Failed to delete notification", deleteError);
+    }
+  }
   function navigateToNotification(notification) {
     if (notification.target_url) {
       setIsOpen(false);
@@ -234,7 +254,9 @@ export function NotificationCenter() {
     loadNotifications({ offset: nextOffset || 0 });
   }
 
-  const requiredSwitchRole = getRequiredRoleFromUrl(pendingNotification?.target_url);
+  const requiredSwitchRole = getRequiredRoleFromUrl(
+    pendingNotification?.target_url,
+  );
   const roleLabel = getRoleLabel(requiredSwitchRole);
   const switchMessage = [
     `This notification opens a ${roleLabel} page. Switch role to continue?`,
@@ -263,9 +285,14 @@ export function NotificationCenter() {
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-[min(calc(100vw-2rem),380px)] p-0">
+        <DropdownMenuContent
+          align="end"
+          className="w-[min(calc(100vw-2rem),380px)] p-0"
+        >
           <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-            <h2 className="text-base font-bold text-foreground">Notifications</h2>
+            <h2 className="text-base font-bold text-foreground">
+              Notifications
+            </h2>
             <Button
               disabled={unreadCount === 0}
               onClick={handleMarkAllAsRead}
@@ -277,7 +304,10 @@ export function NotificationCenter() {
             </Button>
           </div>
 
-          <div className="max-h-[480px] overflow-y-auto p-2" onScroll={handleScroll}>
+          <div
+            className="max-h-[480px] overflow-y-auto p-2"
+            onScroll={handleScroll}
+          >
             {isInitialLoading ? (
               <div className="space-y-1">
                 <NotificationSkeleton />
@@ -289,7 +319,13 @@ export function NotificationCenter() {
             {!isInitialLoading && error ? (
               <div className="grid gap-3 px-3 py-8 text-center">
                 <p className="text-sm font-medium text-foreground">{error}</p>
-                <Button className="mx-auto" onClick={handleRetry} size="sm" type="button" variant="secondary">
+                <Button
+                  className="mx-auto"
+                  onClick={handleRetry}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
                   Retry
                 </Button>
               </div>
@@ -304,23 +340,25 @@ export function NotificationCenter() {
             {!isInitialLoading && !error && notifications.length > 0 ? (
               <div className="grid gap-1">
                 {notifications.map((notification) => (
-                  <button
+                  <article
                     className={cn(
-                      "w-full rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
+                      "w-full rounded-xl px-3 py-3 text-left flex transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
                       !notification.is_read && "bg-primary/10",
                     )}
                     key={notification.notification_id}
-                    onClick={() => handleNotificationClick(notification)}
-                    type="button"
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
                       <span
                         className={cn(
                           "mt-1 size-2 shrink-0 rounded-full bg-transparent",
                           !notification.is_read && "bg-primary",
                         )}
                       />
-                      <span className="min-w-0 flex-1">
+                      <button
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => handleNotificationClick(notification)}
+                        type="button"
+                      >
                         <span className="block truncate text-sm font-semibold text-foreground">
                           {notification.title}
                         </span>
@@ -330,9 +368,35 @@ export function NotificationCenter() {
                         <span className="mt-2 block text-xs font-medium text-muted-foreground">
                           {formatTime(notification.created_at)}
                         </span>
-                      </span>
+                      </button>
                     </div>
-                  </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          className="ml-auto h-6 w-6"
+                          size="icon"
+                          variant="ghost"
+                          type="button"
+                          aria-label="Notification actions"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          onClick={() => markNotificationRead(notification)}
+                        >
+                          Mark as read
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteNotification(notification)}
+                          variant="destructive"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </article>
                 ))}
               </div>
             ) : null}

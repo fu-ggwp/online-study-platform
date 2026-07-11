@@ -96,10 +96,3 @@ export async function removeOne(userId, notificationId) {
   return { deleted: true };
 }
 
-export async function removeRead(userId) {
-  const { error } = await dao.softDeleteReadNotifications(userId);
-
-  if (error) throw dbError(error);
-
-  return { deleted: true };
-}

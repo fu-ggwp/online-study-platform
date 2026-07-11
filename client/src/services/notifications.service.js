@@ -26,8 +26,4 @@ export const notificationsService = {
       .delete(`/api/notifications/${notificationId}`)
       .then((response) => response.data.data),
 
-  removeRead: () =>
-    axiosClient
-      .delete("/api/notifications/read")
-      .then((response) => response.data.data),
 };
