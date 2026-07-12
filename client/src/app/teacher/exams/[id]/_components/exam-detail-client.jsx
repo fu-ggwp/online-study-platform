@@ -2,10 +2,8 @@
 
 import { useMemo } from "react";
 
-import { ExamDetailBehavior } from "./exam-detail-behavior";
 import { ExamDetailError, ExamDetailLoading } from "./exam-detail-state";
 import { ExamDetailHeader } from "./exam-detail-header";
-import { ExamDetailSource } from "./exam-detail-source";
 import { ExamDetailSummary } from "./exam-detail-summary";
 import { isExamLocked } from "./exam-detail-utils";
 import { useExamDetail } from "./use-exam-detail";
@@ -33,14 +31,7 @@ export function ExamDetailClient({ examId }) {
           </div>
         ) : null}
 
-        <section className="grid gap-5 lg:grid-cols-[1.4fr_0.9fr]">
-          <ExamDetailSummary exam={exam} />
-
-          <div className="space-y-5">
-            <ExamDetailBehavior exam={exam} />
-            <ExamDetailSource exam={exam} />
-          </div>
-        </section>
+        <ExamDetailSummary exam={exam} />
       </section>
     </main>
   );

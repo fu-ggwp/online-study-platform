@@ -1,56 +1,73 @@
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldContent,
+  FieldError,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export function FieldMessage({ error }) {
   if (!error) return null;
-  return <p className="text-xs font-medium text-destructive">{error}</p>;
+  return <FieldError>{error}</FieldError>;
 }
 
-export function TextField({ error, label, ...props }) {
+export function TextField({ className, error, label, ...props }) {
   return (
-    <label className="space-y-1.5">
-      <span className="text-sm font-semibold text-foreground">{label}</span>
+    <Field className={className} data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={props.id || props.name}>{label}</FieldLabel>
       <Input aria-invalid={Boolean(error)} {...props} />
       <FieldMessage error={error} />
-    </label>
+    </Field>
   );
 }
 
-export function TextAreaField({ error, label, ...props }) {
+export function TextAreaField({ className = "lg:col-span-2", error, label, ...props }) {
   return (
-    <label className="space-y-1.5 lg:col-span-2">
-      <span className="text-sm font-semibold text-foreground">{label}</span>
-      <textarea
-        aria-invalid={Boolean(error)}
-        className="min-h-24 w-full resize-y rounded-2xl border border-transparent bg-input/50 px-3 py-2 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20"
-        {...props}
-      />
+    <Field className={className} data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={props.id || props.name}>{label}</FieldLabel>
+      <Textarea aria-invalid={Boolean(error)} className="min-h-24 resize-y" {...props} />
       <FieldMessage error={error} />
-    </label>
+    </Field>
   );
 }
 
-export function SelectField({ children, error, label, ...props }) {
+export function SelectField({ children, className, error, label, name, onValueChange, placeholder, value }) {
   return (
-    <label className="space-y-1.5">
-      <span className="text-sm font-semibold text-foreground">{label}</span>
-      <select
-        aria-invalid={Boolean(error)}
-        className="h-8 w-full rounded-2xl border border-transparent bg-input/50 px-2.5 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20"
-        {...props}
-      >
-        {children}
-      </select>
+    <Field className={className} data-invalid={Boolean(error)}>
+      <FieldLabel>{label}</FieldLabel>
+      <Select name={name} onValueChange={(nextValue) => onValueChange(name, nextValue)} value={value}>
+        <SelectTrigger aria-invalid={Boolean(error)} className="w-full">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>{children}</SelectGroup>
+        </SelectContent>
+      </Select>
       <FieldMessage error={error} />
-    </label>
+    </Field>
   );
 }
 
 export function CheckboxField({ checked, label, onCheckedChange }) {
   return (
-    <label className="flex min-h-11 items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-foreground">
+    <Field orientation="horizontal" className="min-h-11 rounded-2xl border border-border px-3 py-2">
       <Checkbox checked={checked} onCheckedChange={onCheckedChange} />
-      <span>{label}</span>
-    </label>
+      <FieldContent>
+        <FieldTitle>{label}</FieldTitle>
+      </FieldContent>
+    </Field>
   );
 }
+
+export { SelectItem };

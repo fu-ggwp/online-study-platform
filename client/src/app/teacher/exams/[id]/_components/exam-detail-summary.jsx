@@ -1,30 +1,69 @@
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 import { formatDateTime, formatVisibility } from "../../_components/exam-session-options";
 
-function SummaryItem({ label, value }) {
+function SummaryItem({ className = "", label, value }) {
   return (
-    <div className="rounded-md border border-border bg-background p-3">
-      <div className="text-xs font-bold uppercase text-muted-foreground">{label}</div>
-      <div className="mt-2 text-sm font-bold text-foreground">{value || "Not set"}</div>
+    <div className={cn("rounded-2xl bg-muted/60 p-3", className)}>
+      <div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
+      <div className="mt-2 text-sm font-medium text-foreground">{value || "Not set"}</div>
+    </div>
+  );
+}
+
+function BooleanItem({ label, enabled }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/60 p-3">
+      <span className="text-sm font-medium text-foreground">{label}</span>
+      <Badge variant={enabled ? "default" : "secondary"}>{enabled ? "Enabled" : "Disabled"}</Badge>
     </div>
   );
 }
 
 export function ExamDetailSummary({ exam }) {
   return (
-    <div className="rounded-md border border-border bg-card p-4 shadow-sm sm:p-5">
-      <h2 className="text-base font-bold text-foreground">Configuration Summary</h2>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <SummaryItem label="Class" value={exam.classes?.class_name} />
-        <SummaryItem label="Question Source" value={exam.question_bank?.title} />
-        <SummaryItem label="Start Time" value={formatDateTime(exam.start_at)} />
-        <SummaryItem label="End Time" value={formatDateTime(exam.end_at)} />
-        <SummaryItem label="Duration" value={`${exam.duration_minutes} minutes`} />
-        <SummaryItem label="Allowed Attempts" value={String(exam.attempt_limit)} />
-        <SummaryItem label="Question Count" value={String(exam.question_count)} />
-        <SummaryItem label="Result Visibility" value={formatVisibility(exam.result_visibility)} />
-        <SummaryItem label="Access Code" value={exam.access_code || "Auto-generated if blank"} />
-        <SummaryItem label="Last Updated" value={formatDateTime(exam.updated_at)} />
-      </div>
-    </div>
+    <section className="grid gap-5">
+      <Card className="border border-border shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-lg font-semibold">Basic Info</CardTitle>
+          <CardDescription>Class, question source, and session metadata.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <SummaryItem label="Class" value={exam.classes?.class_name} />
+          <SummaryItem className="sm:col-span-2" label="Question Source" value={exam.question_bank?.title} />
+          <SummaryItem label="Question Topic" value={exam.question_bank?.topic || "No topic"} />
+          <SummaryItem label="Last Updated" value={formatDateTime(exam.updated_at)} />
+        </CardContent>
+      </Card>
+
+      <Card className="border border-border shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-lg font-semibold">Timing & Status</CardTitle>
+          <CardDescription>When learners can start and how long they have.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <SummaryItem label="Start Time" value={formatDateTime(exam.start_at)} />
+          <SummaryItem label="End Time" value={formatDateTime(exam.end_at)} />
+          <SummaryItem label="Duration" value={`${exam.duration_minutes} minutes`} />
+        </CardContent>
+      </Card>
+
+      <Card className="border border-border shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-lg font-semibold">Rules</CardTitle>
+          <CardDescription>Question delivery, attempts, access, and result visibility.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <SummaryItem label="Question Count" value={String(exam.question_count)} />
+          <SummaryItem label="Allowed Attempts" value={String(exam.attempt_limit)} />
+          <SummaryItem label="Result Visibility" value={formatVisibility(exam.result_visibility)} />
+          <SummaryItem label="Access Code" value={exam.access_code || "Auto-generated if blank"} />
+          <BooleanItem label="Randomize Questions" enabled={exam.randomize_questions} />
+          <BooleanItem label="Randomize Answers" enabled={exam.randomize_answers} />
+        </CardContent>
+      </Card>
+    </section>
   );
 }
