@@ -6,24 +6,15 @@ import { getPagination } from "../../utils/pagination.js";
 
 const db = supabase;
 
-const sortableColumns = new Set([
-  "title",
-  "topic",
-  "status",
-  "created_at",
-  "updated_at",
-]);
-
 function cleanKeyword(value = "") {
   return String(value).trim().replace(/[,()]/g, " ").replace(/\s+/g, " ");
 }
 
+/**
+ * List non-deleted banks owned by a teacher, with server-side filtering and paging.
+ */
 export function listByTeacher(teacherId, filters = {}) {
   const { page, limit, from, to } = getPagination(filters);
-  const sortBy = sortableColumns.has(filters.sortBy)
-    ? filters.sortBy
-    : "updated_at";
-  const ascending = filters.sortOrder === "asc";
   const keyword = cleanKeyword(filters.keyword);
 
   let query = db
@@ -41,7 +32,7 @@ export function listByTeacher(teacherId, filters = {}) {
   if (filters.status) query = query.eq("status", filters.status);
 
   return query
-    .order(sortBy, { ascending })
+    .order("updated_at", { ascending: false })
     .range(from, to)
     .then((result) => ({
       ...result,
@@ -50,6 +41,9 @@ export function listByTeacher(teacherId, filters = {}) {
     }));
 }
 
+/**
+ * Return only ready banks; draft/deleted banks cannot be used by exams.
+ */
 export function listReadyByTeacher(teacherId) {
   return db
     .from(QUESTION_BANK_TABLE)
@@ -60,6 +54,9 @@ export function listReadyByTeacher(teacherId) {
     .order("updated_at", { ascending: false });
 }
 
+/**
+ * Ownership gate for teacher-facing question-bank detail and edit screens.
+ */
 export function findOwnedById(questionBankId, teacherId) {
   return db
     .from(QUESTION_BANK_TABLE)
@@ -70,6 +67,9 @@ export function findOwnedById(questionBankId, teacherId) {
     .maybeSingle();
 }
 
+/**
+ * Ownership + Ready status gate for flows that consume question banks.
+ */
 export function findReadyOwnedById(questionBankId, teacherId) {
   return db
     .from(QUESTION_BANK_TABLE)
@@ -81,10 +81,16 @@ export function findReadyOwnedById(questionBankId, teacherId) {
     .maybeSingle();
 }
 
+/**
+ * Insert question-bank metadata only; questions are synced separately.
+ */
 export function create(payload) {
   return db.from(QUESTION_BANK_TABLE).insert(payload).select("*").single();
 }
 
+/**
+ * Update bank metadata while keeping deleted banks hidden from edits.
+ */
 export function update(questionBankId, teacherId, changes) {
   return db
     .from(QUESTION_BANK_TABLE)
@@ -96,6 +102,9 @@ export function update(questionBankId, teacherId, changes) {
     .maybeSingle();
 }
 
+/**
+ * Soft-delete a bank to preserve history for related questions and usages.
+ */
 export function archive(questionBankId, teacherId) {
   const now = new Date().toISOString();
 
@@ -106,6 +115,9 @@ export function archive(questionBankId, teacherId) {
   });
 }
 
+/**
+ * Count active bank questions. Study-set copies are excluded by study_set_id = null.
+ */
 export async function countQuestions(questionBankId) {
   const { count, error } = await db
     .from(QUESTION_TABLE)
@@ -118,6 +130,9 @@ export async function countQuestions(questionBankId) {
   return count || 0;
 }
 
+/**
+ * Load active questions and their answer options for one owned bank.
+ */
 export function listQuestionsByBank(questionBankId, teacherId) {
   return db
     .from(QUESTION_TABLE)
@@ -148,6 +163,9 @@ export function listQuestionsByBank(questionBankId, teacherId) {
     .order("created_at", { ascending: true });
 }
 
+/**
+ * Find one active question that still belongs to the teacher's reusable bank area.
+ */
 export function findOwnedQuestionById(questionId, teacherId) {
   return db
     .from(QUESTION_TABLE)
@@ -178,6 +196,9 @@ export function findOwnedQuestionById(questionId, teacherId) {
     .maybeSingle();
 }
 
+/**
+ * Update question fields only; answer options are synced by dedicated helpers.
+ */
 export function updateQuestion(questionId, teacherId, changes) {
   return db
     .from(QUESTION_TABLE)
@@ -201,6 +222,9 @@ export function updateQuestion(questionId, teacherId, changes) {
     .maybeSingle();
 }
 
+/**
+ * Create the question row before inserting its answer options.
+ */
 export function createQuestion(payload) {
   return db
     .from(QUESTION_TABLE)
@@ -220,6 +244,9 @@ export function createQuestion(payload) {
     .single();
 }
 
+/**
+ * Soft-delete questions removed from the editor draft.
+ */
 export function archiveQuestionsByIds(questionBankId, teacherId, questionIds) {
   if (!questionIds.length) {
     return Promise.resolve({ data: [], error: null });
@@ -238,6 +265,9 @@ export function archiveQuestionsByIds(questionBankId, teacherId, questionIds) {
     .select("question_id");
 }
 
+/**
+ * Update one answer option by id while guarding that it belongs to the question.
+ */
 export function updateAnswerOption(answerOptionId, questionId, changes) {
   return db
     .from(ANSWER_OPTION_TABLE)
@@ -248,6 +278,9 @@ export function updateAnswerOption(answerOptionId, questionId, changes) {
     .maybeSingle();
 }
 
+/**
+ * Delete option rows that no longer exist in the editor draft.
+ */
 export function deleteAnswerOptionsByIds(questionId, answerOptionIds) {
   if (!answerOptionIds.length) {
     return Promise.resolve({ data: [], error: null });
@@ -261,6 +294,9 @@ export function deleteAnswerOptionsByIds(questionId, answerOptionIds) {
     .select("answer_option_id");
 }
 
+/**
+ * Insert new answer-option rows when a draft grows from 2 choices to more choices.
+ */
 export function insertAnswerOptions(rows) {
   if (!rows.length) {
     return Promise.resolve({ data: [], error: null });

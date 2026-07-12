@@ -4,19 +4,22 @@ import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardState } from "./dashboard-state";
 
+/**
+ * Shows joined classes and links to learner class detail pages.
+ */
 export function ClassesPanel({ items }) {
   return (
     <section className="rounded-md border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-foreground">My Classes</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Classes you are enrolled in.</p>
         </div>
         <Button asChild size="sm" variant="outline">
           <Link href="/learner/classes">View classes</Link>
         </Button>
       </div>
 
+      {/* Joined Class Cards */}
       {items.length === 0 ? (
         <div className="mt-5">
           <DashboardState actionHref="/learner/classes/join" actionLabel="Join Class" message="No joined classes yet." />

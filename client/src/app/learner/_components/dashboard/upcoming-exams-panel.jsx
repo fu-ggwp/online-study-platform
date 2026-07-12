@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { DashboardBadge } from "./dashboard-badge";
 import { DashboardState } from "./dashboard-state";
 
+/**
+ * Format exam start time for compact dashboard cards.
+ */
 function formatDateTime(value) {
   if (!value) return "Not scheduled";
   const date = new Date(value);
@@ -18,19 +21,22 @@ function formatDateTime(value) {
   });
 }
 
+/**
+ * Shows active/upcoming exams from the learner dashboard payload.
+ */
 export function UpcomingExamsPanel({ items }) {
   return (
     <section className="rounded-md border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-foreground">Exams</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Next exam sessions from your classes.</p>
         </div>
         <Button asChild size="sm" variant="outline">
           <Link href="/learner/exams">View exams</Link>
         </Button>
       </div>
 
+      {/* Exam Cards */}
       {items.length === 0 ? (
         <div className="mt-5">
           <DashboardState message="No other active exams right now." />

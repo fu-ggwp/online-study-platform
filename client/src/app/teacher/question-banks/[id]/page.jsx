@@ -17,6 +17,9 @@ function normalizeParamId(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+/**
+ * Detail page shows read-only bank metadata and preview cards for each question.
+ */
 export default function QuestionBankDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -37,6 +40,7 @@ export default function QuestionBankDetailPage() {
 
     let ignore = false;
 
+    // Metadata and questions are separate endpoints, so load them together for the page.
     async function loadQuestionBankDetail() {
       setLoading(true);
       setError("");
@@ -72,6 +76,9 @@ export default function QuestionBankDetailPage() {
     };
   }, [questionBankId]);
 
+  /**
+   * Toggle one preview card without changing the global show-all state.
+   */
   function toggleRevealQuestion(questionId) {
     setRevealedQuestions((current) => {
       const next = new Set(current);
@@ -86,6 +93,9 @@ export default function QuestionBankDetailPage() {
     });
   }
 
+  /**
+   * Show or hide every answer, clearing per-question reveal choices.
+   */
   function toggleAllAnswers() {
     setShowAllAnswers((current) => !current);
     setRevealedQuestions(new Set());
@@ -158,12 +168,14 @@ export default function QuestionBankDetailPage() {
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Question Bank Metadata */}
           <MetadataItem label="Topic" value={questionBank.topic || "No topic"} />
           <MetadataItem label="Questions" value={String(questions.length)} />
           <MetadataItem label="Created" value={formatDate(questionBank.created_at)} />
           <MetadataItem label="Updated" value={formatDate(questionBank.updated_at || questionBank.created_at)} />
         </section>
 
+        {/* Question Preview Controls */}
         <section className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-foreground">Questions ({questions.length})</h2>
@@ -183,6 +195,7 @@ export default function QuestionBankDetailPage() {
           />
         ) : (
           <div className="space-y-4">
+            {/* Questions Grouped by Chapter */}
             {questionGroups.map((group) => {
               const isExpanded = !collapsedChapters[group.chapter];
 

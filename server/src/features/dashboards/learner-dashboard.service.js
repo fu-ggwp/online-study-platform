@@ -144,6 +144,10 @@ function sortExams(left, right) {
   return leftStart - rightStart;
 }
 
+/**
+ * Build the learner dashboard from existing learner services.
+ * Each list is sorted, limited, then mapped into frontend-friendly cards.
+ */
 export async function getLearnerDashboard(learnerId) {
   const [studySets, examsData, classes] = await Promise.all([
     listLearnerStudySets(learnerId),
@@ -153,10 +157,14 @@ export async function getLearnerDashboard(learnerId) {
 
   const studySetItems = studySets || [];
   const examItems = examsData?.items || [];
+
+  // Assigned work is prioritized by unfinished status, then recent activity.
   const assignedRaw = studySetItems
     .filter((studySet) => studySet.is_assigned)
     .sort(sortAssignedStudySets);
   const examsRaw = [...examItems].sort(sortExams);
+
+  // Continue-learning uses the most recently studied started set.
   const continueRaw = [...studySetItems]
     .filter((studySet) => studySet.is_started && studySet.last_studied_at)
     .sort(sortByLastStudied)[0];

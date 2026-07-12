@@ -55,11 +55,3 @@ export function softDeleteNotification(notificationId, userId) {
     .maybeSingle();
 }
 
-export function softDeleteReadNotifications(userId) {
-  return db
-    .from(NOTIFICATION_TABLE)
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("user_id", userId)
-    .eq("is_read", true)
-    .is("deleted_at", null);
-}

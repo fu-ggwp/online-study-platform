@@ -7,6 +7,9 @@ import { questionBanksService } from "@/services/question-banks.service";
 const itemsPerPage = 10;
 const defaultPagination = (page) => ({ page, limit: itemsPerPage, total: 0, totalPages: 0 });
 
+/**
+ * Load paginated teacher question banks for the list page.
+ */
 export function useQuestionBanksPage({ params } = {}) {
   const [questionBanks, setQuestionBanks] = useState([]);
   const [pagination, setPagination] = useState(defaultPagination(1));
@@ -15,6 +18,7 @@ export function useQuestionBanksPage({ params } = {}) {
 
   const paramsString = JSON.stringify(params ?? {});
 
+  // Stringify params so useCallback only changes when the query values change.
   const loadQuestionBanks = useCallback(async () => {
     const activeParams = paramsString ? JSON.parse(paramsString) : {};
     const fallbackPage = activeParams.page ?? 1;

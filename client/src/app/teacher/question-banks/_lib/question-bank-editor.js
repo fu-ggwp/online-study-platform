@@ -9,14 +9,23 @@ export const initialQuestionBankForm = {
   status: "Draft",
 };
 
-export function emptyOption(label = "") {
-  return { option_text: label, is_correct: false };
+/**
+ * Create one empty option in the editor draft shape.
+ */
+export function emptyOption() {
+  return { option_text: "", is_correct: false };
 }
 
+/**
+ * Group blank chapters under one readable label for chapter accordions.
+ */
 export function getQuestionChapterLabel(question) {
   return question?.chapter?.trim() || "No Chapter";
 }
 
+/**
+ * Preserve question indexes while grouping cards by chapter for rendering.
+ */
 export function groupQuestionsByChapter(questions = [], getGroupKey = getQuestionChapterLabel) {
   const groups = [];
   const groupIndexes = new Map();
@@ -35,6 +44,9 @@ export function groupQuestionsByChapter(questions = [], getGroupKey = getQuestio
   return groups;
 }
 
+/**
+ * Create a new editable question with the minimum two answer options.
+ */
 export function emptyQuestion() {
   return {
     question_text: "",
@@ -45,20 +57,26 @@ export function emptyQuestion() {
   };
 }
 
+/**
+ * Keep server options in display order before converting them to editor state.
+ */
 export function sortQuestionOptions(options = []) {
   return [...options].sort((left, right) => (left.display_order || 0) - (right.display_order || 0));
 }
 
-export function normalizeMultipleChoiceOptions(options = []) {
-  const next = sortQuestionOptions(options).map((option) => ({
+/**
+ * Normalize server/imported options into the editor option shape.
+ */
+export function toEditorOptions(options = []) {
+  return sortQuestionOptions(options).map((option) => ({
     option_text: option.option_text || "",
     is_correct: Boolean(option.is_correct),
   }));
-
-  while (next.length < 2) next.push(emptyOption());
-  return next;
 }
 
+/**
+ * Convert server question rows into the client draft shape used by the editor.
+ */
 export function toQuestionDraft(question) {
   const sourceOptions = question?.answer_options || question?.options || [];
 
@@ -69,10 +87,13 @@ export function toQuestionDraft(question) {
     explanation: question?.explanation || "",
     chapter: question?.chapter || "",
     groupChapter: getQuestionChapterLabel(question),
-    options: normalizeMultipleChoiceOptions(sourceOptions),
+    options: toEditorOptions(sourceOptions),
   };
 }
 
+/**
+ * Convert question-bank metadata into controlled form state.
+ */
 export function toQuestionBankForm(questionBank) {
   return {
     title: questionBank?.title || "",
@@ -82,6 +103,9 @@ export function toQuestionBankForm(questionBank) {
   };
 }
 
+/**
+ * Convert editor state into the API payload expected by the backend validator.
+ */
 export function buildQuestionBankPayload(form, questions) {
   return {
     title: form.title.trim(),
@@ -102,6 +126,9 @@ export function buildQuestionBankPayload(form, questions) {
   };
 }
 
+/**
+ * Client-side validation mirrors the backend rules for faster feedback.
+ */
 export function validateQuestionBankEditor(form, questions) {
   const errors = {};
 
@@ -130,6 +157,9 @@ export function validateQuestionBankEditor(form, questions) {
   return errors;
 }
 
+/**
+ * Convert nested backend field errors into the editor's per-card error keys.
+ */
 export function mapQuestionBankServerErrors(fields = {}) {
   const errors = {};
 
@@ -149,6 +179,9 @@ export function mapQuestionBankServerErrors(fields = {}) {
   return errors;
 }
 
+/**
+ * Re-index question errors after a card is deleted.
+ */
 function shiftQuestionErrorsAfterDelete(errors, deletedIndex) {
   const next = {};
 
@@ -168,6 +201,9 @@ function shiftQuestionErrorsAfterDelete(errors, deletedIndex) {
   return next;
 }
 
+/**
+ * Owns all draft state for create/edit pages: metadata, questions, errors, modals.
+ */
 export function useQuestionBankEditorState({
   initialForm = initialQuestionBankForm,
   initialQuestions = [],
@@ -178,6 +214,7 @@ export function useQuestionBankEditorState({
   const [showExcelImporter, setShowExcelImporter] = useState(false);
   const [showMaterialGenerator, setShowMaterialGenerator] = useState(false);
 
+  // Clear one field error and the submit banner once the teacher edits again.
   function clearError(name) {
     setErrors((current) => {
       const next = { ...current };
@@ -198,13 +235,16 @@ export function useQuestionBankEditorState({
     clearError("questions");
   }
 
+  /**
+   * Append imported/generated questions without replacing existing draft cards.
+   */
   function appendImportedQuestions(importedQuestions = []) {
     const drafts = importedQuestions.map((question) => ({
       question_text: question.question_text || "",
       explanation: question.explanation || "",
       chapter: question.chapter || "",
       groupChapter: getQuestionChapterLabel(question),
-      options: normalizeMultipleChoiceOptions(question.options || question.answer_options || []),
+      options: toEditorOptions(question.options || question.answer_options || []),
     }));
 
     if (drafts.length === 0) return;
@@ -295,6 +335,10 @@ export function useQuestionBankEditorState({
   };
 }
 
+/**
+ * Shared submit hook for create and edit pages.
+ * It validates locally, saves through the provided service, then maps API errors back to fields.
+ */
 export function useQuestionBankEditorSubmit({ editor, fallbackErrorMessage, onSave, onSuccess }) {
   const [submitting, setSubmitting] = useState(false);
 

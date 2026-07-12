@@ -5,6 +5,9 @@ import * as XLSX from "xlsx";
 import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, Download, FileCheck, FileX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Import multiple-choice question drafts from Excel/CSV into the question-bank editor.
+ */
 export default function ExcelImporter({ onQuestionsImported, onCancel }) {
   const [file, setFile] = useState(null);
   const [parsedQuestions, setParsedQuestions] = useState([]);
@@ -12,6 +15,9 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
   const [stats, setStats] = useState({ total: 0, valid: 0, invalid: 0 });
   const fileInputRef = useRef(null);
 
+  /**
+   * Read the selected file immediately, then clear the input for repeat uploads.
+   */
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -22,11 +28,14 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
     e.target.value = "";
   };
 
+  /**
+   * Open the hidden file input from the custom upload panel.
+   */
   const triggerFileSelect = () => {
     fileInputRef.current?.click();
   };
 
-  // Download template file for teacher
+  // Download a sample file so teachers can match the expected column names.
   const downloadTemplate = () => {
     const headers = [
       "Question Text",
@@ -82,7 +91,9 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
     XLSX.writeFile(workbook, "study_set_import_template.xlsx");
   };
 
-  // Parse and validate Excel sheet
+  /**
+   * Parse the first worksheet and split rows into valid question drafts or row errors.
+   */
   const processExcel = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -107,6 +118,8 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
         const chapterIdx = headers.indexOf("chapter");
 
         const optionIndices = [];
+
+        // Option columns are dynamic: Option 1, Option 2, Option 3, etc.
         headers.forEach((h, idx) => {
           if (h.startsWith("option")) {
             optionIndices.push({ index: idx, name: rows[0][idx] });
@@ -132,6 +145,7 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
         const validList = [];
         const errorList = [];
 
+        // Validate each non-empty data row independently so one bad row does not block the rest.
         dataRows.forEach((row, rowIdx) => {
           const rowNum = rowIdx + 2;
           
@@ -214,6 +228,9 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
     reader.readAsArrayBuffer(file);
   };
 
+  /**
+   * Append only successfully parsed questions to the parent editor draft.
+   */
   const handleImportClick = () => {
     if (parsedQuestions.length > 0) {
       onQuestionsImported(parsedQuestions);
@@ -222,7 +239,7 @@ export default function ExcelImporter({ onQuestionsImported, onCancel }) {
 
   const hasErrors = errors.length > 0;
   
-  // Dynamic styling based on upload state
+  // Dynamic styling based on upload state.
   let uploadIcon = <Upload className="size-6" />;
   let iconBgClass = "bg-muted text-primary";
   let uploadBorderClass = "border-border hover:border-ring bg-muted/20";

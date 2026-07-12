@@ -4,6 +4,9 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+/**
+ * Editable question card used by manual entry, Excel import preview, and AI preview.
+ */
 export default function QuestionCardEditor({
   question,
   qIndex,
@@ -14,6 +17,7 @@ export default function QuestionCardEditor({
   onDeleteOption,
   onOptionChange,
 }) {
+  // Generated/imported questions may use `options`; server rows may use `answer_options`.
   const options = question.options || question.answer_options || [];
 
   return (

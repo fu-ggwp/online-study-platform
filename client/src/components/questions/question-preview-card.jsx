@@ -5,10 +5,16 @@ import { Check, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Display options in the same order teachers saved them.
+ */
 function sortAnswerOptions(options = []) {
   return [...options].sort((left, right) => (left.display_order || 0) - (right.display_order || 0));
 }
 
+/**
+ * Read-only preview card with optional answer/explanation reveal.
+ */
 export function QuestionPreviewCard({ className, index, isRevealed, onToggleReveal, question }) {
   const options = sortAnswerOptions(question?.answer_options || []);
   const questionId = question?.question_id;
@@ -20,6 +26,7 @@ export function QuestionPreviewCard({ className, index, isRevealed, onToggleReve
         className
       )}
     >
+      {/* Question Header */}
       <div className="flex items-center justify-between border-b border-border pb-3">
         <span className="text-sm font-bold text-muted-foreground">Question #{index + 1}</span>
         <Button
@@ -36,8 +43,10 @@ export function QuestionPreviewCard({ className, index, isRevealed, onToggleReve
         </Button>
       </div>
 
+      {/* Question Text */}
       <p className="break-words text-base font-medium leading-relaxed text-foreground">{question?.question_text}</p>
 
+      {/* Answer Options */}
       {options.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border bg-muted/10 p-4 text-sm text-muted-foreground">
           No answer options
@@ -75,6 +84,7 @@ export function QuestionPreviewCard({ className, index, isRevealed, onToggleReve
         </div>
       )}
 
+      {/* Explanation */}
       {isRevealed && question?.explanation ? (
         <div className="space-y-1 rounded-xl border border-primary/10 bg-primary/5 p-4 text-xs">
           <h4 className="font-bold text-primary">Explanation</h4>

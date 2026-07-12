@@ -4,19 +4,22 @@ import { Button } from "@/components/ui/button";
 import { DashboardBadge } from "./dashboard-badge";
 import { DashboardState } from "./dashboard-state";
 
+/**
+ * Shows teacher-assigned practice, already sorted and limited by the backend.
+ */
 export function AssignedStudySetsPanel({ items }) {
   return (
     <section className="rounded-md border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-foreground">Assigned Practice</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Study sets assigned by your teachers.</p>
         </div>
         <Button asChild size="sm" variant="outline">
           <Link href="/learner/study-sets">View all</Link>
         </Button>
       </div>
 
+      {/* Assigned Study Set Cards */}
       {items.length === 0 ? (
         <div className="mt-5">
           <DashboardState

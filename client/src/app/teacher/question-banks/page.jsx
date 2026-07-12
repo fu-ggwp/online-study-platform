@@ -14,17 +14,21 @@ import { QuestionBanksTable } from "./_components/question-banks-table";
 
 const itemsPerPage = 10;
 
+/**
+ * Translate table UI state into backend list query parameters.
+ */
 function buildQuestionBankParams({ keyword, page, status }) {
   return {
     keyword: keyword.trim() || undefined,
     status: status === "all" ? undefined : status,
     page,
     limit: itemsPerPage,
-    sortBy: "updated_at",
-    sortOrder: "desc",
   };
 }
 
+/**
+ * Teacher question-bank index: search/filter repositories and open create/detail flows.
+ */
 export default function QuestionBanksPage() {
   const [pendingKeyword, setPendingKeyword] = useState("");
   const [pendingStatus, setPendingStatus] = useState("all");
@@ -33,18 +37,19 @@ export default function QuestionBanksPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const params = useMemo(
-    () => buildQuestionBankParams({ keyword: appliedKeyword, page: currentPage, status: appliedStatus }),
-    [appliedKeyword, appliedStatus, currentPage]
+    () =>
+      buildQuestionBankParams({
+        keyword: appliedKeyword,
+        page: currentPage,
+        status: appliedStatus,
+      }),
+    [appliedKeyword, appliedStatus, currentPage],
   );
 
-  const {
-    error,
-    loading,
-    loadQuestionBanks,
-    pagination,
-    questionBanks,
-  } = useQuestionBanksPage({ params });
+  const { error, loading, loadQuestionBanks, pagination, questionBanks } =
+    useQuestionBanksPage({ params });
 
+  // Apply/Reset semantics: draft filter inputs do not hit the API until Apply.
   function applyFilters() {
     setAppliedKeyword(pendingKeyword);
     setAppliedStatus(pendingStatus);
@@ -64,8 +69,9 @@ export default function QuestionBanksPage() {
       <section className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Question Banks</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Manage teacher-owned repositories for study sets and exams.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Question Banks
+            </h1>
           </div>
 
           <Button asChild>
@@ -85,8 +91,12 @@ export default function QuestionBanksPage() {
           status={pendingStatus}
         />
 
+        {/* List State */}
         {loading ? (
-          <QuestionBanksStatePanel title="Loading question banks" description="Fetching your teacher repositories." />
+          <QuestionBanksStatePanel
+            title="Loading question banks"
+            description="Fetching your teacher repositories."
+          />
         ) : error ? (
           <QuestionBanksStatePanel
             action={

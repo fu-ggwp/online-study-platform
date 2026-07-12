@@ -17,6 +17,10 @@ import {
 } from "./question-banks.validation.js";
 import { fail, ok } from "../../utils/api-response.js";
 
+/**
+ * List the current teacher's question banks.
+ * Query parameters are validated and normalized in the service layer.
+ */
 export async function list(req, res) {
   try {
     const data = await listQuestionBanks(getUserId(req), req.query);
@@ -26,6 +30,9 @@ export async function list(req, res) {
   }
 }
 
+/**
+ * Return ready banks only, for flows that need reusable question sources.
+ */
 export async function listReady(req, res) {
   try {
     const data = await listReadyQuestionBanks(getUserId(req));
@@ -35,6 +42,9 @@ export async function listReady(req, res) {
   }
 }
 
+/**
+ * Load one owned question bank by route id.
+ */
 export async function getById(req, res) {
   try {
     const data = await getQuestionBank(getUserId(req), req.params.id);
@@ -44,6 +54,9 @@ export async function getById(req, res) {
   }
 }
 
+/**
+ * Load editable questions for one owned question bank.
+ */
 export async function listQuestions(req, res) {
   try {
     const data = await listQuestionBankQuestions(getUserId(req), req.params.id);
@@ -53,6 +66,10 @@ export async function listQuestions(req, res) {
   }
 }
 
+/**
+ * Load questions only after confirming the bank is ready.
+ * Exam creation uses this so drafts cannot become exam sources.
+ */
 export async function listReadyQuestions(req, res) {
   try {
     const data = await listReadyQuestionBankQuestions(getUserId(req), req.params.id);
@@ -62,6 +79,9 @@ export async function listReadyQuestions(req, res) {
   }
 }
 
+/**
+ * Validate the request body, then create metadata and optional questions.
+ */
 export async function create(req, res) {
   try {
     const payload = validateCreatePayload(req.body);
@@ -72,6 +92,9 @@ export async function create(req, res) {
   }
 }
 
+/**
+ * Validate the uploaded material, then ask the AI service for question drafts.
+ */
 export async function generateFromMaterial(req, res) {
   try {
     const payload = validateGenerateMaterialPayload(req.body, req.file);
@@ -82,6 +105,9 @@ export async function generateFromMaterial(req, res) {
   }
 }
 
+/**
+ * Patch question bank metadata and optionally sync the full question list.
+ */
 export async function update(req, res) {
   try {
     const changes = validateUpdatePayload(req.body);
@@ -92,6 +118,9 @@ export async function update(req, res) {
   }
 }
 
+/**
+ * Soft-delete a question bank so old references can keep their FK history.
+ */
 export async function remove(req, res) {
   try {
     const data = await archiveQuestionBank(getUserId(req), req.params.id);

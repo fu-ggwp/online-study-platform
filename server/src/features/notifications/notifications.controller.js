@@ -44,10 +44,3 @@ export const removeOne = async (req, res) => {
   }
 };
 
-export const removeRead = async (req, res) => {
-  try {
-    return ok(res, await service.removeRead(req.user.id));
-  } catch (err) {
-    return fail(res, err, err.status || 500);
-  }
-};

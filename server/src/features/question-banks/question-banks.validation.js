@@ -18,18 +18,27 @@ export function questionBankLoadError() {
   );
 }
 
+/**
+ * Trim text fields but preserve undefined so PATCH requests can skip fields.
+ */
 function normalizeText(value) {
   if (value === undefined) return undefined;
   if (value === null) return null;
   return String(value).trim();
 }
 
+/**
+ * Convert empty optional text to null, matching nullable DB columns.
+ */
 function normalizeNullableText(value) {
   const normalized = normalizeText(value);
   if (normalized === undefined) return undefined;
   return normalized || null;
 }
 
+/**
+ * Validate enum-like fields and collect field errors instead of throwing early.
+ */
 function validateEnum(value, allowedValues, fieldName, errors) {
   if (value === undefined || value === null || value === "") return undefined;
 
@@ -41,6 +50,9 @@ function validateEnum(value, allowedValues, fieldName, errors) {
   return normalized;
 }
 
+/**
+ * Throw one API error after all field-level validation has run.
+ */
 function throwIfInvalid(errors) {
   if (Object.keys(errors).length === 0) return;
 
@@ -55,6 +67,9 @@ function validateStatusFilter(value, errors) {
   return validateEnum(value, editableQuestionBankStatuses, "status", errors);
 }
 
+/**
+ * Normalize answer options and enforce the minimum multiple-choice rules.
+ */
 function validateAnswerOptions(options, errors) {
   if (!Array.isArray(options)) {
     errors.answer_options = "Please complete all required information.";
@@ -85,6 +100,9 @@ function validateAnswerOptions(options, errors) {
   return normalizedOptions;
 }
 
+/**
+ * Validate one question card payload before it reaches the service layer.
+ */
 function validateQuestionPayload(body = {}) {
   const errors = {};
   const questionText = normalizeText(body.question_text);
@@ -104,6 +122,9 @@ function validateQuestionPayload(body = {}) {
   };
 }
 
+/**
+ * Validate a full question list and rewrite nested errors with question indexes.
+ */
 function validateQuestionsPayload(questions, errors) {
   if (!Array.isArray(questions)) {
     errors.questions = "The information is invalid. Please check and try again.";
@@ -137,6 +158,9 @@ function validateQuestionsPayload(questions, errors) {
   }).filter(Boolean);
 }
 
+/**
+ * Normalize list filters used by the teacher question-bank table.
+ */
 export function normalizeListFilters(query = {}) {
   const errors = {};
   const status = validateStatusFilter(query.status, errors);
@@ -148,11 +172,12 @@ export function normalizeListFilters(query = {}) {
     status,
     page: query.page,
     limit: query.limit,
-    sortBy: normalizeText(query.sortBy),
-    sortOrder: normalizeText(query.sortOrder) === "asc" ? "asc" : "desc",
   };
 }
 
+/**
+ * Validate create payload: required metadata plus optional question drafts.
+ */
 export function validateCreatePayload(body = {}) {
   const errors = {};
   const title = normalizeText(body.title);
@@ -177,6 +202,9 @@ export function validateCreatePayload(body = {}) {
   };
 }
 
+/**
+ * Validate the multipart AI generation request before sending any file to Gemini.
+ */
 export function validateGenerateMaterialPayload(body = {}, file) {
   const errors = {};
   const questionCount = Number(body.questionCount);
@@ -206,6 +234,9 @@ export function validateGenerateMaterialPayload(body = {}, file) {
   };
 }
 
+/**
+ * Build a PATCH changes object and include questions only when the client sends them.
+ */
 export function validateUpdatePayload(body = {}) {
   const errors = {};
   const changes = {};

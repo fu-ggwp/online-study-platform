@@ -1,5 +1,8 @@
 import { Star, CheckCircle } from "lucide-react";
 
+/**
+ * Study-set review card that shows a question, its options, correct answer, and explanation.
+ */
 export function QuestionCard({
   question,
   index,
@@ -8,6 +11,7 @@ export function QuestionCard({
   onToggleDifficult,
   onToggleMastered
 }) {
+  // Border color reflects learner review flags without changing the card contents.
   const statusClass = isDifficult 
     ? "border-amber-200 bg-amber-50/20" 
     : isMastered 
@@ -43,7 +47,7 @@ export function QuestionCard({
           <p className="text-lg font-bold text-foreground leading-relaxed">
             {question.question_text}
           </p>
-          {/* Render Options */}
+          {/* Answer Options */}
           <div className="space-y-1.5 pl-1">
             {(question.answer_options || []).map((opt, oIdx) => (
               <p key={oIdx} className="text-sm text-foreground/80 leading-relaxed">

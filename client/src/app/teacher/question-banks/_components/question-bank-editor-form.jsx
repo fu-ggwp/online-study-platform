@@ -30,6 +30,9 @@ const labels = {
   },
 };
 
+/**
+ * Shared create/edit form for question-bank metadata and question draft cards.
+ */
 export function QuestionBankEditorForm({
   actionSlot,
   backLabel = "Back",
@@ -52,6 +55,8 @@ export function QuestionBankEditorForm({
 }) {
   const copy = labels[mode] || labels.edit;
   const [collapsedChapters, setCollapsedChapters] = useState({});
+
+  // Group by chapter for readability, while each item keeps its original draft index.
   const questionGroups = useMemo(
     () => groupQuestionsByChapter(questions, (question) => question.groupChapter || getQuestionChapterLabel(question)),
     [questions],
@@ -86,6 +91,7 @@ export function QuestionBankEditorForm({
         )}
 
         <form onSubmit={onSubmit} className="space-y-6">
+          {/* Question Bank Details */}
           <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
             <h2 className="border-b border-border pb-2 text-lg font-bold text-foreground">Question Bank Details</h2>
 
@@ -127,6 +133,7 @@ export function QuestionBankEditorForm({
             </div>
           </section>
 
+          {/* Question Editor Tools */}
           <section className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -154,6 +161,7 @@ export function QuestionBankEditorForm({
                 {copy.emptyDescription}
               </div>
             ) : (
+              /* Questions Grouped by Chapter */
               <div className="space-y-6">
                 {questionGroups.map((group) => {
                   const isExpanded = !collapsedChapters[group.chapter];
@@ -203,6 +211,7 @@ export function QuestionBankEditorForm({
             </Button>
           </section>
 
+          {/* Form Actions */}
           <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-end">
             <Button disabled={submitting} onClick={onCancel} type="button" variant="outline">
               Cancel
@@ -218,6 +227,9 @@ export function QuestionBankEditorForm({
   );
 }
 
+/**
+ * Modal wrapper for importing question drafts from an Excel worksheet.
+ */
 export function QuestionBankExcelImportModal({ onCancel, onQuestionsImported }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
@@ -231,6 +243,9 @@ export function QuestionBankExcelImportModal({ onCancel, onQuestionsImported }) 
   );
 }
 
+/**
+ * Modal wrapper for generating question drafts from PDF/DOCX material.
+ */
 export function QuestionBankMaterialGenerateModal({ generateQuestions, onCancel, onQuestionsGenerated }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">

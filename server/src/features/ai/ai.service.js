@@ -1,8 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { env } from "../../config/env.js";
+import { httpError } from "../../utils/api-response.js";
 
 const aiUnavailableMessage = "AI processing is currently unavailable. Please try again later.";
 
+// Gemini is asked for strict JSON so the question-bank editor can consume drafts safely.
 const generatedQuestionsSchema = {
   type: "object",
   additionalProperties: false,
@@ -36,16 +38,18 @@ const generatedQuestionsSchema = {
   required: ["questions"],
 };
 
-function serviceError(message, status = 400) {
-  return Object.assign(new Error(message), { status, statusCode: status });
-}
-
+/**
+ * Fail fast when Gemini is not configured instead of sending a broken request.
+ */
 function requireGeminiApiKey() {
   if (!env.geminiApiKey) {
-    throw serviceError(aiUnavailableMessage, 503);
+    throw httpError(aiUnavailableMessage, 503);
   }
 }
 
+/**
+ * Parse Gemini JSON output, tolerating accidental markdown fences.
+ */
 function parseGeminiJson(text = "") {
   const trimmed = String(text || "").trim();
   const withoutFence = trimmed
@@ -57,6 +61,9 @@ function parseGeminiJson(text = "") {
   return JSON.parse(withoutFence);
 }
 
+/**
+ * Normalize one AI option into the same shape used by the editor draft.
+ */
 function normalizeGeneratedOption(option = {}) {
   return {
     option_text: option.option_text || "",
@@ -64,6 +71,9 @@ function normalizeGeneratedOption(option = {}) {
   };
 }
 
+/**
+ * Normalize one AI question and drop blank option text.
+ */
 function normalizeGeneratedQuestion(question = {}) {
   const options = Array.isArray(question.options)
     ? question.options.map(normalizeGeneratedOption).filter((option) => option.option_text)
@@ -77,6 +87,9 @@ function normalizeGeneratedQuestion(question = {}) {
   };
 }
 
+/**
+ * Keep only usable generated questions and cap the result to the requested count.
+ */
 function normalizeGeneratedQuestions(responseBody, requestedCount) {
   const questions = Array.isArray(responseBody?.questions) ? responseBody.questions : [];
 
@@ -90,6 +103,10 @@ function normalizeGeneratedQuestions(responseBody, requestedCount) {
     .slice(0, requestedCount);
 }
 
+/**
+ * Build the material-to-questions prompt. The schema controls structure;
+ * this prompt controls teacher intent and quality rules.
+ */
 function buildGenerationPrompt({ questionCount, focus }) {
   return [
     "Generate multiple-choice questions from the attached learning material.",
@@ -100,6 +117,9 @@ function buildGenerationPrompt({ questionCount, focus }) {
   ].join("\n");
 }
 
+/**
+ * Render options as A/B/C text for explanation prompts.
+ */
 function formatOptionList(options = []) {
   return options
     .map((option, index) => {
@@ -109,6 +129,9 @@ function formatOptionList(options = []) {
     .join("\n");
 }
 
+/**
+ * Render the learner's selected options, including empty/invalid selections.
+ */
 function formatSelectedOptions(options = [], selectedOptionIds = []) {
   if (!selectedOptionIds.length) return "No answer selected.";
 
@@ -118,6 +141,9 @@ function formatSelectedOptions(options = [], selectedOptionIds = []) {
   return formatOptionList(selected);
 }
 
+/**
+ * Build context for an answer explanation without exposing app internals to the model.
+ */
 function buildAnswerExplanationPrompt({ studySet, question, attemptAnswer }) {
   const options = question.answer_options || [];
   const correctOptions = options.filter((option) => option.is_correct);
@@ -151,6 +177,9 @@ function buildAnswerExplanationPrompt({ studySet, question, attemptAnswer }) {
   ].join("\n");
 }
 
+/**
+ * Generate reusable multiple-choice question drafts from an uploaded material file.
+ */
 export async function generateQuestionsFromMaterial({ file, questionCount, focus }) {
   requireGeminiApiKey();
 
@@ -178,16 +207,19 @@ export async function generateQuestionsFromMaterial({ file, questionCount, focus
     const questions = normalizeGeneratedQuestions(parsed, questionCount);
 
     if (!questions.length) {
-      throw serviceError(aiUnavailableMessage, 502);
+      throw httpError(aiUnavailableMessage, 502);
     }
 
     return { questions };
   } catch (error) {
     if (error.statusCode || error.status) throw error;
-    throw serviceError(aiUnavailableMessage, 502);
+    throw httpError(aiUnavailableMessage, 502);
   }
 }
 
+/**
+ * Generate a learner-friendly explanation for one submitted practice answer.
+ */
 export async function generateAnswerExplanation({ studySet, question, attemptAnswer }) {
   requireGeminiApiKey();
 
@@ -203,12 +235,12 @@ export async function generateAnswerExplanation({ studySet, question, attemptAns
 
     const aiExplanation = String(response.text || "").trim();
     if (!aiExplanation) {
-      throw serviceError(aiUnavailableMessage, 502);
+      throw httpError(aiUnavailableMessage, 502);
     }
 
     return { aiExplanation };
   } catch (error) {
     if (error.status || error.statusCode) throw error;
-    throw serviceError(aiUnavailableMessage, 502);
+    throw httpError(aiUnavailableMessage, 502);
   }
 }

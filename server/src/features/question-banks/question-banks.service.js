@@ -13,6 +13,9 @@ const db = supabase;
 const materialQuestionGenerationFeature = "ai_generate_from_material";
 const premiumRequiredMessage = "This feature is available for Premium accounts only. Please upgrade to continue.";
 
+/**
+ * Add active question count to a bank row for list/detail cards.
+ */
 async function attachQuestionCount(questionBank) {
   return {
     ...questionBank,
@@ -22,6 +25,9 @@ async function attachQuestionCount(questionBank) {
   };
 }
 
+/**
+ * Keep answer options stable in the order teachers see in the editor.
+ */
 function sortQuestionAnswerOptions(question) {
   return {
     ...question,
@@ -31,6 +37,9 @@ function sortQuestionAnswerOptions(question) {
   };
 }
 
+/**
+ * Convert DAO option errors into a client-friendly API error.
+ */
 function optionUpdateError(error) {
   if (!error) return;
 
@@ -40,6 +49,9 @@ function optionUpdateError(error) {
   );
 }
 
+/**
+ * Build question field changes with an updated timestamp.
+ */
 function buildQuestionChanges(changes) {
   return {
     ...changes,
@@ -47,6 +59,9 @@ function buildQuestionChanges(changes) {
   };
 }
 
+/**
+ * Build a reusable bank question. study_set_id stays null because this is not a study-set copy.
+ */
 function buildNewQuestion(questionBankId, teacherId, payload) {
   return {
     question_bank_id: questionBankId,
@@ -60,6 +75,9 @@ function buildNewQuestion(questionBankId, teacherId, payload) {
   };
 }
 
+/**
+ * Reassign display_order from the editor array position.
+ */
 function normalizeDesiredAnswerOptions(answerOptions) {
   return answerOptions.map((option, index) => ({
     option_text: option.option_text,
@@ -68,6 +86,10 @@ function normalizeDesiredAnswerOptions(answerOptions) {
   }));
 }
 
+/**
+ * Sync option rows to match the editor draft exactly: insert missing rows,
+ * update retained rows, then delete surplus rows.
+ */
 async function syncQuestionAnswerOptions(questionId, currentOptions, answerOptions) {
   const current = [...(currentOptions || [])].sort(
     (left, right) => left.display_order - right.display_order,
@@ -112,12 +134,18 @@ function handleLoadError(error) {
   }
 }
 
+/**
+ * Premium-gated AI generation entry point for teacher material uploads.
+ */
 export async function generateQuestionsFromMaterial(userId, { file, questionCount, focus }) {
   await requirePremiumFeature(userId, materialQuestionGenerationFeature, premiumRequiredMessage);
 
   return aiService.generateQuestionsFromMaterial({ file, questionCount, focus });
 }
 
+/**
+ * List teacher banks with filters, pagination metadata, and question counts.
+ */
 export async function listQuestionBanks(userId, query) {
   const filters = normalizeListFilters(query);
   const { data, error, count, page, limit } =
@@ -138,6 +166,9 @@ export async function listQuestionBanks(userId, query) {
   };
 }
 
+/**
+ * Return ready banks for exam/study-set builders that need usable sources.
+ */
 export async function listReadyQuestionBanks(userId) {
   const { data, error } = await questionBanksDao.listReadyByTeacher(userId);
   handleLoadError(error);
@@ -145,6 +176,9 @@ export async function listReadyQuestionBanks(userId) {
   return Promise.all((data || []).map(attachQuestionCount));
 }
 
+/**
+ * Load one owned bank and append its active question count.
+ */
 export async function getQuestionBank(userId, questionBankId) {
   const { data, error } = await questionBanksDao.findOwnedById(
     questionBankId,
@@ -159,6 +193,9 @@ export async function getQuestionBank(userId, questionBankId) {
   return attachQuestionCount(data);
 }
 
+/**
+ * Load one owned ready bank, using field errors that form components understand.
+ */
 export async function getReadyQuestionBank(userId, questionBankId) {
   const { data, error } = await questionBanksDao.findReadyOwnedById(
     questionBankId,
@@ -176,6 +213,9 @@ export async function getReadyQuestionBank(userId, questionBankId) {
   return attachQuestionCount(data);
 }
 
+/**
+ * Load active question cards for the bank editor/detail page.
+ */
 export async function listQuestionBankQuestions(userId, questionBankId) {
   const bankResult = await questionBanksDao.findOwnedById(
     questionBankId,
@@ -196,6 +236,9 @@ export async function listQuestionBankQuestions(userId, questionBankId) {
   return (data || []).map(sortQuestionAnswerOptions);
 }
 
+/**
+ * Load questions only after the bank passes the Ready gate.
+ */
 export async function listReadyQuestionBankQuestions(userId, questionBankId) {
   await getReadyQuestionBank(userId, questionBankId);
 
@@ -208,6 +251,9 @@ export async function listReadyQuestionBankQuestions(userId, questionBankId) {
   return (data || []).map(sortQuestionAnswerOptions);
 }
 
+/**
+ * Internal helper that returns one editable reusable-bank question.
+ */
 async function getQuestion(userId, questionId) {
   const { data, error } = await questionBanksDao.findOwnedQuestionById(
     questionId,
@@ -222,6 +268,9 @@ async function getQuestion(userId, questionId) {
   return sortQuestionAnswerOptions(data);
 }
 
+/**
+ * Update one question and sync its options from the incoming editor payload.
+ */
 async function updateQuestion(userId, questionId, payload) {
   const current = await questionBanksDao.findOwnedQuestionById(
     questionId,
@@ -263,6 +312,9 @@ async function updateQuestion(userId, questionId, payload) {
   return getQuestion(userId, questionId);
 }
 
+/**
+ * Create a new question in the bank, then insert its answer options.
+ */
 async function createQuestionInBank(userId, questionBankId, payload) {
   const { answer_options: answerOptions, ...questionFields } = payload;
   const { data, error } = await questionBanksDao.createQuestion(
@@ -277,6 +329,9 @@ async function createQuestionInBank(userId, questionBankId, payload) {
   return getQuestion(userId, data.question_id);
 }
 
+/**
+ * Update an existing bank question after confirming it belongs to this bank.
+ */
 async function updateQuestionInBank(userId, questionBankId, payload) {
   const { question_id: questionId, ...questionPayload } = payload;
   const current = await questionBanksDao.findOwnedQuestionById(
@@ -292,6 +347,10 @@ async function updateQuestionInBank(userId, questionBankId, payload) {
   return updateQuestion(userId, questionId, questionPayload);
 }
 
+/**
+ * Treat the submitted question array as the source of truth for the bank.
+ * Existing IDs are updated, missing IDs are created, and omitted IDs are archived.
+ */
 async function syncQuestionBankQuestions(userId, questionBankId, questions) {
   if (!Array.isArray(questions)) return;
 
@@ -306,6 +365,7 @@ async function syncQuestionBankQuestions(userId, questionBankId, questions) {
   );
   const retainedIds = new Set();
 
+  // Keep IDs that still exist in the editor draft so the rest can be archived.
   for (const question of questions) {
     if (question.question_id) {
       const updated = await updateQuestionInBank(userId, questionBankId, question);
@@ -329,6 +389,9 @@ async function syncQuestionBankQuestions(userId, questionBankId, questions) {
   }
 }
 
+/**
+ * Create bank metadata first, then sync the optional question draft list.
+ */
 export async function createQuestionBank(userId, payload) {
   const { questions, ...bankPayload } = payload;
 
@@ -349,6 +412,9 @@ export async function createQuestionBank(userId, payload) {
   return attachQuestionCount(data);
 }
 
+/**
+ * Update metadata and/or replace the editable question list for one owned bank.
+ */
 export async function updateQuestionBank(userId, questionBankId, changes) {
   const { questions, ...metadataChanges } = changes;
   let data;
@@ -383,6 +449,9 @@ export async function updateQuestionBank(userId, questionBankId, changes) {
   return attachQuestionCount(data);
 }
 
+/**
+ * Soft-delete a bank; questions remain available for historical references.
+ */
 export async function archiveQuestionBank(userId, questionBankId) {
   const { data, error } = await questionBanksDao.archive(
     questionBankId,

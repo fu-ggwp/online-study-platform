@@ -6,6 +6,7 @@ import { getLearnerDashboard, getTeacherDashboard } from "./dashboards.controlle
 
 export const dashboardsRouter = Router();
 
+// Role-specific dashboard endpoints share auth but return different card payloads.
 dashboardsRouter.get("/learner", requireAuth, requireRole("learner"), getLearnerDashboard);
 dashboardsRouter.get("/teacher", requireAuth, requireRole("teacher"), getTeacherDashboard);
 

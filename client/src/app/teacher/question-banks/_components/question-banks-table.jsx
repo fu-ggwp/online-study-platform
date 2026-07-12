@@ -4,6 +4,9 @@ import { useRouter } from "next/navigation";
 
 import { formatBankStatus, formatDate, getStatusTone, QuestionBanksBadge } from "./question-banks-badge";
 
+/**
+ * Read-only table for teacher banks. Rows are keyboard-clickable detail links.
+ */
 export function QuestionBanksTable({ questionBanks }) {
   const router = useRouter();
 
@@ -11,12 +14,7 @@ export function QuestionBanksTable({ questionBanks }) {
     router.push(`/teacher/question-banks/${questionBankId}`);
   }
 
-  function handleRowKeyDown(event, questionBankId) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openQuestionBank(questionBankId);
-    }
-  }
+
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
@@ -39,9 +37,7 @@ export function QuestionBanksTable({ questionBanks }) {
                 className="cursor-pointer align-top outline-none transition hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
                 key={bank.question_bank_id}
                 onClick={() => openQuestionBank(bank.question_bank_id)}
-                onKeyDown={(event) => handleRowKeyDown(event, bank.question_bank_id)}
-                role="button"
-                tabIndex={0}
+                
               >
                 <td className="px-4 py-3">
                   <p className="font-bold text-foreground">{bank.title}</p>
@@ -51,7 +47,6 @@ export function QuestionBanksTable({ questionBanks }) {
                 <td className="px-4 py-3">
                   <QuestionBanksBadge tone={getStatusTone(bank.status)}>{formatBankStatus(bank.status)}</QuestionBanksBadge>
                 </td>
-                
                 <td className="px-4 py-3 text-muted-foreground">{bank.questionCount ?? 0}</td>
                 <td className="px-4 py-3 text-muted-foreground">{formatDate(bank.updated_at || bank.created_at)}</td>
               </tr>

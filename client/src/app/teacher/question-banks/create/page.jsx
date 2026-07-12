@@ -15,6 +15,9 @@ import {
   useQuestionBankEditorSubmit,
 } from "../_lib/question-bank-editor";
 
+/**
+ * Create page wires editor state to the create API and redirects to detail after save.
+ */
 export default function CreateQuestionBankPage() {
   const router = useRouter();
   const editor = useQuestionBankEditorState({ initialQuestions: [emptyQuestion()] });
@@ -30,6 +33,7 @@ export default function CreateQuestionBankPage() {
 
   return (
     <>
+      {/* Create Editor */}
       <QuestionBankEditorForm
         errors={editor.errors}
         form={editor.form}
@@ -49,6 +53,7 @@ export default function CreateQuestionBankPage() {
         submitting={submitting}
       />
 
+      {/* Excel Import Modal */}
       {editor.showExcelImporter && (
         <QuestionBankExcelImportModal
           onCancel={editor.closeExcelImporter}
@@ -56,6 +61,7 @@ export default function CreateQuestionBankPage() {
         />
       )}
 
+      {/* AI Material Generator Modal */}
       {editor.showMaterialGenerator && (
         <QuestionBankMaterialGenerateModal
           generateQuestions={questionBanksService.generateFromMaterial}

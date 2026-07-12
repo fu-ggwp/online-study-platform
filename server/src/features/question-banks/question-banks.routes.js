@@ -16,8 +16,11 @@ import {
 
 const questionBanksRouter = Router();
 
+// Collection routes for teacher-owned question banks.
 questionBanksRouter.get("/", requireAuth, requireRole("teacher"), list);
 questionBanksRouter.post("/", requireAuth, requireRole("teacher"), create);
+
+// AI material generation must run after multer attaches req.file.
 questionBanksRouter.post(
   "/generate-from-material",
   requireAuth,
@@ -25,6 +28,8 @@ questionBanksRouter.post(
   uploadMaterial,
   generateFromMaterial,
 );
+
+// Ready-only routes are used by exam/study-set builders.
 questionBanksRouter.get("/ready", requireAuth, requireRole("teacher"), listReady);
 questionBanksRouter.get(
   "/ready/:id/questions",
@@ -33,6 +38,7 @@ questionBanksRouter.get(
   listReadyQuestions,
 );
 
+// Detail routes for bank metadata and editable question rows.
 questionBanksRouter.get("/:id/questions", requireAuth, requireRole("teacher"), listQuestions);
 questionBanksRouter.get("/:id", requireAuth, requireRole("teacher"), getById);
 questionBanksRouter.patch("/:id", requireAuth, requireRole("teacher"), update);
