@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Bell, MoreHorizontal } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +114,19 @@ export function NotificationCenter() {
     },
     [],
   );
+
+  useEffect(() => {
+    async function loadUnreadCount() {
+      try {
+        const countResult = await notificationsService.getUnreadCount();
+        setUnreadCount(countResult.count || 0);
+      } catch (countError) {
+        console.error("Failed to load notification unread count", countError);
+      }
+    }
+
+    loadUnreadCount();
+  }, []);
 
   function handleOpenChange(open) {
     setIsOpen(open);
