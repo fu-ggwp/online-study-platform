@@ -1,8 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 import { env } from "../../config/env.js";
 import { httpError } from "../../utils/api-response.js";
+import { requirePremiumFeature } from "../../utils/premium-access.js";
+import * as studySetsDao from "../study-sets/study-sets.dao.js";
+import {
+  accessDenied,
+  dbError,
+  notFound,
+  requirePremiumLearner,
+  serviceError,
+  validateStudySetAccess,
+} from "../study-sets/study-sets.helpers.js";
 
 const aiUnavailableMessage = "AI processing is currently unavailable. Please try again later.";
+const materialQuestionGenerationFeature = "ai_generate_from_material";
+const premiumRequiredMessage = "This feature is available for Premium accounts only. Please upgrade to continue.";
 
 // Gemini is asked for strict JSON so the question-bank editor can consume drafts safely.
 const generatedQuestionsSchema = {
@@ -177,10 +189,57 @@ function buildAnswerExplanationPrompt({ studySet, question, attemptAnswer }) {
   ].join("\n");
 }
 
+async function getStudySetForAiExplanation(studySetId, user) {
+  const { data: studySet, error } = await studySetsDao.findById(studySetId);
+  if (error || !studySet) {
+    throw notFound();
+  }
+
+  const userId = user.user_id || user.id;
+  await validateStudySetAccess(studySet, userId, user.role);
+
+  const { data: questions, error: questionError } =
+    await studySetsDao.listQuestionByStudySet(studySetId);
+  if (questionError) {
+    throw dbError(questionError, 500);
+  }
+
+  return {
+    ...studySet,
+    questions: questions || [],
+  };
+}
+
+async function generateAnswerExplanationWithGemini({ studySet, question, attemptAnswer }) {
+  requireGeminiApiKey();
+
+  try {
+    const ai = new GoogleGenAI({ apiKey: env.geminiApiKey });
+    const response = await ai.models.generateContent({
+      model: env.geminiModel,
+      contents: [{ text: buildAnswerExplanationPrompt({ studySet, question, attemptAnswer }) }],
+      config: {
+        temperature: 0.2,
+      },
+    });
+
+    const aiExplanation = String(response.text || "").trim();
+    if (!aiExplanation) {
+      throw httpError(aiUnavailableMessage, 502);
+    }
+
+    return { aiExplanation };
+  } catch (error) {
+    if (error.status || error.statusCode) throw error;
+    throw httpError(aiUnavailableMessage, 502);
+  }
+}
+
 /**
  * Generate reusable multiple-choice question drafts from an uploaded material file.
  */
-export async function generateQuestionsFromMaterial({ file, questionCount, focus }) {
+export async function generateQuestionsFromMaterial(userId, { file, questionCount, focus }) {
+  await requirePremiumFeature(userId, materialQuestionGenerationFeature, premiumRequiredMessage);
   requireGeminiApiKey();
 
   try {
@@ -220,27 +279,50 @@ export async function generateQuestionsFromMaterial({ file, questionCount, focus
 /**
  * Generate a learner-friendly explanation for one submitted practice answer.
  */
-export async function generateAnswerExplanation({ studySet, question, attemptAnswer }) {
-  requireGeminiApiKey();
+export async function generateStudySetAnswerExplanation(user, sessionId, questionId) {
+  const learnerId = user.user_id || user.id;
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: env.geminiApiKey });
-    const response = await ai.models.generateContent({
-      model: env.geminiModel,
-      contents: [{ text: buildAnswerExplanationPrompt({ studySet, question, attemptAnswer }) }],
-      config: {
-        temperature: 0.2,
-      },
-    });
-
-    const aiExplanation = String(response.text || "").trim();
-    if (!aiExplanation) {
-      throw httpError(aiUnavailableMessage, 502);
-    }
-
-    return { aiExplanation };
-  } catch (error) {
-    if (error.status || error.statusCode) throw error;
-    throw httpError(aiUnavailableMessage, 502);
+  const session = await studySetsDao.findAttemptById(sessionId);
+  if (session.error || !session.data) {
+    throw notFound("Practice session not found");
   }
+
+  if (session.data.learner_id !== learnerId) {
+    throw accessDenied("You do not have permission to access this practice session.");
+  }
+
+  if (session.data.mode !== "quiz") {
+    throw serviceError("AI explanations are only available for quiz results.", 400);
+  }
+
+  const { data: answers, error: answersErr } = await studySetsDao.listAnswersByAttempt(sessionId);
+  if (answersErr) {
+    throw dbError(answersErr, 500);
+  }
+
+  if (session.data.status !== "submitted" && !(answers || []).length) {
+    throw serviceError("Complete the quiz before requesting AI explanations.", 400);
+  }
+
+  await requirePremiumLearner(learnerId);
+
+  const studySet = await getStudySetForAiExplanation(session.data.study_set_id, user);
+  const question = (studySet.questions || []).find((item) => item.question_id === questionId);
+  if (!question) {
+    throw notFound("Question not found in this quiz session");
+  }
+
+  const sortedQuestion = {
+    ...question,
+    answer_options: [...(question.answer_options || [])].sort(
+      (left, right) => (left.display_order || 0) - (right.display_order || 0),
+    ),
+  };
+  const attemptAnswer = (answers || []).find((answer) => answer.question_id === questionId);
+
+  return generateAnswerExplanationWithGemini({
+    studySet,
+    question: sortedQuestion,
+    attemptAnswer,
+  });
 }

@@ -1,0 +1,54 @@
+import { httpError } from "../../utils/api-response.js";
+
+const supportedMaterialTypes = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+function normalizeText(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return String(value).trim();
+}
+
+function normalizeNullableText(value) {
+  const normalized = normalizeText(value);
+  if (normalized === undefined) return undefined;
+  return normalized || null;
+}
+
+export function getUserId(req) {
+  return req.user?.id || req.user?.user_id;
+}
+
+/**
+ * Validate the multipart AI generation request before sending any file to Gemini.
+ */
+export function validateGenerateMaterialPayload(body = {}, file) {
+  const errors = {};
+  const questionCount = Number(body.questionCount);
+
+  if (!file) {
+    errors.material = "Please upload a PDF or DOCX learning material file.";
+  } else if (!supportedMaterialTypes.has(file.mimetype)) {
+    errors.material = "Only PDF or DOCX files are supported.";
+  }
+
+  if (!Number.isInteger(questionCount) || questionCount < 1 || questionCount > 30) {
+    errors.questionCount = "Question count must be a number from 1 to 30.";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw httpError(
+      errors.material || errors.questionCount || "The information is invalid. Please check and try again.",
+      400,
+      errors,
+    );
+  }
+
+  return {
+    file,
+    questionCount,
+    focus: normalizeNullableText(body.focus) || "",
+  };
+}
