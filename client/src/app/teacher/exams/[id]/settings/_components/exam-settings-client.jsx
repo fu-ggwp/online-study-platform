@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 
 import { examsService } from "@/services/exams.service";
 
-import { ExamRandomizationSection } from "./exam-randomization-section";
 import { ExamSessionSettingsSection } from "./exam-session-settings-section";
 import { ExamSettingsActions } from "./exam-settings-actions";
 import { ExamSettingsAlerts } from "./exam-settings-alerts";
@@ -112,12 +111,6 @@ export function ExamSettingsClient({ examId }) {
             exam={exam}
             form={form}
             fieldErrors={fieldErrors}
-            locked={locked}
-            saving={saving}
-            onFieldChange={updateField}
-          />
-          <ExamRandomizationSection
-            form={form}
             locked={locked}
             saving={saving}
             onFieldChange={updateField}

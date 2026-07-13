@@ -3,8 +3,19 @@ import {
   formatDateTime,
   getStatusLabel,
 } from "../../../_components/exam-session-options";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { editableStatusOptions } from "./exam-settings-utils";
-import { FieldError, ReadOnlyField, StatusBadge, TextField } from "./exam-settings-fields";
+import {
+  ReadOnlyField,
+  SelectField,
+  SelectItem,
+  StatusBadge,
+  TextAreaField,
+  TextField,
+  ToggleRow,
+} from "./exam-settings-fields";
 
 export function ExamSessionSettingsSection({
   exam,
@@ -14,137 +25,165 @@ export function ExamSessionSettingsSection({
   saving,
   onFieldChange,
 }) {
+  const disabled = locked || saving;
+
   return (
-    <section className="rounded-md border border-border bg-card p-4 shadow-sm sm:p-5">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-base font-bold text-foreground">Exam Session</h2>
-          <p className="mt-1 text-sm font-medium text-muted-foreground">
-            Current status: <StatusBadge status={exam.status} />
-          </p>
-        </div>
-        <div className="text-sm font-medium text-muted-foreground">
-          Last updated {formatDateTime(exam.updated_at)}
-        </div>
+    <section className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-medium text-muted-foreground">
+          Current status: <StatusBadge status={exam.status} />
+        </p>
+        <p className="text-sm font-medium text-muted-foreground">Last updated {formatDateTime(exam.updated_at)}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextField
-          label="Exam Title"
-          name="title"
-          value={form.title}
-          disabled={locked || saving}
-          error={fieldErrors.title}
-          onChange={onFieldChange}
-        />
-        <ReadOnlyField label="Class" value={exam.classes?.class_name} />
-        <ReadOnlyField label="Question Source" value={exam.question_bank?.title} />
-        {locked ? (
-          <ReadOnlyField label="Status" value={getStatusLabel(exam.status)} />
-        ) : (
-          <label className="space-y-2 text-sm font-bold text-foreground">
-            <span>Status</span>
-            <select
+      <Card className="border border-border shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-lg font-semibold">Basic Info</CardTitle>
+          <CardDescription>Class and source are locked after the session is created.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-5 md:grid-cols-2">
+          <TextField
+            label="Exam Title"
+            name="title"
+            value={form.title}
+            disabled={disabled}
+            error={fieldErrors.title}
+            onChange={onFieldChange}
+          />
+          <ReadOnlyField label="Class" value={exam.classes?.class_name} />
+          <ReadOnlyField className="md:col-span-2" label="Question Source" value={exam.question_bank?.title} />
+          <TextAreaField
+            label="Description"
+            name="description"
+            value={form.description}
+            disabled={disabled}
+            onChange={onFieldChange}
+            placeholder="Optional notes for this exam session"
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="border border-border shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-lg font-semibold">Timing & Status</CardTitle>
+          <CardDescription>Active exams require a start and end time.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-5 md:grid-cols-2">
+          {locked ? (
+            <ReadOnlyField label="Status" value={getStatusLabel(exam.status)} />
+          ) : (
+            <SelectField
+              label="Status"
+              name="status"
               value={form.status}
               disabled={saving}
-              aria-invalid={Boolean(fieldErrors.status)}
-              onChange={(event) => onFieldChange("status", event.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20"
+              error={fieldErrors.status}
+              onChange={onFieldChange}
             >
               {editableStatusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <SelectItem key={option.value} value={option.value}>
                   {option.label}
-                </option>
+                </SelectItem>
               ))}
-            </select>
-            <FieldError message={fieldErrors.status} />
-          </label>
-        )}
-        <TextField
-          label="Start Time"
-          name="start_at"
-          type="datetime-local"
-          value={form.start_at}
-          disabled={locked || saving}
-          error={fieldErrors.start_at}
-          onChange={onFieldChange}
-        />
-        <TextField
-          label="End Time"
-          name="end_at"
-          type="datetime-local"
-          value={form.end_at}
-          disabled={locked || saving}
-          error={fieldErrors.end_at}
-          onChange={onFieldChange}
-        />
-        <TextField
-          label="Duration Minutes"
-          name="duration_minutes"
-          type="number"
-          min="1"
-          value={form.duration_minutes}
-          disabled={locked || saving}
-          error={fieldErrors.duration_minutes}
-          onChange={onFieldChange}
-        />
-        <TextField
-          label="Allowed Attempts"
-          name="attempt_limit"
-          type="number"
-          min="1"
-          value={form.attempt_limit}
-          disabled={locked || saving}
-          error={fieldErrors.attempt_limit}
-          onChange={onFieldChange}
-        />
-        <TextField
-          label="Question Count"
-          name="question_count"
-          type="number"
-          min="1"
-          value={form.question_count}
-          disabled={locked || saving}
-          error={fieldErrors.question_count}
-          onChange={onFieldChange}
-        />
-        <label className="space-y-2 text-sm font-bold text-foreground">
-          <span>Result Visibility</span>
-          <select
+            </SelectField>
+          )}
+          <TextField
+            label="Duration Minutes"
+            name="duration_minutes"
+            type="number"
+            min="1"
+            value={form.duration_minutes}
+            disabled={disabled}
+            error={fieldErrors.duration_minutes}
+            onChange={onFieldChange}
+          />
+          <TextField
+            label="Start Time"
+            name="start_at"
+            type="datetime-local"
+            value={form.start_at}
+            disabled={disabled}
+            error={fieldErrors.start_at}
+            onChange={onFieldChange}
+          />
+          <TextField
+            label="End Time"
+            name="end_at"
+            type="datetime-local"
+            value={form.end_at}
+            disabled={disabled}
+            error={fieldErrors.end_at}
+            onChange={onFieldChange}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="border border-border shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-lg font-semibold">Rules</CardTitle>
+          <CardDescription>Configure attempts, visibility, and randomized delivery.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-5 md:grid-cols-2">
+          <TextField
+            label="Question Count"
+            name="question_count"
+            type="number"
+            min="1"
+            value={form.question_count}
+            disabled={disabled}
+            error={fieldErrors.question_count}
+            onChange={onFieldChange}
+          />
+          <TextField
+            label="Allowed Attempts"
+            name="attempt_limit"
+            type="number"
+            min="1"
+            value={form.attempt_limit}
+            disabled={disabled}
+            error={fieldErrors.attempt_limit}
+            onChange={onFieldChange}
+          />
+          <SelectField
+            label="Result Visibility"
+            name="result_visibility"
             value={form.result_visibility}
-            disabled={locked || saving}
-            aria-invalid={Boolean(fieldErrors.result_visibility)}
-            onChange={(event) => onFieldChange("result_visibility", event.target.value)}
-            className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20"
+            disabled={disabled}
+            error={fieldErrors.result_visibility}
+            onChange={onFieldChange}
           >
             {RESULT_VISIBILITY_OPTIONS.filter((option) => option.value).map((option) => (
-              <option key={option.value} value={option.value}>
+              <SelectItem key={option.value} value={option.value}>
                 {option.label}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <FieldError message={fieldErrors.result_visibility} />
-        </label>
-        <TextField
-          label="Exam Access Code"
-          name="access_code"
-          value={form.access_code}
-          disabled={locked || saving}
-          error={fieldErrors.access_code}
-          onChange={onFieldChange}
-        />
-      </div>
-
-      <label className="mt-4 block space-y-2 text-sm font-bold text-foreground">
-        <span>Description</span>
-        <textarea
-          value={form.description}
-          disabled={locked || saving}
-          onChange={(event) => onFieldChange("description", event.target.value)}
-          className="min-h-24 w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-          placeholder="Optional notes for this exam session"
-        />
-      </label>
+          </SelectField>
+          <TextField
+            label="Exam Access Code"
+            name="access_code"
+            value={form.access_code}
+            disabled={disabled}
+            error={fieldErrors.access_code}
+            onChange={onFieldChange}
+          />
+          <div className="grid gap-3 md:col-span-2 sm:grid-cols-2">
+            <ToggleRow
+              label="Randomize Questions"
+              name="randomize_questions"
+              checked={form.randomize_questions}
+              disabled={disabled}
+              onChange={onFieldChange}
+            />
+            <ToggleRow
+              label="Randomize Answers"
+              name="randomize_answers"
+              checked={form.randomize_answers}
+              disabled={disabled}
+              onChange={onFieldChange}
+            />
+          </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }

@@ -1,15 +1,36 @@
 import { getStatusClassName, getStatusLabel } from "../../../_components/exam-session-options";
 
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldContent,
+  FieldError as ShadcnFieldError,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+
 export function FieldError({ message }) {
   if (!message) return null;
-  return <p className="text-xs font-medium text-destructive">{message}</p>;
+  return <ShadcnFieldError>{message}</ShadcnFieldError>;
 }
 
-export function TextField({ label, name, value, onChange, error, disabled, type = "text", min }) {
+export function TextField({ className, label, name, value, onChange, error, disabled, type = "text", min }) {
   return (
-    <label className="space-y-2 text-sm font-bold text-foreground">
-      <span>{label}</span>
-      <input
+    <Field className={className} data-disabled={disabled} data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={name}>{label}</FieldLabel>
+      <Input
+        id={name}
         name={name}
         type={type}
         min={min}
@@ -17,47 +38,78 @@ export function TextField({ label, name, value, onChange, error, disabled, type 
         disabled={disabled}
         aria-invalid={Boolean(error)}
         onChange={(event) => onChange(name, event.target.value)}
-        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20"
       />
       <FieldError message={error} />
-    </label>
+    </Field>
   );
 }
 
-export function ReadOnlyField({ label, value }) {
+export function ReadOnlyField({ className, label, value }) {
   return (
-    <div className="space-y-2 text-sm font-bold text-foreground">
-      <span>{label}</span>
-      <div className="flex h-10 items-center rounded-md border border-border bg-muted px-3 text-sm font-medium text-muted-foreground">
+    <Field className={className} data-disabled>
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex h-8 items-center rounded-2xl bg-muted px-3 text-sm text-muted-foreground">
         <span className="truncate">{value || "Not set"}</span>
       </div>
-    </div>
+    </Field>
   );
 }
 
 export function ToggleRow({ label, name, checked, onChange, disabled }) {
   return (
-    <label className="flex h-12 items-center gap-3 rounded-md border border-border bg-background px-3 text-sm font-bold text-foreground">
-      <input
-        type="checkbox"
+    <Field data-disabled={disabled} orientation="horizontal" className="min-h-11 rounded-2xl border border-border px-3 py-2">
+      <Checkbox
         checked={checked}
         disabled={disabled}
-        onChange={(event) => onChange(name, event.target.checked)}
-        className="size-4 accent-primary disabled:cursor-not-allowed"
+        onCheckedChange={(value) => onChange(name, Boolean(value))}
       />
-      <span>{label}</span>
-    </label>
+      <FieldContent>
+        <FieldTitle>{label}</FieldTitle>
+      </FieldContent>
+    </Field>
+  );
+}
+
+export function SelectField({ children, className, disabled, error, label, name, onChange, value }) {
+  return (
+    <Field className={className} data-disabled={disabled} data-invalid={Boolean(error)}>
+      <FieldLabel>{label}</FieldLabel>
+      <Select disabled={disabled} name={name} onValueChange={(nextValue) => onChange(name, nextValue)} value={value}>
+        <SelectTrigger aria-invalid={Boolean(error)} className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>{children}</SelectGroup>
+        </SelectContent>
+      </Select>
+      <FieldError message={error} />
+    </Field>
+  );
+}
+
+export function TextAreaField({ className = "lg:col-span-2", disabled, label, name, onChange, value, ...props }) {
+  return (
+    <Field className={className} data-disabled={disabled}>
+      <FieldLabel htmlFor={name}>{label}</FieldLabel>
+      <Textarea
+        className="min-h-24 resize-y"
+        disabled={disabled}
+        id={name}
+        name={name}
+        onChange={(event) => onChange(name, event.target.value)}
+        value={value}
+        {...props}
+      />
+    </Field>
   );
 }
 
 export function StatusBadge({ status }) {
   return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold leading-none ${getStatusClassName(
-        status
-      )}`}
-    >
+    <Badge className={getStatusClassName(status)} variant="outline">
       {getStatusLabel(status)}
-    </span>
+    </Badge>
   );
 }
+
+export { SelectItem };

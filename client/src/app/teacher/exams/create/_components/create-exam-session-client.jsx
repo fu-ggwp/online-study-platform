@@ -42,15 +42,9 @@ export function CreateExamSessionClient() {
 
       const activeClasses = (classRows ?? []).filter((item) => item.status === "active");
       const availableBanks = bankResult ?? [];
-      const firstUsableBank = availableBanks.find((bank) => getQuestionCount(bank) > 0);
 
       setClasses(activeClasses);
       setQuestionBanks(availableBanks);
-      setForm((current) => ({
-        ...current,
-        class_id: current.class_id || activeClasses[0]?.class_id || "",
-        question_bank_id: current.question_bank_id || firstUsableBank?.question_bank_id || availableBanks[0]?.question_bank_id || "",
-      }));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -91,10 +85,10 @@ export function CreateExamSessionClient() {
     }
     if (!Number.isInteger(questionCount) || questionCount <= 0) {
       errors.question_count = "Question count must be a positive whole number.";
-    } else if (questionCount > availableQuestions) {
+    } else if (form.question_bank_id && questionCount > availableQuestions) {
       errors.question_count = `Only ${availableQuestions} questions are available in the selected bank.`;
     }
-    if (availableQuestions <= 0) {
+    if (form.question_bank_id && availableQuestions <= 0) {
       errors.question_bank_id = "The selected question bank has no available questions.";
     }
 
@@ -186,7 +180,6 @@ export function CreateExamSessionClient() {
             onInputChange={handleInputChange}
             onSubmitExam={submitExam}
             questionBanks={questionBanks}
-            selectedBank={selectedBank}
             submittingAction={submittingAction}
           />
         )}
