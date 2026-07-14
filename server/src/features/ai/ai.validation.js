@@ -34,8 +34,10 @@ export function validateGenerateMaterialPayload(body = {}, file) {
     errors.material = "Only PDF or DOCX files are supported.";
   }
 
-  if (!Number.isInteger(questionCount) || questionCount < 1 || questionCount > 30) {
-    errors.questionCount = "Question count must be a number from 1 to 30.";
+  if (!Number.isInteger(questionCount) || questionCount < 1) {
+    errors.questionCount = "Desired question count must be at least 1.";
+  } else if (questionCount > 25) {
+    errors.questionCount = "The system limits generation to 25 questions to ensure question quality.";
   }
 
   if (Object.keys(errors).length > 0) {
