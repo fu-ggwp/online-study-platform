@@ -41,12 +41,9 @@ export function AssignedStudySetsPanel({ items }) {
               <h3 className="mt-3 line-clamp-2 text-base font-bold text-foreground">{studySet.title}</h3>
               <p className="mt-1 truncate text-sm text-muted-foreground">{studySet.subject || "General"}</p>
               <p className="mt-3 text-sm font-semibold text-muted-foreground">{studySet.questionCount} questions</p>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <Button asChild size="sm" variant={studySet.status === "completed" ? "outline" : "default"}>
-                  <Link href={studySet.practiceHref}>{studySet.status === "not_started" ? "Start" : "Continue"}</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link href={studySet.href}>Open</Link>
+              <div className="mt-4">
+                <Button asChild size="sm" className="w-full" variant={studySet.status === "completed" ? "outline" : "default"}>
+                  <Link href={studySet.href}>Study</Link>
                 </Button>
               </div>
             </article>
