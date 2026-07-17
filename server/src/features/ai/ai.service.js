@@ -122,7 +122,7 @@ function normalizeGeneratedQuestions(responseBody, requestedCount) {
 function buildGenerationPrompt({ questionCount, focus }) {
   return [
     "Generate multiple-choice questions from the attached learning material.",
-    `Generate as close as possible to ${requestedCount} questions, without exceeding this number.`,
+    `Generate as close as possible to ${questionCount} questions, without exceeding this number.`,
     "Can return fewer questions when the material does not support enough distinct, evidence-based questions.",
     "Do not create filler, repetitive, trivial, or unsupported questions just to reach the limit.",
     focus
