@@ -16,9 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import QuestionCardEditor from "@/components/question-creator/question-card-editor";
 
-const acceptedTypes = [
-  "application/pdf",
-];
+const acceptedTypes = ["application/pdf"];
 
 /**
  * Read an API error from either validation or AI service failure responses.
@@ -43,7 +41,7 @@ export default function MaterialQuestionGenerator({
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [focus, setFocus] = useState("");
-  const [questionCount, setQuestionCount] = useState(5);
+  const [questionCount, setQuestionCount] = useState(10);
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -181,7 +179,7 @@ export default function MaterialQuestionGenerator({
         <div className="grid gap-4 md:grid-cols-[180px_1fr]">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-foreground">
-              Desired Questions
+              Number of Questions
             </label>
             <Input
               type="number"
@@ -221,7 +219,8 @@ export default function MaterialQuestionGenerator({
               <div className="flex items-center gap-2">
                 <FileText className="size-4 text-primary" />
                 <h3 className="text-sm font-bold text-foreground">
-                  Preview: {generatedQuestions.length} generated
+                  Preview: {generatedQuestions.length} generated question
+                  {generatedQuestions.length > 1 ? "s" : ""}
                 </h3>
               </div>
               <Button
@@ -248,11 +247,6 @@ export default function MaterialQuestionGenerator({
                   question={question}
                   qIndex={index}
                   readOnly
-                  onAddOption={() => {}}
-                  onDelete={() => {}}
-                  onDeleteOption={() => {}}
-                  onFieldChange={() => {}}
-                  onOptionChange={() => {}}
                 />
               ))}
             </div>

@@ -11,11 +11,12 @@ export default function QuestionCardEditor({
   question,
   qIndex,
   errors = {},
-  onFieldChange,
-  onDelete,
-  onAddOption,
-  onDeleteOption,
-  onOptionChange,
+  onFieldChange = () => {},
+  onDelete = () => {},
+  onAddOption = () => {},
+  onDeleteOption = () => {},
+  onOptionChange = () => {},
+  readOnly = false,
 }) {
   // Generated/imported questions may use `options`; server rows may use `answer_options`.
   const options = question.options || question.answer_options || [];
@@ -35,15 +36,17 @@ export default function QuestionCardEditor({
             </span>
           )}
         </div>
-        <Button
-          onClick={onDelete}
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="text-error hover:text-error hover:bg-error/10"
-        >
-          <Trash2 className="size-4" />
-        </Button>
+        {!readOnly && (
+          <Button
+            onClick={onDelete}
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-error hover:text-error hover:bg-error/10"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        )}
       </div>
 
       {/* Question text */}
@@ -53,6 +56,7 @@ export default function QuestionCardEditor({
         <textarea
           className="min-h-[60px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
           placeholder="Enter the question text"
+          readOnly={readOnly}
           value={question.question_text}
           onChange={(e) => onFieldChange("question_text", e.target.value)}
         />
@@ -66,6 +70,7 @@ export default function QuestionCardEditor({
         <label className="text-xs font-semibold text-foreground">Chapter</label>
         <Input
           placeholder="e.g. Chapter 2"
+          readOnly={readOnly}
           value={question.chapter || ""}
           className="h-9 text-xs"
           onChange={(e) => onFieldChange("chapter", e.target.value)}
@@ -78,16 +83,18 @@ export default function QuestionCardEditor({
           <label className="text-sm font-semibold text-foreground">
             Answer Options<span className="text-error"> *</span>
           </label>
-          <Button
-            onClick={onAddOption}
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1.5 text-xs text-primary"
-          >
-            <Plus size={14} />
-            Add Option
-          </Button>
+          {!readOnly && (
+            <Button
+              onClick={onAddOption}
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-primary"
+            >
+              <Plus size={14} />
+              Add Option
+            </Button>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -95,19 +102,21 @@ export default function QuestionCardEditor({
             <div key={optIndex} className="flex items-center gap-3">
               <input
                 type="checkbox"
-                className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer"
+                className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer disabled:cursor-default disabled:opacity-70"
                 checked={opt.is_correct}
+                disabled={readOnly}
                 onChange={(e) => onOptionChange(optIndex, "is_correct", e.target.checked)}
                 title="Mark as correct answer"
               />
 
               <Input
                 placeholder={`Option ${optIndex + 1}`}
+                readOnly={readOnly}
                 value={opt.option_text}
                 onChange={(e) => onOptionChange(optIndex, "option_text", e.target.value)}
               />
 
-              {options.length > 2 && (
+              {!readOnly && options.length > 2 && (
                 <Button
                   onClick={() => onDeleteOption(optIndex)}
                   type="button"
@@ -132,6 +141,7 @@ export default function QuestionCardEditor({
         <textarea
           className="min-h-[40px] w-full rounded-xl border border-input bg-background px-3 py-1.5 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
           placeholder="Explain why the correct answers are right (optional)"
+          readOnly={readOnly}
           value={question.explanation || ""}
           onChange={(e) => onFieldChange("explanation", e.target.value)}
         />
