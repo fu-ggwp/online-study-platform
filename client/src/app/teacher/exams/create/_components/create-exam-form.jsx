@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { CheckboxField, SelectField, SelectItem, TextAreaField, TextField } from "./create-exam-fields";
-import { getQuestionCount, RESULT_VISIBILITY_OPTIONS, STATUS_OPTIONS } from "./create-exam-options";
+import { formatClassLabel, getQuestionCount, RESULT_VISIBILITY_OPTIONS, STATUS_OPTIONS } from "./create-exam-options";
 
 export function CreateExamForm({
   availableQuestions,
@@ -55,7 +55,7 @@ export function CreateExamForm({
               {classes.length === 0 ? <SelectItem disabled value="no-classes">No active classes available</SelectItem> : null}
               {classes.map((item) => (
                 <SelectItem key={item.class_id} value={item.class_id}>
-                  {item.class_name}
+                  {formatClassLabel(item)}
                 </SelectItem>
               ))}
             </SelectField>

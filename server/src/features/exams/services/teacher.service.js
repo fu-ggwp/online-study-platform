@@ -23,6 +23,8 @@ import {
 } from "./utils.js";
 import {
   assertActivatable,
+  assertDurationFitsWindow,
+  assertStartNotPast,
   assertTimeWindow,
   getNext,
   normalizeCreatePayload,
@@ -221,10 +223,18 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
   if (questionIds.length) changes.question_count = questionIds.length;
   if (!Object.keys(changes).length) throw fail("No valid exam settings were provided.", 400);
 
+  const isActivating = changes.status === ExamSessionStatus.ACTIVE && exam.status !== ExamSessionStatus.ACTIVE;
+  if (changes.start_at !== undefined || isActivating) {
+    assertStartNotPast(getNext(exam, changes, "start_at"));
+  }
   assertTimeWindow(getNext(exam, changes, "start_at"), getNext(exam, changes, "end_at"));
+  assertDurationFitsWindow(
+    getNext(exam, changes, "start_at"),
+    getNext(exam, changes, "end_at"),
+    getNext(exam, changes, "duration_minutes")
+  );
   assertActivatable(exam, changes);
 
-  const isActivating = changes.status === ExamSessionStatus.ACTIVE && exam.status !== ExamSessionStatus.ACTIVE;
   if (isActivating && !text(getNext(exam, changes, "access_code"))) {
     changes.access_code = buildAccessCode();
   }

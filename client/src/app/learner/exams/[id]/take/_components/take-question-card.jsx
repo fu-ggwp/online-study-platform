@@ -16,13 +16,15 @@ export function TakeQuestionCard({
   const activeOptions = Array.isArray(activeQuestion?.answer_options)
     ? activeQuestion.answer_options
     : [];
+  const allowsMultiple = activeQuestion?.selection_mode === "multiple";
+  const choiceLabel = allowsMultiple ? "MULTIPLE CHOICE" : "SINGLE CHOICE";
 
   return (
     <section className="min-h-[398px] border border-border bg-card shadow-sm">
       {/* Question Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h1 className="text-sm font-bold text-muted-foreground">
-          QUESTION {activeIndex + 1} (SINGLE CHOICE)
+          QUESTION {activeIndex + 1} ({choiceLabel})
         </h1>
         <button
           className={`flex h-8 items-center gap-1 border px-3 text-xs font-semibold ${
@@ -56,7 +58,8 @@ export function TakeQuestionCard({
             style={{ fontSize: `${fontScale}rem` }}
           >
             {activeOptions.map((option, index) => {
-              const checked = selectedAnswers[activeQuestion.exam_question_id]?.[0] === option.index;
+              const selected = selectedAnswers[activeQuestion.exam_question_id] ?? [];
+              const checked = selected.map(Number).includes(Number(option.index));
               return (
                 <label
                   key={`${activeQuestion.exam_question_id}-${option.index}`}
@@ -65,8 +68,8 @@ export function TakeQuestionCard({
                   <input
                     checked={checked}
                     name={activeQuestion.exam_question_id}
-                    onChange={() => onSelectOption(activeQuestion.exam_question_id, option.index)}
-                    type="radio"
+                    onChange={() => onSelectOption(activeQuestion.exam_question_id, option.index, allowsMultiple)}
+                    type={allowsMultiple ? "checkbox" : "radio"}
                     className="size-4 accent-primary"
                   />
                   <span>({String.fromCharCode(105 + index)})</span>

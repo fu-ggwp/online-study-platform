@@ -3,7 +3,7 @@ export const INITIAL_FORM = {
   description: "",
   class_id: "",
   question_bank_id: "",
-  status: "active",
+  status: "draft",
   start_at: "",
   end_at: "",
   duration_minutes: "60",
@@ -28,6 +28,13 @@ export const RESULT_VISIBILITY_OPTIONS = [
 
 export function getQuestionCount(bank) {
   return Number(bank?.questionCount ?? bank?.question_count ?? 0);
+}
+
+export function formatClassLabel(classInfo) {
+  if (!classInfo) return "Class";
+
+  const className = classInfo.class_name || "Class";
+  return classInfo.class_code ? `${className} (${classInfo.class_code})` : className;
 }
 
 export function getErrorMessage(error) {

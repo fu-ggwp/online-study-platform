@@ -1,5 +1,6 @@
 import {
   RESULT_VISIBILITY_OPTIONS,
+  formatClassLabel,
   formatDateTime,
   getStatusLabel,
 } from "../../../_components/exam-session-options";
@@ -57,7 +58,7 @@ export function ExamSessionSettingsSection({
             error={fieldErrors.title}
             onChange={onFieldChange}
           />
-          <ReadOnlyField label="Class" value={exam.classes?.class_name} />
+          <ReadOnlyField label="Class" value={formatClassLabel(exam.classes)} />
           <TextAreaField
             label="Description"
             name="description"

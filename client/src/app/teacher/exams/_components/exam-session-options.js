@@ -74,6 +74,13 @@ export function formatVisibility(value) {
 }
 
 
+export function formatClassLabel(classInfo) {
+  if (!classInfo) return "Class";
+
+  const className = classInfo.class_name || "Class";
+  return classInfo.class_code ? `${className} (${classInfo.class_code})` : className;
+}
+
 export function getStatusLabel(status) {
   return STATUS_LABELS[status] ?? status;
 }

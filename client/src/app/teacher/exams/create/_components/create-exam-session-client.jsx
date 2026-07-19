@@ -88,6 +88,9 @@ export function CreateExamSessionClient() {
     const attemptLimit = Number(form.attempt_limit);
     const startTime = form.start_at ? new Date(form.start_at).getTime() : null;
     const endTime = form.end_at ? new Date(form.end_at).getTime() : null;
+    const durationEndTime = startTime && Number.isInteger(durationMinutes)
+      ? startTime + durationMinutes * 60 * 1000
+      : null;
 
     if (!form.title.trim()) errors.title = "Exam title is required.";
     if (!form.class_id) errors.class_id = "Please select an active class.";
@@ -112,11 +115,9 @@ export function CreateExamSessionClient() {
       errors.question_bank_id = "The selected question bank has no available questions.";
     }
 
-    if (nextStatus === "active") {
-      if (!form.start_at) errors.start_at = "Start time is required before activating.";
-      if (!form.end_at) errors.end_at = "End time is required before activating.";
-      if (startTime && startTime < Date.now()) errors.start_at = "Start time cannot be in the past.";
-    }
+    if (form.start_at && startTime && startTime < Date.now()) errors.start_at = "Start time cannot be in the past.";
+    if (nextStatus === "active" && !form.start_at) errors.start_at = "Start time is required before activating.";
+    if (nextStatus === "active" && !form.end_at) errors.end_at = "End time is required before activating.";
 
     if ((form.start_at && !form.end_at) || (!form.start_at && form.end_at)) {
       errors.start_at = errors.start_at || "Start and end time must be provided together.";
@@ -125,6 +126,10 @@ export function CreateExamSessionClient() {
 
     if (startTime && endTime && endTime <= startTime) {
       errors.end_at = "End time must be later than start time.";
+    }
+    if (durationEndTime && endTime && endTime <= durationEndTime) {
+      errors.end_at = "End time must be later than start time plus duration.";
+      errors.duration_minutes = errors.duration_minutes || "Duration must fit within the exam window.";
     }
 
     return errors;

@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatClassLabel } from "./exam-helpers";
 
 export function ExamFilters({
   filters,
@@ -30,7 +31,7 @@ export function ExamFilters({
             <option value="">All classes</option>
             {classes.map((item) => (
               <option key={item.class_id || item.class_name} value={item.class_id}>
-                {item.class_name}
+                {formatClassLabel(item)}
               </option>
             ))}
           </select>

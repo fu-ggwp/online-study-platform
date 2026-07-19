@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { examsService } from "@/services/exams.service";
+import { formatClassLabel } from "../_components/exam-helpers";
 
 function visibilityLabel(value) {
   if (value === "completion_only") return "Visible after submit";
@@ -153,6 +154,7 @@ export default function LearnerExamDetailPage() {
 
         <section className="rounded-md border border-border bg-card p-6 shadow-sm">
           <div className="space-y-4">
+            <DetailField label="Class" value={formatClassLabel(exam.classes)} />
             <DetailField label="Duration" value={`${exam.duration_minutes} minutes`} />
             <DetailField label="Allowed Attempts" value={String(exam.attempt_limit)} />
             <DetailField label="Question Count" value={String(exam.question_count)} />

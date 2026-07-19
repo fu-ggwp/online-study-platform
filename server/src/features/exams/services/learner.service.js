@@ -19,7 +19,8 @@ function filterLearnerExams(items, filters = {}) {
       !search ||
       text(exam.title).toLowerCase().includes(search) ||
       text(exam.description).toLowerCase().includes(search) ||
-      text(exam.classes?.class_name).toLowerCase().includes(search);
+      text(exam.classes?.class_name).toLowerCase().includes(search) ||
+      text(exam.classes?.class_code).toLowerCase().includes(search);
 
     return matchesSearch && (!classId || exam.class_id === classId);
   });
@@ -129,10 +130,12 @@ function filterCompletedAttempts(items, filters = {}) {
   return items.filter((attempt) => {
     const exam = attempt.exam_sessions ?? {};
     const className = exam.classes?.class_name ?? "";
+    const classCode = exam.classes?.class_code ?? "";
     const matchesSearch =
       !search ||
       text(exam.title).toLowerCase().includes(search) ||
-      text(className).toLowerCase().includes(search);
+      text(className).toLowerCase().includes(search) ||
+      text(classCode).toLowerCase().includes(search);
 
     return matchesSearch && (!classId || exam.class_id === classId);
   });

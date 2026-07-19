@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { formatSubmittedDate, formatDuration } from "./exam-helpers";
+import { formatClassLabel, formatSubmittedDate, formatDuration } from "./exam-helpers";
 
 export function CompletedExamsTable({ exams = [], onViewDetail }) {
   return (
@@ -28,7 +28,7 @@ export function CompletedExamsTable({ exams = [], onViewDetail }) {
                   {exam.title}
                 </td>
                 <td className="px-4 py-4 font-medium text-muted-foreground truncate">
-                  {exam.classes?.class_name ?? "Class"}
+                  {formatClassLabel(exam.classes)}
                 </td>
                 <td className="px-4 py-4 font-bold text-foreground">
                   {attempt.total_score}/{attempt.max_score ?? 10}

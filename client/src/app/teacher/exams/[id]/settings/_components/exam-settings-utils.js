@@ -69,6 +69,8 @@ export function validateSettingsForm(form, selectedQuestionIds = []) {
   const questionCount = Number(form.question_count);
   const startAt = toIsoDateTime(form.start_at);
   const endAt = toIsoDateTime(form.end_at);
+  const startTime = startAt ? new Date(startAt).getTime() : null;
+  const endTime = endAt ? new Date(endAt).getTime() : null;
 
   if (!form.title.trim()) errors.title = "Please complete all required information.";
   if (!editableStatusOptions.some((option) => option.value === form.status)) {
@@ -85,15 +87,22 @@ export function validateSettingsForm(form, selectedQuestionIds = []) {
   } else if (!Number.isInteger(questionCount) || questionCount <= 0) {
     errors.question_count = "Question count must be greater than zero.";
   }
+  if (startTime && startTime < Date.now()) {
+    errors.start_at = "Start time cannot be in the past.";
+  }
   if (form.status === "active" && !startAt) {
     errors.start_at = "Start time is required before activating.";
   }
   if (form.status === "active" && !endAt) {
     errors.end_at = "End time is required before activating.";
   }
-  if (startAt && endAt && new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+  if (startTime && endTime && endTime <= startTime) {
     errors.start_at = "End time must be later than start time.";
     errors.end_at = "End time must be later than start time.";
+  }
+  if (startTime && endTime && Number.isInteger(duration) && endTime <= startTime + duration * 60 * 1000) {
+    errors.duration_minutes = errors.duration_minutes || "Duration must fit within the exam window.";
+    errors.end_at = "End time must be later than start time plus duration.";
   }
 
   return errors;

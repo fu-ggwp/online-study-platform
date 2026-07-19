@@ -48,6 +48,7 @@ const EXAM_SESSION_SELECT = `
     class_id,
     teacher_id,
     class_name,
+    class_code,
     status
   ),
   question_bank:question_banks (
@@ -87,7 +88,8 @@ function filterExamSessions(items, filters) {
       includesText(exam.title, search) ||
       includesText(exam.description, search) ||
       includesText(exam.status, search) ||
-      includesText(exam.classes?.class_name, search);
+      includesText(exam.classes?.class_name, search) ||
+      includesText(exam.classes?.class_code, search);
 
     const matchesStatus = !status || exam.status === status;
     const matchesClass = !classId || exam.class_id === classId;
@@ -127,6 +129,7 @@ function buildClassOptions(items) {
       classesById.set(exam.classes.class_id, {
         class_id: exam.classes.class_id,
         class_name: exam.classes.class_name,
+        class_code: exam.classes.class_code,
       });
     }
   });
@@ -254,7 +257,7 @@ export function closeTeacherExamSession(examSessionId, teacherId, nowIso) {
 export function findManagedActiveClass(classId, teacherId) {
   return db
     .from(CLASS_TABLE)
-    .select("class_id, teacher_id, class_name, status")
+    .select("class_id, teacher_id, class_name, class_code, status")
     .eq("class_id", classId)
     .eq("teacher_id", teacherId)
     .eq("status", "active")
@@ -468,7 +471,8 @@ export function listLearnerCompletedAttempts(learnerId) {
         class_id,
         classes:classes (
           class_id,
-          class_name
+          class_name,
+          class_code
         )
       )
     `)

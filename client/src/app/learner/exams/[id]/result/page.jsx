@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { examsService } from "@/services/exams.service";
+import { formatClassLabel } from "../../_components/exam-helpers";
 
 function getErrorMessage(error) {
   return error?.response?.data?.error || error?.response?.data?.message || error?.message || "Unable to load exam results.";
@@ -52,7 +53,7 @@ function ResultSummary({ result }) {
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Class</dt>
-            <dd className="text-right font-medium text-foreground">{result.exam?.classes?.class_name || "Class"}</dd>
+            <dd className="text-right font-medium text-foreground">{formatClassLabel(result.exam?.classes)}</dd>
           </div>
         </dl>
       </section>

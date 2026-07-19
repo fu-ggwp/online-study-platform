@@ -10,5 +10,9 @@ export function getErrorMessage(error) {
 }
 
 export function sameSelection(left = [], right = []) {
-  return String(left[0] ?? "") === String(right[0] ?? "");
+  if (left.length !== right.length) return false;
+
+  const sortedLeft = [...left].map(Number).sort((a, b) => a - b);
+  const sortedRight = [...right].map(Number).sort((a, b) => a - b);
+  return sortedLeft.every((value, index) => value === sortedRight[index]);
 }
