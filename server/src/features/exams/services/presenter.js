@@ -58,6 +58,7 @@ export function visibleQuestions(questions, attempt) {
     return {
       exam_question_id: question.exam_question_id,
       question_text: question.question_text,
+      selection_mode: (question.correct_option_indexes ?? []).length > 1 ? "multiple" : "single",
       score: questionScore,
       display_order: question.display_order,
       answer_options: order.map((optionIndex) => {

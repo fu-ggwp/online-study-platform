@@ -2,11 +2,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-import { formatDateTime, formatVisibility } from "../../_components/exam-session-options";
+import { formatClassLabel, formatDateTime, formatVisibility } from "../../_components/exam-session-options";
 
 function SummaryItem({ className = "", label, value }) {
   return (
-    <div className={cn("rounded-2xl bg-muted/60 p-3", className)}>
+    <div className={cn("min-h-[84px] rounded-md bg-muted/60 p-4", className)}>
       <div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
       <div className="mt-2 text-sm font-medium text-foreground">{value || "Not set"}</div>
     </div>
@@ -30,9 +30,9 @@ export function ExamDetailSummary({ exam }) {
           <CardTitle className="text-lg font-semibold">Basic Info</CardTitle>
           <CardDescription>Class, question source, and session metadata.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <SummaryItem label="Class" value={exam.classes?.class_name} />
-          <SummaryItem className="sm:col-span-2" label="Question Source" value={exam.question_bank?.title} />
+        <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryItem label="Class" value={formatClassLabel(exam.classes)} />
+          <SummaryItem label="Question Source" value={exam.question_bank?.title} />
           <SummaryItem label="Question Subject" value={exam.question_bank?.subject || "No subject"} />
           <SummaryItem label="Last Updated" value={formatDateTime(exam.updated_at)} />
         </CardContent>

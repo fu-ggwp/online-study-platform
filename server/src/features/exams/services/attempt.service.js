@@ -44,6 +44,16 @@ function remainingSeconds(attempt) {
   return Math.max(Math.ceil((expires - nowMs()) / 1000), 0);
 }
 
+function withLearnerSubmitVisibility(attempt, exam) {
+  const visible = exam.result_visibility !== ExamResultVisibility.COMPLETION_ONLY;
+  return {
+    ...attempt,
+    total_score: visible ? attempt.total_score : null,
+    max_score: visible ? EXAM_MAX_SCORE : null,
+    result_visibility: exam.result_visibility,
+  };
+}
+
 function sameIndexes(left = [], right = []) {
   if (left.length !== right.length) return false;
   const sortedLeft = [...left].map(Number).sort((a, b) => a - b);
@@ -184,7 +194,7 @@ export async function submitLearnerExamAttempt(examAttemptId, learnerId, auto = 
   if (!attempt) throw notFound("Exam attempt not found");
   const exam = knownExam || await getLearnerExamOrFail(attempt.exam_session_id, learnerId);
   if (attempt.status === ExamAttemptStatus.SUBMITTED) {
-    return { ...withExamMaxScore(attempt), result_visibility: exam.result_visibility };
+    return withLearnerSubmitVisibility(attempt, exam);
   }
   const { data: answers, error: answerError } = await dao.listExamAttemptAnswers(examAttemptId);
   if (answerError) throw dbError(answerError, 500);
@@ -207,11 +217,7 @@ export async function submitLearnerExamAttempt(examAttemptId, learnerId, auto = 
   });
   if (updateError) throw dbError(updateError);
 
-  return {
-    ...data,
-    max_score: EXAM_MAX_SCORE,
-    result_visibility: exam.result_visibility,
-  };
+  return withLearnerSubmitVisibility(data, exam);
 }
 
 export async function getLearnerExamAttemptResults(examAttemptId, learnerId) {

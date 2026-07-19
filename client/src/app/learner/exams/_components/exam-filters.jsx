@@ -1,5 +1,6 @@
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatClassLabel } from "./exam-helpers";
 
 export function ExamFilters({
   filters,
@@ -7,10 +8,11 @@ export function ExamFilters({
   classes = [],
   sortOptions = [],
   applyFilters,
+  resetFilters,
 }) {
   return (
     <section className="rounded-md border border-border bg-card p-4 shadow-sm">
-      <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_auto]">
         <label className="space-y-2 text-sm font-bold">
           <span>Search Exams</span>
           <input
@@ -30,7 +32,7 @@ export function ExamFilters({
             <option value="">All classes</option>
             {classes.map((item) => (
               <option key={item.class_id || item.class_name} value={item.class_id}>
-                {item.class_name}
+                {formatClassLabel(item)}
               </option>
             ))}
           </select>
@@ -49,10 +51,14 @@ export function ExamFilters({
             ))}
           </select>
         </label>
-        <div className="flex items-end">
-          <Button type="button" variant="outline" onClick={applyFilters}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end xl:justify-end">
+          <Button className="h-10" type="button" variant="outline" onClick={applyFilters}>
             <Search className="size-4" />
             Apply
+          </Button>
+          <Button className="h-10" type="button" variant="ghost" onClick={resetFilters}>
+            <SlidersHorizontal className="size-4" />
+            Reset Filters
           </Button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { STATUS_OPTIONS } from "../../../_components/exam-session-options";
 
-const lockedStatuses = new Set(["closed", "archived"]);
+const lockedStatuses = new Set(["closed"]);
 
 export const editableStatusOptions = STATUS_OPTIONS.filter((option) =>
   ["draft", "active"].includes(option.value)
@@ -48,6 +48,7 @@ export function isExamSettingsLocked(exam) {
 
   return (
     lockedStatuses.has(exam.status) ||
+    Number(exam.exam_attempts_count || 0) > 0 ||
     (exam.status === "active" && Number.isFinite(startTime) && startTime <= now)
   );
 }
@@ -61,13 +62,15 @@ export function getExamSettingsErrorMessage(error) {
   );
 }
 
-export function validateSettingsForm(form) {
+export function validateSettingsForm(form, selectedQuestionIds = []) {
   const errors = {};
   const duration = Number(form.duration_minutes);
   const attempts = Number(form.attempt_limit);
   const questionCount = Number(form.question_count);
   const startAt = toIsoDateTime(form.start_at);
   const endAt = toIsoDateTime(form.end_at);
+  const startTime = startAt ? new Date(startAt).getTime() : null;
+  const endTime = endAt ? new Date(endAt).getTime() : null;
 
   if (!form.title.trim()) errors.title = "Please complete all required information.";
   if (!editableStatusOptions.some((option) => option.value === form.status)) {
@@ -79,8 +82,13 @@ export function validateSettingsForm(form) {
   if (!Number.isInteger(attempts) || attempts <= 0) {
     errors.attempt_limit = "Allowed attempts must be greater than zero.";
   }
-  if (!Number.isInteger(questionCount) || questionCount <= 0) {
+  if (selectedQuestionIds.length <= 0) {
+    errors.question_count = "Choose at least one question for this exam.";
+  } else if (!Number.isInteger(questionCount) || questionCount <= 0) {
     errors.question_count = "Question count must be greater than zero.";
+  }
+  if (startTime && startTime < Date.now()) {
+    errors.start_at = "Start time cannot be in the past.";
   }
   if (form.status === "active" && !startAt) {
     errors.start_at = "Start time is required before activating.";
@@ -88,16 +96,20 @@ export function validateSettingsForm(form) {
   if (form.status === "active" && !endAt) {
     errors.end_at = "End time is required before activating.";
   }
-  if (startAt && endAt && new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+  if (startTime && endTime && endTime <= startTime) {
     errors.start_at = "End time must be later than start time.";
     errors.end_at = "End time must be later than start time.";
+  }
+  if (startTime && endTime && Number.isInteger(duration) && endTime <= startTime + duration * 60 * 1000) {
+    errors.duration_minutes = errors.duration_minutes || "Duration must fit within the exam window.";
+    errors.end_at = "End time must be later than start time plus duration.";
   }
 
   return errors;
 }
 
-export function buildSettingsPayload(form) {
-  return {
+export function buildSettingsPayload(form, selectedQuestionIds = null) {
+  const payload = {
     title: form.title,
     description: form.description,
     status: form.status,
@@ -105,10 +117,16 @@ export function buildSettingsPayload(form) {
     end_at: toIsoDateTime(form.end_at),
     duration_minutes: Number(form.duration_minutes),
     attempt_limit: Number(form.attempt_limit),
-    question_count: Number(form.question_count),
+    question_count: Array.isArray(selectedQuestionIds) ? selectedQuestionIds.length : Number(form.question_count),
     randomize_questions: form.randomize_questions,
     randomize_answers: form.randomize_answers,
     result_visibility: form.result_visibility,
     access_code: form.access_code,
   };
+
+  if (Array.isArray(selectedQuestionIds)) {
+    payload.question_ids = selectedQuestionIds;
+  }
+
+  return payload;
 }

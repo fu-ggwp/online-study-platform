@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 
 import {
+  formatClassLabel,
   RESULT_VISIBILITY_OPTIONS,
   SORT_OPTIONS,
   STATUS_OPTIONS,
@@ -87,7 +88,7 @@ export function ExamSessionsFilters({
             { value: "", label: "All classes" },
             ...classOptions.map((classItem) => ({
               value: String(classItem.class_id),
-              label: classItem.class_name,
+              label: formatClassLabel(classItem),
             })),
           ]}
         />

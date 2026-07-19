@@ -1,6 +1,6 @@
 import { LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatDateTime } from "./exam-helpers";
+import { formatClassLabel, formatDateTime } from "./exam-helpers";
 
 export function AvailableExamsTable({ exams = [], onOpenExam }) {
   return (
@@ -25,7 +25,7 @@ export function AvailableExamsTable({ exams = [], onOpenExam }) {
                 {exam.title}
               </td>
               <td className="px-4 py-4 font-medium text-muted-foreground truncate">
-                {exam.classes?.class_name ?? "Class"}
+                {formatClassLabel(exam.classes)}
               </td>
               <td className="px-4 py-4 font-medium text-muted-foreground truncate">
                 {exam.duration_minutes} minutes

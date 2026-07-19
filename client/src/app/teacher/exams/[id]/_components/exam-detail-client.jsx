@@ -21,13 +21,13 @@ export function ExamDetailClient({ examId }) {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-5 font-sans text-foreground [font-family:var(--font-geist-sans),Arial,sans-serif] sm:px-6 lg:px-8">
+    <main className="min-h-full bg-background px-4 py-5 font-sans text-foreground [font-family:var(--font-geist-sans),Arial,sans-serif] sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl space-y-6">
         <ExamDetailHeader exam={exam} examId={examId} />
 
         {locked ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
-            Active exam sessions cannot be configured after their start time. Closed and archived exams are also locked.
+            Active exam sessions cannot be configured after their start time. Closed exams are also locked.
           </div>
         ) : null}
 

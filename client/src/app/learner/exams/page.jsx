@@ -1,6 +1,5 @@
 "use client";
 
-import { SlidersHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppPagination } from "@/components/common/app-pagination";
@@ -145,7 +144,7 @@ export default function LearnerExamsPage() {
   const sortOptions = activeTab === "available" ? SORT_OPTIONS : COMPLETED_SORT_OPTIONS;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-8">
+    <main className="min-h-full bg-background px-4 py-5 text-foreground sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl space-y-6">
         <div className="border-b border-border pb-6">
           <h1 className="text-3xl font-bold tracking-normal">My Exams</h1>
@@ -184,14 +183,8 @@ export default function LearnerExamsPage() {
           classes={meta.classes}
           sortOptions={sortOptions}
           applyFilters={applyFilters}
+          resetFilters={resetFilters}
         />
-
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" onClick={resetFilters}>
-            <SlidersHorizontal className="size-4" />
-            Reset Filters
-          </Button>
-        </div>
 
         {error ? <div className="rounded-md border border-error/30 bg-error/10 px-4 py-3 text-sm font-medium text-error">{error}</div> : null}
         {loading ? <div className="rounded-md border border-border bg-card px-4 py-6 text-sm text-muted-foreground">Loading exams...</div> : null}

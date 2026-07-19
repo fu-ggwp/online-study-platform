@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { examsService } from "@/services/exams.service";
+import { formatClassLabel } from "../_components/exam-helpers";
 
 function visibilityLabel(value) {
   if (value === "completion_only") return "Visible after submit";
@@ -125,7 +126,7 @@ export default function LearnerExamDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-background px-4 py-5 sm:px-6 lg:px-8">
+      <main className="min-h-full bg-background px-4 py-5 sm:px-6 lg:px-8">
         <section className="mx-auto max-w-5xl rounded-md border border-border bg-card p-6 text-sm text-muted-foreground">
           Loading exam information...
         </section>
@@ -135,7 +136,7 @@ export default function LearnerExamDetailPage() {
 
   if (error || !exam) {
     return (
-      <main className="min-h-screen bg-background px-4 py-5 sm:px-6 lg:px-8">
+      <main className="min-h-full bg-background px-4 py-5 sm:px-6 lg:px-8">
         <section className="mx-auto max-w-5xl space-y-4 rounded-md border border-border bg-card p-6">
           <p className="text-sm font-medium text-error">{error || "Exam not found."}</p>
           <Button asChild variant="outline"><Link href="/learner/exams">Back to exams</Link></Button>
@@ -145,7 +146,7 @@ export default function LearnerExamDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-8">
+    <main className="min-h-full bg-background px-4 py-5 text-foreground sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl space-y-6">
         <div className="border-b border-border pb-5 text-center">
           <h1 className="text-xl font-bold tracking-normal">{exam.title}</h1>
@@ -153,6 +154,7 @@ export default function LearnerExamDetailPage() {
 
         <section className="rounded-md border border-border bg-card p-6 shadow-sm">
           <div className="space-y-4">
+            <DetailField label="Class" value={formatClassLabel(exam.classes)} />
             <DetailField label="Duration" value={`${exam.duration_minutes} minutes`} />
             <DetailField label="Allowed Attempts" value={String(exam.attempt_limit)} />
             <DetailField label="Question Count" value={String(exam.question_count)} />

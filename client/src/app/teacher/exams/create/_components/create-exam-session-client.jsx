@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import classesService from "@/services/classes.service";
 import { examsService } from "@/services/exams.service";
 import { questionBanksService } from "@/services/question-banks.service";
+import { ExamQuestionPickerModal } from "../../_components/exam-question-picker-modal";
 
 import { CreateExamForm } from "./create-exam-form";
 import { CreateExamLoadingState } from "./create-exam-state";
@@ -23,6 +24,11 @@ export function CreateExamSessionClient() {
   const [submittingAction, setSubmittingAction] = useState(null);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [selectionMode, setSelectionMode] = useState("random");
+  const [pickerMode, setPickerMode] = useState("manual");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
 
   const selectedBank = useMemo(
     () => questionBanks.find((bank) => bank.question_bank_id === form.question_bank_id),
@@ -58,8 +64,17 @@ export function CreateExamSessionClient() {
   }, [loadFormOptions]);
 
   function updateField(name, value) {
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === "question_bank_id" ? { question_count: "10" } : {}),
+    }));
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
+
+    if (name === "question_bank_id") {
+      setSelectedQuestionIds([]);
+      setSelectedQuestions([]);
+    }
   }
 
   function handleInputChange(event) {
@@ -73,6 +88,9 @@ export function CreateExamSessionClient() {
     const attemptLimit = Number(form.attempt_limit);
     const startTime = form.start_at ? new Date(form.start_at).getTime() : null;
     const endTime = form.end_at ? new Date(form.end_at).getTime() : null;
+    const durationEndTime = startTime && Number.isInteger(durationMinutes)
+      ? startTime + durationMinutes * 60 * 1000
+      : null;
 
     if (!form.title.trim()) errors.title = "Exam title is required.";
     if (!form.class_id) errors.class_id = "Please select an active class.";
@@ -88,15 +106,18 @@ export function CreateExamSessionClient() {
     } else if (form.question_bank_id && questionCount > availableQuestions) {
       errors.question_count = `Only ${availableQuestions} questions are available in the selected bank.`;
     }
+    if (selectedQuestionIds.length <= 0) {
+      errors.question_count = selectionMode === "random"
+        ? "Pick random questions before creating the exam."
+        : "Choose at least one question before creating the exam.";
+    }
     if (form.question_bank_id && availableQuestions <= 0) {
       errors.question_bank_id = "The selected question bank has no available questions.";
     }
 
-    if (nextStatus === "active") {
-      if (!form.start_at) errors.start_at = "Start time is required before activating.";
-      if (!form.end_at) errors.end_at = "End time is required before activating.";
-      if (startTime && startTime < Date.now()) errors.start_at = "Start time cannot be in the past.";
-    }
+    if (form.start_at && startTime && startTime < Date.now()) errors.start_at = "Start time cannot be in the past.";
+    if (nextStatus === "active" && !form.start_at) errors.start_at = "Start time is required before activating.";
+    if (nextStatus === "active" && !form.end_at) errors.end_at = "End time is required before activating.";
 
     if ((form.start_at && !form.end_at) || (!form.start_at && form.end_at)) {
       errors.start_at = errors.start_at || "Start and end time must be provided together.";
@@ -105,6 +126,10 @@ export function CreateExamSessionClient() {
 
     if (startTime && endTime && endTime <= startTime) {
       errors.end_at = "End time must be later than start time.";
+    }
+    if (durationEndTime && endTime && endTime <= durationEndTime) {
+      errors.end_at = "End time must be later than start time plus duration.";
+      errors.duration_minutes = errors.duration_minutes || "Duration must fit within the exam window.";
     }
 
     return errors;
@@ -133,7 +158,8 @@ export function CreateExamSessionClient() {
         end_at: toDateTimePayload(form.end_at),
         duration_minutes: Number(form.duration_minutes),
         attempt_limit: Number(form.attempt_limit),
-        question_count: Number(form.question_count),
+        question_count: selectedQuestionIds.length,
+        question_ids: selectedQuestionIds,
         result_visibility: form.result_visibility,
         access_code: form.access_code.trim() || null,
         randomize_questions: form.randomize_questions,
@@ -150,7 +176,7 @@ export function CreateExamSessionClient() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -178,11 +204,37 @@ export function CreateExamSessionClient() {
             isSubmitting={Boolean(submittingAction)}
             onFieldChange={updateField}
             onInputChange={handleInputChange}
+            onOpenQuestionPicker={(mode) => {
+              setPickerMode(mode);
+              setPickerOpen(true);
+            }}
+            onSelectionModeChange={(mode) => {
+              setSelectionMode(mode);
+              setFieldErrors((current) => ({ ...current, question_count: undefined }));
+            }}
             onSubmitExam={submitExam}
             questionBanks={questionBanks}
+            selectedQuestionCount={selectedQuestionIds.length}
+            selectedQuestions={selectedQuestions}
+            selectionMode={selectionMode}
             submittingAction={submittingAction}
           />
         )}
+        <ExamQuestionPickerModal
+          isOpen={pickerOpen}
+          mode={pickerMode}
+          questionBankId={form.question_bank_id}
+          randomCount={Number(form.question_count)}
+          initialSelectedIds={selectedQuestionIds}
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={({ questionIds, questions }) => {
+            setSelectedQuestionIds(questionIds);
+            setSelectedQuestions(questions);
+            setForm((current) => ({ ...current, question_count: String(questionIds.length) }));
+            setFieldErrors((current) => ({ ...current, question_count: undefined }));
+            setPickerOpen(false);
+          }}
+        />
       </section>
     </main>
   );

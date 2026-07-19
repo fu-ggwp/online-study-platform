@@ -4,12 +4,18 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { examsService } from "@/services/exams.service";
+import { formatClassLabel } from "../../_components/exam-helpers";
 import { getErrorMessage, sameSelection } from "./_components/take-helpers";
 import { LoadingView, ErrorView, SubmittedView } from "./_components/take-overlays";
 import { NeedsReturnModal } from "./_components/needs-return-modal";
 import { TakeHeader } from "./_components/take-header";
 import { TakeSidebar } from "./_components/take-sidebar";
 import { TakeQuestionCard } from "./_components/take-question-card";
+
+const PROCTOR_BOOT_GRACE_MS = 3000;
+const PROCTOR_EVENT_COOLDOWN_MS = 2500;
+const PROCTOR_FOCUS_GRACE_MS = 1200;
+const PROCTOR_SUPPRESS_MS = 2000;
 
 export default function TakeExamPage() {
   const params = useParams();
@@ -30,23 +36,31 @@ export default function TakeExamPage() {
 
   const startedRef = useRef(false);
   const eventAtRef = useRef({});
+  const proctorReadyAtRef = useRef(0);
+  const suppressProctorUntilRef = useRef(0);
   const submittingRef = useRef(false);
+  const blurTimeoutRef = useRef(null);
 
   const attempt = examData?.attempt;
   const examAttemptId = attempt?.exam_attempt_id;
   const questions = useMemo(() => examData?.questions ?? [], [examData?.questions]);
   const activeQuestion = questions[activeIndex] ?? questions[0];
 
+  const suppressProctorBriefly = useCallback((duration = PROCTOR_SUPPRESS_MS) => {
+    suppressProctorUntilRef.current = Math.max(suppressProctorUntilRef.current, Date.now() + duration);
+  }, []);
+
   const requestExamMode = useCallback(() => {
     if (typeof document === "undefined") return;
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      suppressProctorBriefly();
       document.documentElement.requestFullscreen()
         .then(() => setNeedsReturn(false))
         .catch(() => setNeedsReturn(true));
       return;
     }
     setNeedsReturn(false);
-  }, []);
+  }, [suppressProctorBriefly]);
 
   const syncWarningCount = useCallback((updated) => {
     if (updated?.warning_count === undefined) return;
@@ -61,7 +75,8 @@ export default function TakeExamPage() {
     if (!examAttemptId) return;
 
     const now = Date.now();
-    if (now - (eventAtRef.current[eventType] || 0) < 600) return;
+    if (countWarning && (submittingRef.current || now < proctorReadyAtRef.current || now < suppressProctorUntilRef.current)) return;
+    if (now - (eventAtRef.current[eventType] || 0) < PROCTOR_EVENT_COOLDOWN_MS) return;
     eventAtRef.current[eventType] = now;
 
     if (message) setWarning(message);
@@ -84,6 +99,7 @@ export default function TakeExamPage() {
   }, [examAttemptId, requestExamMode, syncWarningCount]);
 
   const returnToExam = useCallback(async () => {
+    suppressProctorBriefly();
     requestExamMode();
     if (!examAttemptId) return;
 
@@ -92,11 +108,12 @@ export default function TakeExamPage() {
     } catch {
       setWarning("Returned to exam, but return event could not sync to server.");
     }
-  }, [examAttemptId, requestExamMode]);
+  }, [examAttemptId, requestExamMode, suppressProctorBriefly]);
 
   const submitAttempt = useCallback(async (isAutoSubmitted = false) => {
     if (!examAttemptId || submittingRef.current) return;
     submittingRef.current = true;
+    suppressProctorBriefly(5000);
     try {
       const result = await examsService.submitAttempt(examAttemptId, { is_auto_submitted: isAutoSubmitted });
       setSubmitted(result);
@@ -106,7 +123,7 @@ export default function TakeExamPage() {
     } finally {
       submittingRef.current = false;
     }
-  }, [examAttemptId]);
+  }, [examAttemptId, suppressProctorBriefly]);
 
   useEffect(() => {
     if (startedRef.current || !examId) return;
@@ -126,6 +143,7 @@ export default function TakeExamPage() {
         setExamData(data);
         setSelectedAnswers(answerMap);
         setRemainingSeconds(data.attempt?.remaining_seconds ?? 0);
+        proctorReadyAtRef.current = Date.now() + PROCTOR_BOOT_GRACE_MS;
         requestExamMode();
       })
       .catch((loadError) => setError(getErrorMessage(loadError)))
@@ -159,8 +177,17 @@ export default function TakeExamPage() {
         requestExamMode();
       }
     };
-    const onBlur = () => recordEvent("window_blur", "Warning: keep the exam window active.");
-    const onFocus = () => recordEvent("window_focus", "", false);
+    const onBlur = () => {
+      window.clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = window.setTimeout(() => {
+        if (document.visibilityState !== "visible" || document.hasFocus()) return;
+        recordEvent("window_blur", "Warning: keep the exam window active.");
+      }, PROCTOR_FOCUS_GRACE_MS);
+    };
+    const onFocus = () => {
+      window.clearTimeout(blurTimeoutRef.current);
+      recordEvent("window_focus", "", false);
+    };
     const onFullscreen = () => {
       if (!document.fullscreenElement) {
         recordEvent("fullscreen_exit", "Warning: fullscreen mode is required for this exam.");
@@ -197,6 +224,7 @@ export default function TakeExamPage() {
     window.addEventListener("contextmenu", onContextMenu);
 
     return () => {
+      window.clearTimeout(blurTimeoutRef.current);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
@@ -211,8 +239,15 @@ export default function TakeExamPage() {
     return questions.filter((question) => (selectedAnswers[question.exam_question_id] ?? []).length > 0).length;
   }, [questions, selectedAnswers]);
 
-  async function selectOption(questionId, optionIndex) {
-    const nextSelection = [optionIndex];
+  async function selectOption(questionId, optionIndex, allowsMultiple = false) {
+    const currentSelection = selectedAnswers[questionId] ?? [];
+    const selected = currentSelection.map(Number).includes(Number(optionIndex));
+    const nextSelection = allowsMultiple
+      ? selected
+        ? currentSelection.filter((index) => Number(index) !== Number(optionIndex))
+        : [...currentSelection, optionIndex]
+      : [optionIndex];
+
     if (sameSelection(selectedAnswers[questionId], nextSelection)) return;
 
     setSelectedAnswers((current) => ({ ...current, [questionId]: nextSelection }));
@@ -227,6 +262,7 @@ export default function TakeExamPage() {
   }
 
   function handleSubmit() {
+    suppressProctorBriefly(5000);
     if (!window.confirm("Submit this exam? You cannot change answers after submitting.")) return;
     submitAttempt(false);
   }
@@ -274,7 +310,7 @@ export default function TakeExamPage() {
       <TakeHeader onChangeFontScale={changeFontScale} />
 
       <section className="border-b border-border bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
-        Individual exam - {examData.exam?.classes?.class_name || "Class"} - {examData.exam?.title}
+        Individual exam - {formatClassLabel(examData.exam?.classes)} - {examData.exam?.title}
       </section>
 
       {warning ? (

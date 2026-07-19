@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { formatSubmittedDate, formatDuration } from "./exam-helpers";
+import { formatClassLabel, formatSubmittedDate, formatDuration } from "./exam-helpers";
 
 export function CompletedExamsTable({ exams = [], onViewDetail }) {
   return (
@@ -19,6 +19,8 @@ export function CompletedExamsTable({ exams = [], onViewDetail }) {
         <tbody className="divide-y divide-border">
           {exams.map((attempt, index) => {
             const exam = attempt.exam_sessions ?? {};
+            const canViewScore = attempt.total_score !== null && attempt.total_score !== undefined;
+            const canReviewAnswers = exam.result_visibility === "question_answer";
             return (
               <tr
                 key={`completed-${index}`}
@@ -28,10 +30,10 @@ export function CompletedExamsTable({ exams = [], onViewDetail }) {
                   {exam.title}
                 </td>
                 <td className="px-4 py-4 font-medium text-muted-foreground truncate">
-                  {exam.classes?.class_name ?? "Class"}
+                  {formatClassLabel(exam.classes)}
                 </td>
                 <td className="px-4 py-4 font-bold text-foreground">
-                  {attempt.total_score}/{attempt.max_score ?? 10}
+                  {canViewScore ? `${attempt.total_score}/${attempt.max_score ?? 10}` : "Completed"}
                 </td>
                 <td className="px-4 py-4 font-medium text-muted-foreground">
                   Attempt #{attempt.attempt_number}
@@ -43,14 +45,18 @@ export function CompletedExamsTable({ exams = [], onViewDetail }) {
                   {formatDuration(attempt.duration_seconds)}
                 </td>
                 <td className="px-4 py-4 text-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onViewDetail(exam.exam_session_id, attempt.exam_attempt_id)}
-                  >
-                    View detail
-                  </Button>
+                  {canReviewAnswers ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onViewDetail(exam.exam_session_id, attempt.exam_attempt_id)}
+                    >
+                      View detail
+                    </Button>
+                  ) : (
+                    <span className="text-xs font-medium text-muted-foreground">No detail</span>
+                  )}
                 </td>
               </tr>
             );

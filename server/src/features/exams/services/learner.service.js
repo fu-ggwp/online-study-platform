@@ -1,4 +1,5 @@
 import * as dao from "../exams.dao.js";
+import { ExamResultVisibility } from "../../../models/exam.model.js";
 import {
   attemptDurationSeconds,
   dbError,
@@ -10,6 +11,21 @@ import {
 } from "./utils.js";
 import { withExamMaxScore } from "./presenter.js";
 
+function withLearnerVisibleScore(attempt, visibility) {
+  if (visibility === ExamResultVisibility.COMPLETION_ONLY) {
+    return {
+      ...attempt,
+      total_score: null,
+      max_score: null,
+    };
+  }
+
+  return {
+    ...attempt,
+    max_score: EXAM_MAX_SCORE,
+  };
+}
+
 function filterLearnerExams(items, filters = {}) {
   const search = text(filters.search).toLowerCase();
   const classId = text(filters.classId);
@@ -19,7 +35,8 @@ function filterLearnerExams(items, filters = {}) {
       !search ||
       text(exam.title).toLowerCase().includes(search) ||
       text(exam.description).toLowerCase().includes(search) ||
-      text(exam.classes?.class_name).toLowerCase().includes(search);
+      text(exam.classes?.class_name).toLowerCase().includes(search) ||
+      text(exam.classes?.class_code).toLowerCase().includes(search);
 
     return matchesSearch && (!classId || exam.class_id === classId);
   });
@@ -129,10 +146,12 @@ function filterCompletedAttempts(items, filters = {}) {
   return items.filter((attempt) => {
     const exam = attempt.exam_sessions ?? {};
     const className = exam.classes?.class_name ?? "";
+    const classCode = exam.classes?.class_code ?? "";
     const matchesSearch =
       !search ||
       text(exam.title).toLowerCase().includes(search) ||
-      text(className).toLowerCase().includes(search);
+      text(className).toLowerCase().includes(search) ||
+      text(classCode).toLowerCase().includes(search);
 
     return matchesSearch && (!classId || exam.class_id === classId);
   });
@@ -174,9 +193,8 @@ function paginateCompletedAttempts(items, filters = {}) {
 
   return {
     items: filtered.slice(start, start + pageSize).map((attempt) => ({
-      ...attempt,
+      ...withLearnerVisibleScore(attempt, attempt.exam_sessions?.result_visibility),
       duration_seconds: attemptDurationSeconds(attempt),
-      max_score: EXAM_MAX_SCORE,
     })),
     total,
     page: safePage,

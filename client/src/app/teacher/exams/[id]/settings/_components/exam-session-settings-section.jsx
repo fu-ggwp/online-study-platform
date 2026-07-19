@@ -1,9 +1,12 @@
 import {
   RESULT_VISIBILITY_OPTIONS,
+  formatClassLabel,
   formatDateTime,
   getStatusLabel,
 } from "../../../_components/exam-session-options";
+import { ListChecks, Shuffle } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { editableStatusOptions } from "./exam-settings-utils";
@@ -24,6 +27,11 @@ export function ExamSessionSettingsSection({
   locked,
   saving,
   onFieldChange,
+  onOpenQuestionPicker,
+  onSelectionModeChange,
+  selectedQuestionCount,
+  selectedQuestions,
+  selectionMode,
 }) {
   const disabled = locked || saving;
 
@@ -50,8 +58,7 @@ export function ExamSessionSettingsSection({
             error={fieldErrors.title}
             onChange={onFieldChange}
           />
-          <ReadOnlyField label="Class" value={exam.classes?.class_name} />
-          <ReadOnlyField className="md:col-span-2" label="Question Source" value={exam.question_bank?.title} />
+          <ReadOnlyField label="Class" value={formatClassLabel(exam.classes)} />
           <TextAreaField
             label="Description"
             name="description"
@@ -60,6 +67,94 @@ export function ExamSessionSettingsSection({
             onChange={onFieldChange}
             placeholder="Optional notes for this exam session"
           />
+        </CardContent>
+      </Card>
+
+      <Card className="border border-border shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-lg font-semibold">Question Bank</CardTitle>
+          <CardDescription>Review the source bank and manage the selected exam questions.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-5">
+          <ReadOnlyField label="Question Source" value={exam.question_bank?.title} />
+
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onSelectionModeChange("random")}
+                className={`rounded-2xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                  selectionMode === "random" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                }`}
+              >
+                <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+                  <Shuffle className="size-4" />
+                  Random pick
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">Randomly tick questions first, then review them.</span>
+              </button>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onSelectionModeChange("manual")}
+                className={`rounded-2xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                  selectionMode === "manual" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                }`}
+              >
+                <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+                  <ListChecks className="size-4" />
+                  Manual pick
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">Choose exact questions by chapter.</span>
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-border p-4">
+              {selectionMode === "random" ? (
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                  <TextField
+                    label="Random Question Count"
+                    name="question_count"
+                    type="number"
+                    min="1"
+                    value={form.question_count}
+                    disabled={disabled}
+                    error={fieldErrors.question_count}
+                    onChange={onFieldChange}
+                  />
+                  <Button disabled={disabled} onClick={() => onOpenQuestionPicker("random")} type="button">
+                    <Shuffle className="size-4" />
+                    Pick Random Questions
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Manual Question Selection</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Open the question bank and update selected exam questions.</p>
+                  </div>
+                  <Button disabled={disabled} onClick={() => onOpenQuestionPicker("manual")} type="button">
+                    <ListChecks className="size-4" />
+                    Manage Questions
+                  </Button>
+                </div>
+              )}
+
+              <div className="mt-4 rounded-xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                Selected: <span className="font-bold text-foreground">{selectedQuestionCount}</span> questions
+                {selectedQuestions.length ? (
+                  <span className="ml-2">
+                    ({selectedQuestions.slice(0, 2).map((question) => question.question_text).join("; ")}
+                    {selectedQuestions.length > 2 ? "..." : ""})
+                  </span>
+                ) : null}
+              </div>
+              {fieldErrors.question_count ? (
+                <p className="mt-2 text-sm font-medium text-error">{fieldErrors.question_count}</p>
+              ) : null}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -124,16 +219,6 @@ export function ExamSessionSettingsSection({
           <CardDescription>Configure attempts, visibility, and randomized delivery.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-5 md:grid-cols-2">
-          <TextField
-            label="Question Count"
-            name="question_count"
-            type="number"
-            min="1"
-            value={form.question_count}
-            disabled={disabled}
-            error={fieldErrors.question_count}
-            onChange={onFieldChange}
-          />
           <TextField
             label="Allowed Attempts"
             name="attempt_limit"

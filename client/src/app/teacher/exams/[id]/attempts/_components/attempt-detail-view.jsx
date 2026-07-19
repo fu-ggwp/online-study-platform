@@ -1,5 +1,6 @@
 import { ArrowLeft, ClipboardList, CheckCircle2, Hourglass, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatClassLabel } from "../../../_components/exam-session-options";
 import {
   learnerName,
   formatScore,
@@ -46,7 +47,7 @@ export function AttemptDetailView({
   const result = detail?.result;
 
   return (
-    <main className="min-h-screen bg-muted/40 px-4 py-5 text-foreground sm:px-6 lg:px-8">
+    <main className="min-h-full bg-muted/40 px-4 py-5 text-foreground sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-col gap-4 border-b border-border pb-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -121,7 +122,7 @@ export function AttemptDetailView({
                 </div>
                 <div className="min-w-0 rounded-md bg-muted/40 px-3 py-2">
                   <dt className="font-bold text-muted-foreground">Class</dt>
-                  <dd className="mt-1 truncate font-semibold text-foreground">{data.exam?.classes?.class_name || "Class"}</dd>
+                  <dd className="mt-1 truncate font-semibold text-foreground">{formatClassLabel(data.exam?.classes)}</dd>
                 </div>
               </dl>
             </section>

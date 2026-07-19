@@ -48,6 +48,7 @@ const EXAM_SESSION_SELECT = `
     class_id,
     teacher_id,
     class_name,
+    class_code,
     status
   ),
   question_bank:question_banks (
@@ -87,7 +88,8 @@ function filterExamSessions(items, filters) {
       includesText(exam.title, search) ||
       includesText(exam.description, search) ||
       includesText(exam.status, search) ||
-      includesText(exam.classes?.class_name, search);
+      includesText(exam.classes?.class_name, search) ||
+      includesText(exam.classes?.class_code, search);
 
     const matchesStatus = !status || exam.status === status;
     const matchesClass = !classId || exam.class_id === classId;
@@ -127,6 +129,7 @@ function buildClassOptions(items) {
       classesById.set(exam.classes.class_id, {
         class_id: exam.classes.class_id,
         class_name: exam.classes.class_name,
+        class_code: exam.classes.class_code,
       });
     }
   });
@@ -189,6 +192,22 @@ export function findTeacherExamSession(examSessionId, teacherId) {
     .maybeSingle();
 }
 
+export async function findTeacherExamSessionWithQuestions(examSessionId, teacherId) {
+  const examResult = await findTeacherExamSession(examSessionId, teacherId);
+  if (examResult.error || !examResult.data) return examResult;
+
+  const questionResult = await listExamQuestions(examSessionId);
+  if (questionResult.error) return { data: null, error: questionResult.error };
+
+  return {
+    data: {
+      ...examResult.data,
+      exam_questions: questionResult.data ?? [],
+    },
+    error: null,
+  };
+}
+
 export function findExamSessionById(examSessionId) {
   return db
     .from(EXAM_SESSION_TABLE)
@@ -238,7 +257,7 @@ export function closeTeacherExamSession(examSessionId, teacherId, nowIso) {
 export function findManagedActiveClass(classId, teacherId) {
   return db
     .from(CLASS_TABLE)
-    .select("class_id, teacher_id, class_name, status")
+    .select("class_id, teacher_id, class_name, class_code, status")
     .eq("class_id", classId)
     .eq("teacher_id", teacherId)
     .eq("status", "active")
@@ -263,6 +282,20 @@ export function insertExamQuestions(rows) {
     .from(EXAM_QUESTION_TABLE)
     .insert(rows)
     .select("*");
+}
+
+export function deleteExamQuestions(examSessionId) {
+  return db
+    .from(EXAM_QUESTION_TABLE)
+    .delete()
+    .eq("exam_session_id", examSessionId);
+}
+
+export function countExamAttempts(examSessionId) {
+  return db
+    .from(EXAM_ATTEMPT_TABLE)
+    .select("exam_attempt_id", { count: "exact", head: true })
+    .eq("exam_session_id", examSessionId);
 }
 
 export function deleteExamSession(examSessionId) {
@@ -436,13 +469,14 @@ export function listLearnerCompletedAttempts(learnerId) {
         exam_session_id,
         title,
         class_id,
+        result_visibility,
         classes:classes (
           class_id,
-          class_name
+          class_name,
+          class_code
         )
       )
     `)
     .eq("learner_id", learnerId)
     .eq("status", "submitted");
 }
-

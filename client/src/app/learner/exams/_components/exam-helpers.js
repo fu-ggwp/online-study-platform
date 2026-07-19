@@ -10,6 +10,13 @@ export function formatDateTime(value) {
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
+export function formatClassLabel(classInfo) {
+  if (!classInfo) return "Class";
+
+  const className = classInfo.class_name || "Class";
+  return classInfo.class_code ? `${className} (${classInfo.class_code})` : className;
+}
+
 export function formatSubmittedDate(dateString) {
   if (!dateString) return "N/A";
   const date = new Date(dateString);
