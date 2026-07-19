@@ -1,4 +1,5 @@
 import * as dao from "../exams.dao.js";
+import { ExamResultVisibility } from "../../../models/exam.model.js";
 import {
   attemptDurationSeconds,
   dbError,
@@ -9,6 +10,21 @@ import {
   text,
 } from "./utils.js";
 import { withExamMaxScore } from "./presenter.js";
+
+function withLearnerVisibleScore(attempt, visibility) {
+  if (visibility === ExamResultVisibility.COMPLETION_ONLY) {
+    return {
+      ...attempt,
+      total_score: null,
+      max_score: null,
+    };
+  }
+
+  return {
+    ...attempt,
+    max_score: EXAM_MAX_SCORE,
+  };
+}
 
 function filterLearnerExams(items, filters = {}) {
   const search = text(filters.search).toLowerCase();
@@ -177,9 +193,8 @@ function paginateCompletedAttempts(items, filters = {}) {
 
   return {
     items: filtered.slice(start, start + pageSize).map((attempt) => ({
-      ...attempt,
+      ...withLearnerVisibleScore(attempt, attempt.exam_sessions?.result_visibility),
       duration_seconds: attemptDurationSeconds(attempt),
-      max_score: EXAM_MAX_SCORE,
     })),
     total,
     page: safePage,

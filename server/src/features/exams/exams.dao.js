@@ -469,6 +469,7 @@ export function listLearnerCompletedAttempts(learnerId) {
         exam_session_id,
         title,
         class_id,
+        result_visibility,
         classes:classes (
           class_id,
           class_name,
