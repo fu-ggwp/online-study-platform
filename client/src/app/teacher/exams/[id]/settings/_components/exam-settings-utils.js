@@ -48,6 +48,7 @@ export function isExamSettingsLocked(exam) {
 
   return (
     lockedStatuses.has(exam.status) ||
+    Number(exam.exam_attempts_count || 0) > 0 ||
     (exam.status === "active" && Number.isFinite(startTime) && startTime <= now)
   );
 }
@@ -61,7 +62,7 @@ export function getExamSettingsErrorMessage(error) {
   );
 }
 
-export function validateSettingsForm(form) {
+export function validateSettingsForm(form, selectedQuestionIds = []) {
   const errors = {};
   const duration = Number(form.duration_minutes);
   const attempts = Number(form.attempt_limit);
@@ -79,7 +80,9 @@ export function validateSettingsForm(form) {
   if (!Number.isInteger(attempts) || attempts <= 0) {
     errors.attempt_limit = "Allowed attempts must be greater than zero.";
   }
-  if (!Number.isInteger(questionCount) || questionCount <= 0) {
+  if (selectedQuestionIds.length <= 0) {
+    errors.question_count = "Choose at least one question for this exam.";
+  } else if (!Number.isInteger(questionCount) || questionCount <= 0) {
     errors.question_count = "Question count must be greater than zero.";
   }
   if (form.status === "active" && !startAt) {
@@ -96,8 +99,8 @@ export function validateSettingsForm(form) {
   return errors;
 }
 
-export function buildSettingsPayload(form) {
-  return {
+export function buildSettingsPayload(form, selectedQuestionIds = null) {
+  const payload = {
     title: form.title,
     description: form.description,
     status: form.status,
@@ -105,10 +108,16 @@ export function buildSettingsPayload(form) {
     end_at: toIsoDateTime(form.end_at),
     duration_minutes: Number(form.duration_minutes),
     attempt_limit: Number(form.attempt_limit),
-    question_count: Number(form.question_count),
+    question_count: Array.isArray(selectedQuestionIds) ? selectedQuestionIds.length : Number(form.question_count),
     randomize_questions: form.randomize_questions,
     randomize_answers: form.randomize_answers,
     result_visibility: form.result_visibility,
     access_code: form.access_code,
   };
+
+  if (Array.isArray(selectedQuestionIds)) {
+    payload.question_ids = selectedQuestionIds;
+  }
+
+  return payload;
 }

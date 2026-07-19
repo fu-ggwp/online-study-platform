@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Loader2, Save } from "lucide-react";
+import { AlertCircle, CheckCircle2, ListChecks, Loader2, Save, Shuffle } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,17 @@ export function CreateExamForm({
   isSubmitting,
   onFieldChange,
   onInputChange,
+  onOpenQuestionPicker,
+  onSelectionModeChange,
   onSubmitExam,
   questionBanks,
+  selectedQuestionCount,
+  selectedQuestions,
+  selectionMode,
   submittingAction,
 }) {
+  const canPickQuestions = Boolean(form.question_bank_id) && availableQuestions > 0;
+
   return (
     <form className="flex flex-col gap-5" onSubmit={(event) => event.preventDefault()}>
       <div className="flex flex-col gap-5">
@@ -52,9 +59,24 @@ export function CreateExamForm({
                 </SelectItem>
               ))}
             </SelectField>
+            <TextAreaField
+              error={fieldErrors.description}
+              label="Description"
+              name="description"
+              onChange={onInputChange}
+              placeholder="Optional notes for this exam session"
+              value={form.description}
+            />
+          </CardContent>
+        </Card>
 
+        <Card className="border border-border shadow-sm">
+          <CardHeader className="border-b bg-muted/30">
+            <CardTitle className="text-lg font-semibold">Question Bank</CardTitle>
+            <CardDescription>Choose the source bank and pick the exact questions for this exam.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5">
             <SelectField
-              className="lg:col-span-2"
               error={fieldErrors.question_bank_id}
               label="Question Source"
               name="question_bank_id"
@@ -72,14 +94,91 @@ export function CreateExamForm({
                 );
               })}
             </SelectField>
-            <TextAreaField
-              error={fieldErrors.description}
-              label="Description"
-              name="description"
-              onChange={onInputChange}
-              placeholder="Optional notes for this exam session"
-              value={form.description}
-            />
+
+            <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => onSelectionModeChange("random")}
+                  className={`rounded-2xl border px-4 py-3 text-left transition-colors ${
+                    selectionMode === "random" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+                    <Shuffle className="size-4" />
+                    Random pick
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Randomly tick questions first, then review them.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectionModeChange("manual")}
+                  className={`rounded-2xl border px-4 py-3 text-left transition-colors ${
+                    selectionMode === "manual" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+                    <ListChecks className="size-4" />
+                    Manual pick
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Choose exact questions by chapter.
+                  </span>
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-border p-4">
+                {selectionMode === "random" ? (
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                    <TextField
+                      error={fieldErrors.question_count}
+                      label="Random Question Count"
+                      max={availableQuestions || undefined}
+                      min="1"
+                      name="question_count"
+                      onChange={onInputChange}
+                      type="number"
+                      value={form.question_count}
+                    />
+                    <Button
+                      disabled={!canPickQuestions}
+                      onClick={() => onOpenQuestionPicker("random")}
+                      type="button"
+                    >
+                      <Shuffle className="size-4" />
+                      Pick Random Questions
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Manual Question Selection</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Open the question bank and tick questions to include.</p>
+                    </div>
+                    <Button
+                      disabled={!canPickQuestions}
+                      onClick={() => onOpenQuestionPicker("manual")}
+                      type="button"
+                    >
+                      <ListChecks className="size-4" />
+                      Choose Questions
+                    </Button>
+                  </div>
+                )}
+
+                <div className="mt-4 rounded-xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                  Selected: <span className="font-bold text-foreground">{selectedQuestionCount}</span> questions
+                  {selectedQuestions.length ? (
+                    <span className="ml-2">
+                      ({selectedQuestions.slice(0, 2).map((question) => question.question_text).join("; ")}
+                      {selectedQuestions.length > 2 ? "..." : ""})
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -127,19 +226,9 @@ export function CreateExamForm({
         <Card className="border border-border shadow-sm">
           <CardHeader className="border-b bg-muted/30">
             <CardTitle className="text-lg font-semibold">Rules</CardTitle>
-            <CardDescription>Control attempts, result visibility, and how questions are delivered.</CardDescription>
+            <CardDescription>Control attempts, result visibility, and randomized delivery.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-5 lg:grid-cols-2">
-            <TextField
-              error={fieldErrors.question_count}
-              label="Question Count"
-              max={availableQuestions || undefined}
-              min="1"
-              name="question_count"
-              onChange={onInputChange}
-              type="number"
-              value={form.question_count}
-            />
             <TextField
               error={fieldErrors.attempt_limit}
               label="Allowed Attempts"

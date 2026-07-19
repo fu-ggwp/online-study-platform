@@ -189,6 +189,22 @@ export function findTeacherExamSession(examSessionId, teacherId) {
     .maybeSingle();
 }
 
+export async function findTeacherExamSessionWithQuestions(examSessionId, teacherId) {
+  const examResult = await findTeacherExamSession(examSessionId, teacherId);
+  if (examResult.error || !examResult.data) return examResult;
+
+  const questionResult = await listExamQuestions(examSessionId);
+  if (questionResult.error) return { data: null, error: questionResult.error };
+
+  return {
+    data: {
+      ...examResult.data,
+      exam_questions: questionResult.data ?? [],
+    },
+    error: null,
+  };
+}
+
 export function findExamSessionById(examSessionId) {
   return db
     .from(EXAM_SESSION_TABLE)
@@ -263,6 +279,20 @@ export function insertExamQuestions(rows) {
     .from(EXAM_QUESTION_TABLE)
     .insert(rows)
     .select("*");
+}
+
+export function deleteExamQuestions(examSessionId) {
+  return db
+    .from(EXAM_QUESTION_TABLE)
+    .delete()
+    .eq("exam_session_id", examSessionId);
+}
+
+export function countExamAttempts(examSessionId) {
+  return db
+    .from(EXAM_ATTEMPT_TABLE)
+    .select("exam_attempt_id", { count: "exact", head: true })
+    .eq("exam_session_id", examSessionId);
 }
 
 export function deleteExamSession(examSessionId) {
@@ -445,4 +475,3 @@ export function listLearnerCompletedAttempts(learnerId) {
     .eq("learner_id", learnerId)
     .eq("status", "submitted");
 }
-

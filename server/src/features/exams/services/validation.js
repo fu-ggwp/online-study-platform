@@ -84,7 +84,16 @@ export function pickConfigChanges(payload = {}) {
   return changes;
 }
 
+export function normalizeQuestionIds(value) {
+  if (!Array.isArray(value)) return [];
+
+  return Array.from(
+    new Set(value.map((item) => text(item)).filter(Boolean))
+  );
+}
+
 export function normalizeCreatePayload(payload = {}) {
+  const questionIds = normalizeQuestionIds(payload.question_ids);
   const normalized = {
     class_id: text(payload.class_id),
     question_bank_id: text(payload.question_bank_id),
@@ -95,7 +104,8 @@ export function normalizeCreatePayload(payload = {}) {
     end_at: toIso(payload.end_at),
     duration_minutes: toPositiveInt(payload.duration_minutes),
     attempt_limit: toPositiveInt(payload.attempt_limit, 1),
-    question_count: toPositiveInt(payload.question_count),
+    question_count: questionIds.length || toPositiveInt(payload.question_count),
+    question_ids: questionIds,
     randomize_questions: toBoolean(payload.randomize_questions, true),
     randomize_answers: toBoolean(payload.randomize_answers, true),
     result_visibility: normalizeVisibility(payload.result_visibility),

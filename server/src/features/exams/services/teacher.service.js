@@ -26,6 +26,7 @@ import {
   assertTimeWindow,
   getNext,
   normalizeCreatePayload,
+  normalizeQuestionIds,
   pickConfigChanges,
 } from "./validation.js";
 import { normalizeTeacherAttempt } from "./presenter.js";
@@ -52,6 +53,22 @@ function validQuestion(question) {
   const correctCount = options.filter((option) => option.is_correct).length;
 
   return options.length >= 2 && correctCount >= 1;
+}
+
+function selectQuestionsByIds(questions, questionIds) {
+  const byId = new Map(questions.map((question) => [question.question_id, question]));
+  return questionIds.map((questionId) => byId.get(questionId)).filter(Boolean);
+}
+
+function assertSelectedQuestions(questionIds, selectedQuestions) {
+  if (!questionIds.length) return;
+
+  if (selectedQuestions.length !== questionIds.length) {
+    throw fail("Some selected questions are not available in the selected question bank.", 400, {
+      question_ids: "Some selected questions are not available in the selected question bank.",
+      question_count: "Please review the selected questions.",
+    });
+  }
 }
 
 function toExamQuestionRows(examSessionId, questions) {
@@ -122,7 +139,7 @@ export async function listTeacherExamSessions(teacherId, filters = {}) {
 export async function getExamDetail(examSessionId, teacherId) {
   requireUser(teacherId);
 
-  const { data, error } = await dao.findTeacherExamSession(examSessionId, teacherId);
+  const { data, error } = await dao.findTeacherExamSessionWithQuestions(examSessionId, teacherId);
   if (error) throw dbError(error, 500);
   if (!data) throw notFound();
 
@@ -133,10 +150,21 @@ export async function getExamDetail(examSessionId, teacherId) {
       new Date().toISOString()
     );
     if (closeError) throw dbError(closeError, 500);
-    return closedExam || { ...data, status: ExamSessionStatus.CLOSED };
+    return {
+      ...data,
+      ...(closedExam || {}),
+      status: ExamSessionStatus.CLOSED,
+      exam_questions: data.exam_questions ?? [],
+    };
   }
 
-  return data;
+  const { count: attemptCount, error: attemptCountError } = await dao.countExamAttempts(examSessionId);
+  if (attemptCountError) throw dbError(attemptCountError, 500);
+
+  return {
+    ...data,
+    exam_attempts_count: attemptCount ?? 0,
+  };
 }
 
 export async function getExamAttempts(examSessionId, teacherId) {
@@ -177,7 +205,9 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
     throw fail("Active exam sessions cannot be configured after their start time.", 409);
   }
 
+  const questionIds = normalizeQuestionIds(payload.question_ids);
   const changes = pickConfigChanges(payload);
+  if (questionIds.length) changes.question_count = questionIds.length;
   if (!Object.keys(changes).length) throw fail("No valid exam settings were provided.", 400);
 
   assertTimeWindow(getNext(exam, changes, "start_at"), getNext(exam, changes, "end_at"));
@@ -188,7 +218,19 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
     changes.access_code = buildAccessCode();
   }
 
-  if (changes.question_count || isActivating) {
+  let selectedQuestions = null;
+  if (questionIds.length) {
+    const { count: attemptCount, error: attemptCountError } = await dao.countExamAttempts(examSessionId);
+    if (attemptCountError) throw dbError(attemptCountError, 500);
+    if (Number(attemptCount || 0) > 0) {
+      throw fail("Exam questions cannot be changed after learners have started attempts.", 409);
+    }
+
+    const sourceQuestions = await listReadyQuestionBankQuestions(teacherId, exam.question_bank_id);
+    const questions = sourceQuestions.filter(validQuestion);
+    selectedQuestions = selectQuestionsByIds(questions, questionIds);
+    assertSelectedQuestions(questionIds, selectedQuestions);
+  } else if (changes.question_count || isActivating) {
     const sourceQuestions = await listReadyQuestionBankQuestions(teacherId, exam.question_bank_id);
     const count = sourceQuestions.filter(validQuestion).length;
 
@@ -208,17 +250,32 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
   if (error) throw dbError(error);
   if (!data) throw notFound();
 
+  if (selectedQuestions) {
+    const { error: deleteError } = await dao.deleteExamQuestions(examSessionId);
+    if (deleteError) throw dbError(deleteError);
+
+    const { error: insertError } = await dao.insertExamQuestions(
+      toExamQuestionRows(examSessionId, selectedQuestions)
+    );
+    if (insertError) throw dbError(insertError);
+  }
+
   if (isActivating) {
     notifyExamSessionPublished(data);
   }
 
-  return { message: settingsSavedMessage, exam: data };
+  const updatedExam = selectedQuestions
+    ? await getExamDetail(examSessionId, teacherId)
+    : data;
+
+  return { message: settingsSavedMessage, exam: updatedExam };
 }
 
 export async function createExamSession(teacherId, payload = {}) {
   requireUser(teacherId);
 
   const normalized = normalizeCreatePayload(payload);
+  const { question_ids: requestedQuestionIds = [], ...examPayload } = normalized;
   const [classResult, questionBank, sourceQuestions] = await Promise.all([
     dao.findManagedActiveClass(normalized.class_id, teacherId),
     getReadyQuestionBank(teacherId, normalized.question_bank_id),
@@ -229,6 +286,9 @@ export async function createExamSession(teacherId, payload = {}) {
   if (!classResult.data) throw fail("Select one of your active classes.", 400, { class_id: "Select one of your active classes." });
 
   const questions = (sourceQuestions ?? []).filter(validQuestion);
+  const selectedByIds = selectQuestionsByIds(questions, requestedQuestionIds);
+  assertSelectedQuestions(requestedQuestionIds, selectedByIds);
+
   if (normalized.question_count > questions.length) {
     throw fail(`Only ${questions.length} valid questions are available in this question bank.`, 400, {
       question_count: `Only ${questions.length} valid questions are available in this question bank.`,
@@ -241,13 +301,15 @@ export async function createExamSession(teacherId, payload = {}) {
       : null;
 
   const { data: examSession, error: examError } = await dao.insertExamSession({
-    ...normalized,
+    ...examPayload,
     access_code: accessCode,
     teacher_id: teacherId,
   });
   if (examError) throw dbError(examError);
 
-  const selectedQuestions = shuffle(questions).slice(0, normalized.question_count);
+  const selectedQuestions = selectedByIds.length
+    ? selectedByIds
+    : shuffle(questions).slice(0, normalized.question_count);
   const { data: examQuestions, error: questionError } = await dao.insertExamQuestions(
     toExamQuestionRows(examSession.exam_session_id, selectedQuestions)
   );

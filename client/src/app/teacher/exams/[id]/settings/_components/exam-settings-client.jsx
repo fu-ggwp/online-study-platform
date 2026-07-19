@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { examsService } from "@/services/exams.service";
+import { ExamQuestionPickerModal } from "../../../_components/exam-question-picker-modal";
 
 import { ExamSessionSettingsSection } from "./exam-session-settings-section";
 import { ExamSettingsActions } from "./exam-settings-actions";
@@ -27,6 +28,12 @@ export function ExamSettingsClient({ examId }) {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [success, setSuccess] = useState("");
+  const [selectionMode, setSelectionMode] = useState("manual");
+  const [pickerMode, setPickerMode] = useState("manual");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [questionSelectionDirty, setQuestionSelectionDirty] = useState(false);
 
   const locked = useMemo(() => isExamSettingsLocked(exam), [exam]);
 
@@ -39,6 +46,9 @@ export function ExamSettingsClient({ examId }) {
         if (ignore) return;
         setExam(data);
         setForm(buildSettingsForm(data));
+        setSelectedQuestionIds((data.exam_questions ?? []).map((question) => question.source_question_id).filter(Boolean));
+        setSelectedQuestions(data.exam_questions ?? []);
+        setQuestionSelectionDirty(false);
         setFieldErrors({});
         setError("");
       })
@@ -63,7 +73,7 @@ export function ExamSettingsClient({ examId }) {
   }
 
   function validateForm() {
-    const errors = validateSettingsForm(form);
+    const errors = validateSettingsForm(form, selectedQuestionIds);
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -77,11 +87,20 @@ export function ExamSettingsClient({ examId }) {
     setSuccess("");
 
     try {
-      const response = await examsService.updateSettings(examId, buildSettingsPayload(form));
+      const payloadForm = questionSelectionDirty
+        ? form
+        : { ...form, question_count: String(selectedQuestionIds.length) };
+      const response = await examsService.updateSettings(
+        examId,
+        buildSettingsPayload(payloadForm, questionSelectionDirty ? selectedQuestionIds : null)
+      );
       const updatedExam = response?.data?.exam;
 
       setExam(updatedExam);
       setForm(buildSettingsForm(updatedExam));
+      setSelectedQuestionIds((updatedExam?.exam_questions ?? []).map((question) => question.source_question_id).filter(Boolean));
+      setSelectedQuestions(updatedExam?.exam_questions ?? selectedQuestions);
+      setQuestionSelectionDirty(false);
       setSuccess(response?.data?.message || "Exam settings have been updated successfully.");
       setFieldErrors({});
     } catch (saveError) {
@@ -114,6 +133,17 @@ export function ExamSettingsClient({ examId }) {
             locked={locked}
             saving={saving}
             onFieldChange={updateField}
+            onOpenQuestionPicker={(mode) => {
+              setPickerMode(mode);
+              setPickerOpen(true);
+            }}
+            onSelectionModeChange={(mode) => {
+              setSelectionMode(mode);
+              setFieldErrors((current) => ({ ...current, question_count: undefined }));
+            }}
+            selectedQuestionCount={selectedQuestionIds.length}
+            selectedQuestions={selectedQuestions}
+            selectionMode={selectionMode}
           />
           <ExamSettingsActions
             locked={locked}
@@ -121,6 +151,22 @@ export function ExamSettingsClient({ examId }) {
             onCancel={() => router.push(`/teacher/exams/${examId}`)}
           />
         </form>
+        <ExamQuestionPickerModal
+          isOpen={pickerOpen}
+          mode={pickerMode}
+          questionBankId={exam.question_bank_id}
+          randomCount={Number(form.question_count)}
+          initialSelectedIds={selectedQuestionIds}
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={({ questionIds, questions }) => {
+            setSelectedQuestionIds(questionIds);
+            setSelectedQuestions(questions);
+            setQuestionSelectionDirty(true);
+            setForm((current) => ({ ...current, question_count: String(questionIds.length) }));
+            setFieldErrors((current) => ({ ...current, question_count: undefined }));
+            setPickerOpen(false);
+          }}
+        />
       </section>
     </main>
   );
