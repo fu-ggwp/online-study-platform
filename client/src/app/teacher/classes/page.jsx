@@ -179,6 +179,13 @@ export default function TeacherClassesPage() {
                       {cls.learner_capacity ?? "—"} members
                     </p>
 
+                    {cls.pending_request_count > 0 && (
+                      <p className="mt-1 text-xs font-medium text-warning">
+                        {cls.pending_request_count} pending join request
+                        {cls.pending_request_count > 1 ? "s" : ""}
+                      </p>
+                    )}
+
                     <p className="mt-1 text-xs text-muted-foreground/70">
                       Code: <span className="font-mono">{cls.class_code}</span>
                     </p>

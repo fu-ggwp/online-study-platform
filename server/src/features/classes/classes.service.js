@@ -3,7 +3,6 @@ import {
   getClassesByTeacher,
   insertClass,
   updateClassById,
-  markClassDeleted,
   findClassByCode,
   getClassById,
   getClassMembers,
@@ -19,6 +18,7 @@ import {
   getClassMemberById,
   removeClassMember,
   getActiveMemberCounts,
+  getPendingRequestCounts,
   findMemberByClassAndLearner,
   reactivateClassMember,
   getUserById,
@@ -27,6 +27,16 @@ import {
   getAssignmentsByClass,
   getLearnerAttemptsForStudySets,
   getPublishedExamsByClass,
+  getExamSessionIdsByClass,
+  getExamAttemptIdsBySessions,
+  deleteAttemptAnswersByExamAttempts,
+  deleteExamAttemptsBySessions,
+  deleteExamQuestionsBySessions,
+  deleteExamSessionsByClass,
+  deleteAssignmentsByClass,
+  deleteJoinRequestsByClass,
+  deleteMembersByClass,
+  hardDeleteClass,
 } from "./classes.dao.js";
 import { ClassJoinPolicy } from "../../models/class.model.js";
 import { JoinRequestStatus, ClassMemberStatus } from "../../models/join-request.model.js";
@@ -38,6 +48,16 @@ import {
   notifyTeacherOfJoinRequest,
 } from "./classes.notifications.js";
 import { logger } from "../../utils/logger.js";
+
+// System message texts (SRS §5.2). Kept here so API error/response messages
+// match the SRS exactly for Class Management use cases.
+const MSG = {
+  MSG02: "Please complete all required information.",
+  MSG03: "The information is invalid. Please check and try again.",
+  MSG11: "You do not have permission to access or perform this action.",
+  MSG20: "You are already a member of this class or already have a pending join request.",
+  MSG24: "The class code or invitation link is invalid, expired, or no longer available.",
+};
 
 /**
  * Generate a random 6-character uppercase alphanumeric class code (e.g. "AB3X9Z").
@@ -80,9 +100,15 @@ export async function listTeacherClasses(teacherId) {
   if (countError) throw new Error(countError.message);
   const counts = tallyByClassId(activeRows);
 
+  // Pending join-request count per class (UC-29 Other Information).
+  const { data: pendingRows, error: pendingError } = await getPendingRequestCounts(classIds);
+  if (pendingError) throw new Error(pendingError.message);
+  const pendingCounts = tallyByClassId(pendingRows);
+
   return data.map((cls) => ({
     ...cls,
     member_count: counts[cls.class_id] ?? 0,
+    pending_request_count: pendingCounts[cls.class_id] ?? 0,
   }));
 }
 
@@ -140,7 +166,7 @@ export async function getClassDetail(classId, teacherId) {
     throw err;
   }
   if (data.teacher_id !== teacherId) {
-    const err = new Error("Forbidden.");
+    const err = new Error(MSG.MSG11); // MSG11 — permission error
     err.status = 403;
     throw err;
   }
@@ -204,24 +230,119 @@ export async function updateClass(classId, teacherId, body = {}) {
 
   const { data, error } = await updateClassById(classId, changes);
   if (error) throw new Error(error.message);
+
+  // If the class was switched to auto-approve, any learners still "pending"
+  // would otherwise be stranded (no approval UI for an auto-approve class).
+  // Auto-approve them now so nobody is left waiting.
+  if (changes.join_policy === ClassJoinPolicy.AUTO_APPROVE) {
+    await autoApprovePendingRequests(classId, teacherId, data?.class_name);
+  }
+
   return data;
 }
 
 /**
- * Delete a class from the web by marking its DB row deleted. Related FK rows
- * are left untouched.
+ * Approve every currently-pending join request of a class. Used when a class
+ * is switched to auto-approve so pending learners are added instead of being
+ * stranded. Each learner is added (or reactivated) and notified. Notifications
+ * are best-effort and never block the approvals.
+ */
+async function autoApprovePendingRequests(classId, reviewerId, className) {
+  const { data: pending, error } = await getJoinRequests(classId, JoinRequestStatus.PENDING);
+  if (error) throw new Error(error.message);
+  if (!pending || pending.length === 0) return;
+
+  const reviewedAt = new Date().toISOString();
+  for (const request of pending) {
+    const { error: updateError } = await updateJoinRequest(request.join_request_id, {
+      status: JoinRequestStatus.APPROVED,
+      reviewed_by: reviewerId,
+      reviewed_at: reviewedAt,
+    });
+    if (updateError) throw new Error(updateError.message);
+
+    await addOrReactivateMember(classId, request.learner_id);
+
+    // Best-effort notifications (in-app + email), same as manual approval.
+    notifyLearnerOfResolution(classId, request.learner_id, JoinRequestStatus.APPROVED);
+    notifyLearnerOfJoinRequestResolution({
+      classId,
+      className: className || "your class",
+      learnerId: request.learner_id,
+      status: JoinRequestStatus.APPROVED,
+    });
+  }
+}
+
+/**
+ * Permanently delete a class (UC-32). The class is removed from the system
+ * along with its related data (members, join requests, study-set assignments,
+ * and its exam sessions + attempts). This is irreversible — no soft delete.
+ *
+ * Children are deleted in FK order to satisfy the NOT-NULL foreign keys that
+ * reference the class (there is no ON DELETE CASCADE in the schema):
+ *   attempt_answers → exam_attempts → exam_questions → exam_sessions
+ *   → study_set_assignments → class_join_requests → class_members → class.
  */
 export async function deleteClass(classId, teacherId) {
-  await getClassDetail(classId, teacherId);
+  // Existence + ownership with SRS messages (Step 5.2 MSG03 / Step 5.1 MSG11).
+  const { data: cls, error: findError } = await getClassById(classId);
+  if (findError || !cls) {
+    const err = new Error(MSG.MSG03); // MSG03 — class not found / invalid
+    err.status = 404;
+    throw err;
+  }
+  if (cls.teacher_id !== teacherId) {
+    const err = new Error(MSG.MSG11); // MSG11 — unauthorized delete
+    err.status = 403;
+    throw err;
+  }
 
-  const { data, error } = await markClassDeleted(classId);
-  if (error) throw new Error(error.message); // MSG13
+  const fail = (error) => {
+    const err = new Error(error.message || "Failed to delete class.");
+    err.status = 500; // MSG13 on the client
+    return err;
+  };
+
+  // 1. Exam tree tied to this class.
+  const { data: sessionIds, error: sessErr } = await getExamSessionIdsByClass(classId);
+  if (sessErr) throw fail(sessErr);
+
+  if (sessionIds.length > 0) {
+    const { data: attemptIds, error: attErr } = await getExamAttemptIdsBySessions(sessionIds);
+    if (attErr) throw fail(attErr);
+
+    const answersRes = await deleteAttemptAnswersByExamAttempts(attemptIds);
+    if (answersRes.error) throw fail(answersRes.error);
+
+    const attemptsRes = await deleteExamAttemptsBySessions(sessionIds);
+    if (attemptsRes.error) throw fail(attemptsRes.error);
+
+    const questionsRes = await deleteExamQuestionsBySessions(sessionIds);
+    if (questionsRes.error) throw fail(questionsRes.error);
+
+    const sessionsRes = await deleteExamSessionsByClass(classId);
+    if (sessionsRes.error) throw fail(sessionsRes.error);
+  }
+
+  // 2. Class links: assignments, join requests, members.
+  const assignRes = await deleteAssignmentsByClass(classId);
+  if (assignRes.error) throw fail(assignRes.error);
+
+  const requestsRes = await deleteJoinRequestsByClass(classId);
+  if (requestsRes.error) throw fail(requestsRes.error);
+
+  const membersRes = await deleteMembersByClass(classId);
+  if (membersRes.error) throw fail(membersRes.error);
+
+  // 3. The class row itself.
+  const { data: deleted, error: delError } = await hardDeleteClass(classId);
+  if (delError) throw fail(delError);
 
   return {
     action: "deleted",
-    class_id: data.class_id,
-    status: data.status,
-    deleted_at: data.deleted_at,
+    class_id: deleted?.class_id ?? classId,
+    permanent: true,
   };
 }
 
@@ -252,7 +373,7 @@ export async function listJoinRequests(classId, teacherId) {
 export async function resolveJoinRequest(requestId, status, reviewerId) {
   const { data: request, error: reqError } = await getJoinRequestById(requestId);
   if (reqError || !request) {
-    const err = new Error("Join request not found.");
+    const err = new Error(MSG.MSG03); // MSG03 — join request not found (UC-34 Step 5.1)
     err.status = 404;
     throw err;
   }
@@ -367,12 +488,12 @@ export async function removeMember(classId, memberId, teacherId) {
 
   const { data: member, error } = await getClassMemberById(memberId);
   if (error || !member) {
-    const err = new Error("Member not found.");
+    const err = new Error(MSG.MSG03); // MSG03 — learner not in class (UC-35 Step 7.1)
     err.status = 404;
     throw err;
   }
   if (member.class_id !== classId) {
-    const err = new Error("Member not found in this class.");
+    const err = new Error(MSG.MSG03); // MSG03 — learner not in this class
     err.status = 404;
     throw err;
   }
@@ -409,31 +530,34 @@ export async function joinClass(learnerId, { classCode, invitationToken }) {
     throw err;
   }
 
+  // findClassByCode / findClassByInvitationToken only return active, non-deleted
+  // classes, so a missing OR closed/inactive class lands here (UC-18 Step 4.1 & 5.1).
   if (!cls) {
-    const err = new Error("Class not found. Check the code and try again.");
+    const err = new Error(MSG.MSG24); // MSG24 — invalid / expired / unavailable code or link
     err.status = 404;
     throw err;
   }
 
-  // 1b. The class owner cannot join their own class as a learner.
+  // 1b. The class owner cannot join their own class as a learner. (Guard kept
+  // for data integrity; not an SRS-listed flow but never triggers for real learners.)
   if (cls.teacher_id === learnerId) {
     const err = new Error("You already own this class as a teacher, so you cannot join it as a learner.");
     err.status = 409;
     throw err;
   }
 
-  // 2. Already a member?
+  // 2. Already a member? (UC-18 Step 6.1 → MSG20)
   const { data: existingMember } = await findExistingMember(cls.class_id, learnerId);
   if (existingMember) {
-    const err = new Error("You are already a member of this class.");
+    const err = new Error(MSG.MSG20); // MSG20
     err.status = 409;
     throw err;
   }
 
-  // 3. Already has a pending request?
+  // 3. Already has a pending request? (UC-18 Step 6.1 → MSG20)
   const { data: existingRequest } = await findExistingJoinRequest(cls.class_id, learnerId);
   if (existingRequest) {
-    const err = new Error("You already have a pending join request for this class.");
+    const err = new Error(MSG.MSG20); // MSG20
     err.status = 409;
     throw err;
   }

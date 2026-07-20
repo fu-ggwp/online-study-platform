@@ -3,7 +3,9 @@ import { CLASS_TABLE } from "../../models/class.model.js";
 import { CLASS_MEMBER_TABLE, JOIN_REQUEST_TABLE } from "../../models/join-request.model.js";
 import { STUDY_SET_ASSIGNMENT_TABLE } from "../../models/study-set-assignment.model.js";
 import { PRACTICE_ATTEMPT_TABLE } from "../../models/practice-attempt.model.js";
-import { EXAM_SESSION_TABLE } from "../../models/exam.model.js";
+import { EXAM_SESSION_TABLE, EXAM_QUESTION_TABLE } from "../../models/exam.model.js";
+import { EXAM_ATTEMPT_TABLE } from "../../models/exam-attempt.model.js";
+import { ATTEMPT_ANSWER_TABLE } from "../../models/attempt-answer.model.js";
 
 const db = supabase;
 
@@ -37,6 +39,23 @@ export async function getActiveMemberCounts(classIds) {
     .select("class_id")
     .in("class_id", classIds)
     .eq("status", "active");
+
+  return { data, error };
+}
+
+/**
+ * Count PENDING join requests per class (UC-29: the teacher class list shows
+ * a pending-request count so teachers can spot classes needing action).
+ * Returns one row per pending request; caller tallies counts.
+ */
+export async function getPendingRequestCounts(classIds) {
+  if (!classIds || classIds.length === 0) return { data: [], error: null };
+
+  const { data, error } = await db
+    .from(JOIN_REQUEST_TABLE)
+    .select("class_id")
+    .in("class_id", classIds)
+    .eq("status", "pending");
 
   return { data, error };
 }
@@ -129,6 +148,99 @@ export async function markClassDeleted(classId) {
     .single();
 
   return { data: fallback.data, error: fallback.error };
+}
+
+// ── Permanent class deletion (UC-32) ───────────────────────────────────────
+// The class row has NOT-NULL foreign keys pointing at it (exam_sessions,
+// class_members, class_join_requests, study_set_assignments) with no ON DELETE
+// CASCADE, so a hard delete must remove children first, in FK order:
+// attempt_answers → exam_attempts → exam_questions → exam_sessions, then
+// assignments, join requests, members, and finally the class row.
+
+export async function getExamSessionIdsByClass(classId) {
+  const { data, error } = await db
+    .from(EXAM_SESSION_TABLE)
+    .select("exam_session_id")
+    .eq("class_id", classId);
+  return { data: (data || []).map((r) => r.exam_session_id), error };
+}
+
+export async function getExamAttemptIdsBySessions(sessionIds) {
+  if (!sessionIds || sessionIds.length === 0) return { data: [], error: null };
+  const { data, error } = await db
+    .from(EXAM_ATTEMPT_TABLE)
+    .select("exam_attempt_id")
+    .in("exam_session_id", sessionIds);
+  return { data: (data || []).map((r) => r.exam_attempt_id), error };
+}
+
+export async function deleteAttemptAnswersByExamAttempts(attemptIds) {
+  if (!attemptIds || attemptIds.length === 0) return { error: null };
+  const { error } = await db
+    .from(ATTEMPT_ANSWER_TABLE)
+    .delete()
+    .in("exam_attempt_id", attemptIds);
+  return { error };
+}
+
+export async function deleteExamAttemptsBySessions(sessionIds) {
+  if (!sessionIds || sessionIds.length === 0) return { error: null };
+  const { error } = await db
+    .from(EXAM_ATTEMPT_TABLE)
+    .delete()
+    .in("exam_session_id", sessionIds);
+  return { error };
+}
+
+export async function deleteExamQuestionsBySessions(sessionIds) {
+  if (!sessionIds || sessionIds.length === 0) return { error: null };
+  const { error } = await db
+    .from(EXAM_QUESTION_TABLE)
+    .delete()
+    .in("exam_session_id", sessionIds);
+  return { error };
+}
+
+export async function deleteExamSessionsByClass(classId) {
+  const { error } = await db
+    .from(EXAM_SESSION_TABLE)
+    .delete()
+    .eq("class_id", classId);
+  return { error };
+}
+
+export async function deleteAssignmentsByClass(classId) {
+  const { error } = await db
+    .from(STUDY_SET_ASSIGNMENT_TABLE)
+    .delete()
+    .eq("class_id", classId);
+  return { error };
+}
+
+export async function deleteJoinRequestsByClass(classId) {
+  const { error } = await db
+    .from(JOIN_REQUEST_TABLE)
+    .delete()
+    .eq("class_id", classId);
+  return { error };
+}
+
+export async function deleteMembersByClass(classId) {
+  const { error } = await db
+    .from(CLASS_MEMBER_TABLE)
+    .delete()
+    .eq("class_id", classId);
+  return { error };
+}
+
+export async function hardDeleteClass(classId) {
+  const { data, error } = await db
+    .from(CLASS_TABLE)
+    .delete()
+    .eq("class_id", classId)
+    .select("class_id")
+    .maybeSingle();
+  return { data, error };
 }
 
 /**

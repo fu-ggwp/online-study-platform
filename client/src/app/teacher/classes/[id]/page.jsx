@@ -313,8 +313,8 @@ export default function ClassDetailPage() {
         <div className="rounded-xl border border-error/30 p-5">
           <h2 className="text-sm font-semibold text-error">Manage Class</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Delete a class you no longer need. It will be removed from class
-            lists.
+            Permanently delete a class you no longer need. This action cannot be
+            undone.
           </p>
           <div className="mt-4">
             <button
@@ -335,8 +335,9 @@ export default function ClassDetailPage() {
               Delete this class?
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              This class will be removed from the web class lists. Learners
-              will no longer be able to access it.
+              This class and its related data (members, join requests, assigned
+              study sets, and exam sessions) will be permanently deleted. This
+              action cannot be undone.
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <button

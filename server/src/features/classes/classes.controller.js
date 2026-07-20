@@ -70,7 +70,8 @@ export async function createClass(req, res) {
   } = req.body;
 
   if (!class_name?.trim()) {
-    return res.status(400).json({ ok: false, error: "class_name is required" });
+    // MSG02 — required information missing
+    return res.status(400).json({ ok: false, error: "Please complete all required information." });
   }
 
   try {
