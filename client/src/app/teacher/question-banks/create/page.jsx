@@ -11,7 +11,6 @@ import {
   QuestionBankMaterialGenerateModal,
 } from "../_components/question-bank-editor-form";
 import {
-  emptyQuestion,
   useQuestionBankEditorState,
   useQuestionBankEditorSubmit,
 } from "../_lib/question-bank-editor";
@@ -21,7 +20,7 @@ import {
  */
 export default function CreateQuestionBankPage() {
   const router = useRouter();
-  const editor = useQuestionBankEditorState({ initialQuestions: [emptyQuestion()] });
+  const editor = useQuestionBankEditorState();
   const { handleSubmit, submitting } = useQuestionBankEditorSubmit({
     editor,
     fallbackErrorMessage: "Question bank could not be created.",
