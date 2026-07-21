@@ -1,9 +1,8 @@
-export default function AdminDashboardPage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center px-6">
-      <section className="w-full max-w-5xl">
-        <h1 className="text-3xl font-semibold">Admin Dashboard</h1>
-      </section>
-    </main>
-  );
+import { redirect } from "next/navigation";
+
+// Admin Dashboard has been removed. Admins land on User Management instead.
+// This route is retired and redirects to /admin/users. Safe to delete this
+// file/folder when convenient.
+export default function RetiredAdminDashboardPage() {
+  redirect("/admin/users");
 }

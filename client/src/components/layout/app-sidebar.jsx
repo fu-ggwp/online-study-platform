@@ -23,10 +23,9 @@ import {
 const roleConfig = {
   admin: {
     label: "Admin workspace",
-    homeHref: "/admin/dashboard",
+    homeHref: "/admin/users",
     icon: ShieldCheck,
     nav: [
-      { label: "Dashboard", href: "/admin/dashboard", icon: Home },
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Resources", href: "/admin/resources", icon: LibraryBig },
     ],

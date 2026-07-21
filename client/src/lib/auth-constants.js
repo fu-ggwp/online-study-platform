@@ -4,7 +4,7 @@ export const ACTIVE_ROLE_COOKIE = "active_role";
 export const VALID_ROLES = new Set(["admin", "teacher", "learner"]);
 
 export const ROLE_HOME = {
-  admin: "/admin/dashboard",
+  admin: "/admin/users",
   teacher: "/teacher",
   learner: "/learner",
 };
