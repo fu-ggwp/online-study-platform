@@ -6,10 +6,8 @@ import {
   BarChart3,
   BookOpenCheck,
   CalendarDays,
-  CheckCircle2,
   Flame,
   GraduationCap,
-  HelpCircle,
   Target,
 } from "lucide-react";
 
@@ -20,8 +18,6 @@ const EMPTY_PROGRESS = {
     activeDaysLast30: 0,
     currentStreakDays: 0,
     longestStreakDays: 0,
-    completedActivities: 0,
-    questionsAnswered: 0,
     recentAccuracy: null,
     averageExamScore: null,
   },
@@ -83,18 +79,6 @@ function snapshotCards(snapshot) {
       helper: `Longest: ${snapshot.longestStreakDays} ${snapshot.longestStreakDays === 1 ? "day" : "days"}`,
     },
     {
-      icon: CheckCircle2,
-      label: "Completed Work",
-      value: snapshot.completedActivities,
-      helper: "completed quizzes and exams",
-    },
-    {
-      icon: HelpCircle,
-      label: "Questions Answered",
-      value: snapshot.questionsAnswered,
-      helper: "practice and exam answers",
-    },
-    {
       icon: Target,
       label: "Recent Accuracy",
       value: formatPercent(snapshot.recentAccuracy),
@@ -152,7 +136,7 @@ export default function LearnerProgressPage() {
 
         <section className="space-y-4">
           <SectionHeader title="Progress Snapshot" />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {cards.map((card) => (
               <SnapshotCard key={card.label} loading={loading} {...card} />
             ))}

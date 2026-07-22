@@ -183,14 +183,9 @@ function buildQuizScoreItems(practiceAttempts) {
     .sort((left, right) => new Date(right.completedAt) - new Date(left.completedAt));
 }
 
-function countAnswers(attempts) {
-  return attempts.reduce((sum, attempt) => sum + (attempt.attempt_answers?.length || 0), 0);
-}
-
 function buildSnapshot({ practiceAttempts, examAttempts, learningRhythm, quizScoreItems }) {
   const activeDaysLast30 = learningRhythm.filter((item) => item.activityCount > 0).length;
   const activityDates = uniqueActivityDates(practiceAttempts, examAttempts);
-  const submittedPracticeCount = practiceAttempts.filter((attempt) => attempt.status === "submitted").length;
   const submittedExamAttempts = examAttempts.filter((attempt) => {
     return attempt.status === "submitted";
   });
@@ -209,8 +204,6 @@ function buildSnapshot({ practiceAttempts, examAttempts, learningRhythm, quizSco
     activeDaysLast30,
     currentStreakDays: countCurrentStreak(activityDates),
     longestStreakDays: countLongestStreak(activityDates),
-    completedActivities: submittedPracticeCount + submittedExamAttempts.length,
-    questionsAnswered: countAnswers(practiceAttempts) + countAnswers(examAttempts),
     recentAccuracy: recentMaxTotal > 0 ? Math.round((recentScoreTotal / recentMaxTotal) * 100) : null,
     averageExamScore: recentExamAttempts.length > 0
       ? Math.round((examScoreTotal / recentExamAttempts.length) * 10) / 10
