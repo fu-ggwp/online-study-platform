@@ -73,6 +73,8 @@ export default function MaterialQuestionGenerator({
   async function handleGenerate() {
     const count = Number(questionCount);
 
+    if (generating) return;
+
     if (!file) {
       setError("Please upload a PDF learning material file.");
       return;
@@ -125,6 +127,7 @@ export default function MaterialQuestionGenerator({
   }
 
   const hasPreview = generatedQuestions.length > 0;
+  const canGenerate = Boolean(file) && !generating;
 
   return (
     <div className="w-full rounded-2xl border border-border bg-card p-6 shadow-lg">
@@ -225,7 +228,8 @@ export default function MaterialQuestionGenerator({
               </div>
               <Button
                 onClick={handleGenerate}
-                disabled={!file || generating}
+                disabled={!canGenerate}
+                aria-disabled={!canGenerate}
                 type="button"
                 variant="outline"
                 size="sm"
@@ -261,7 +265,8 @@ export default function MaterialQuestionGenerator({
         </Button>
         <Button
           onClick={handleGenerate}
-          disabled={!file || generating}
+          disabled={!canGenerate}
+          aria-disabled={!canGenerate}
           variant={hasPreview ? "outline" : "default"}
           size="sm"
           type="button"
