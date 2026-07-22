@@ -392,6 +392,53 @@ export async function update(id, teacherId, changes) {
   return data;
 }
 
+/**
+ * Assign an existing study set to a single class WITHOUT touching its other
+ * class assignments. Used by the class detail screen's "Add study set → assign
+ * existing" action. A private set is bumped to class_only so its class members
+ * can actually open it.
+ */
+export async function assignClass(id, teacherId, classId) {
+  const targetClassId = classId ? String(classId) : "";
+  if (!targetClassId) {
+    throw Object.assign(new Error("A class is required."), { status: 400 });
+  }
+
+  const { data: studySet, error: fetchError } = await dao.findById(id);
+  if (fetchError || !studySet) {
+    throw notFound();
+  }
+  if (studySet.teacher_id !== teacherId) {
+    throw accessDenied("You do not have permission to assign this study set.");
+  }
+
+  const { data: verifiedClasses, error: verifyError } = await dao.verifyClassesOwnership(teacherId, [targetClassId]);
+  if (verifyError) throw dbError(verifyError);
+  if (!verifiedClasses || verifiedClasses.length === 0) {
+    throw accessDenied("This class does not exist or you do not have permission to assign to it.");
+  }
+
+  const { data: existing, error: matchError } = await dao.checkAssignmentMatch(id, [targetClassId]);
+  if (matchError) throw dbError(matchError);
+  if (existing && existing.length > 0) {
+    throw Object.assign(new Error("This study set is already assigned to this class."), { status: 409 });
+  }
+
+  const { error: assignError } = await dao.assignToClass([
+    { study_set_id: id, class_id: targetClassId, assigned_by: teacherId },
+  ]);
+  if (assignError) throw dbError(assignError);
+
+  if (studySet.visibility === "private") {
+    const { error: visError } = await dao.update(id, { visibility: "class_only" });
+    if (visError) throw dbError(visError);
+  }
+
+  notifyAssignment([targetClassId], { study_set_id: id, title: studySet.title }, { notify: true });
+
+  return { study_set_id: id, class_id: targetClassId };
+}
+
 export async function remove(id, teacherId) {
   const { data: set, error: fetchError } = await dao.findById(id);
   if (fetchError || !set) {

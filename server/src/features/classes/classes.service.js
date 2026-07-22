@@ -27,6 +27,7 @@ import {
   getAssignmentsByClass,
   getLearnerAttemptsForStudySets,
   getPublishedExamsByClass,
+  getExamsByClass,
   getExamSessionIdsByClass,
   getExamAttemptIdsBySessions,
   deleteAttemptAnswersByExamAttempts,
@@ -171,6 +172,56 @@ export async function getClassDetail(classId, teacherId) {
     throw err;
   }
   return data;
+}
+
+/**
+ * Teacher Class Detail: the class record enriched with the study sets assigned
+ * to it and the exam sessions created for it, so the class screen can show the
+ * activities in full detail. Ownership is enforced by getClassDetail().
+ */
+export async function getTeacherClassDetail(classId, teacherId) {
+  const cls = await getClassDetail(classId, teacherId);
+
+  const { data: teacher } = await getUserById(cls.teacher_id);
+
+  const { data: assignments, error: assignError } = await getAssignmentsByClass(classId);
+  if (assignError) throw new Error(assignError.message);
+
+  const assigned_study_sets = (assignments ?? [])
+    .filter((row) => row.study_set && !row.study_set.deleted_at)
+    .map((row) => {
+      const set = row.study_set;
+      return {
+        assignment_id: row.assignment_id,
+        study_set_id: set.study_set_id,
+        title: set.title,
+        description: set.description,
+        subject: set.subject,
+        visibility: set.visibility,
+        question_count: set.question_count,
+        is_admin_hidden: set.is_admin_hidden,
+        assigned_at: row.created_at,
+      };
+    });
+
+  const { data: examRows, error: examError } = await getExamsByClass(classId);
+  if (examError) throw new Error(examError.message);
+
+  const exams = (examRows ?? []).map((e) => ({
+    exam_session_id: e.exam_session_id,
+    title: e.title,
+    description: e.description,
+    status: e.status,
+    start_at: e.start_at,
+    end_at: e.end_at,
+    duration_minutes: e.duration_minutes,
+    attempt_limit: e.attempt_limit,
+    question_count: e.question_count,
+    result_visibility: e.result_visibility,
+    created_at: e.created_at,
+  }));
+
+  return { ...cls, assigned_study_sets, exams, teacher: teacher ?? null };
 }
 
 /**
