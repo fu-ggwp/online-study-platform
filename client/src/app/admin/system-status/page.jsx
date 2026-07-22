@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 
-// System Status has been removed from the Admin area (no longer in SRS scope
-// for the admin app). This route is retired and redirects to the Admin
-// dashboard. Safe to delete this file/folder when convenient.
+// System Status has been removed from the Admin area. This route is retired and
+// redirects to the Admin Users page. Safe to delete this file/folder.
 export default function RetiredSystemStatusPage() {
-  redirect("/admin/dashboard");
+  redirect("/admin/users");
 }
