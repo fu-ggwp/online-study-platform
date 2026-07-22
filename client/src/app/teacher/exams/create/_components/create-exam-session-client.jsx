@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
@@ -17,6 +17,8 @@ import { getErrorMessage, getQuestionCount, INITIAL_FORM, toDateTimePayload } fr
 
 export function CreateExamSessionClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectClassId = searchParams.get("classId");
   const [form, setForm] = useState(INITIAL_FORM);
   const [classes, setClasses] = useState([]);
   const [questionBanks, setQuestionBanks] = useState([]);
@@ -51,12 +53,17 @@ export function CreateExamSessionClient() {
 
       setClasses(activeClasses);
       setQuestionBanks(availableBanks);
+
+      // Pre-select the class when arriving from a class page ("Add exam").
+      if (preselectClassId && activeClasses.some((c) => String(c.class_id) === String(preselectClassId))) {
+        setForm((current) => ({ ...current, class_id: preselectClassId }));
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [preselectClassId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

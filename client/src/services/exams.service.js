@@ -21,6 +21,8 @@ export const examsService = {
   create: (payload) => axiosClient.post("/api/exams", payload).then((r) => r.data),
   updateSettings: (id, changes) =>
     axiosClient.patch(`/api/exams/${id}/settings`, changes).then((r) => r.data),
+  reassignClass: (id, classId) =>
+    axiosClient.patch(`/api/exams/${id}/class`, { class_id: classId }).then((r) => r.data),
 
   // Learner: take exams
   startAttempt: (id, payload) => axiosClient.post(`/api/exams/${id}/attempts`, payload).then((r) => r.data.data),

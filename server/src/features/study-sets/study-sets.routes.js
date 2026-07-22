@@ -47,6 +47,7 @@ router.post(
 );
 
 router.post("/:id/sessions", requireAuth, requireRole("learner"), studySetsController.startSession);
+router.post("/:id/classes", requireAuth, requireRole("teacher"), studySetsController.assignClass);
 router.get("/:id", optionalAuth, studySetsController.getOne);
 router.patch("/:id", requireAuth, studySetsController.update);
 router.delete("/:id", requireAuth, studySetsController.remove);

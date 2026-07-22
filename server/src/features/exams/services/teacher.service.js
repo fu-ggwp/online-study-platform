@@ -292,6 +292,47 @@ export async function updateExamSettings(examSessionId, teacherId, payload = {})
   return { message: settingsSavedMessage, exam: updatedExam };
 }
 
+/**
+ * Move an exam session into one of the teacher's active classes. Used by the
+ * class detail screen's "Add exam → assign existing" action. An exam session
+ * belongs to exactly one class, so this reassigns its class_id. Blocked once
+ * the exam is closed or an active exam has already started.
+ */
+export async function reassignExamClass(examSessionId, teacherId, classId) {
+  const exam = await getExamDetail(examSessionId, teacherId);
+
+  if (exam.status === ExamSessionStatus.CLOSED) {
+    throw fail("You do not have permission to access or perform this action.", 409);
+  }
+  if (isStartedActiveExam(exam)) {
+    throw fail("Active exam sessions cannot be moved after their start time.", 409);
+  }
+
+  const targetClassId = text(classId);
+  if (!targetClassId) {
+    throw fail("Select one of your active classes.", 400, {
+      class_id: "Select one of your active classes.",
+    });
+  }
+
+  const { data: cls, error: classError } = await dao.findManagedActiveClass(targetClassId, teacherId);
+  if (classError) throw dbError(classError, 500);
+  if (!cls) {
+    throw fail("Select one of your active classes.", 400, {
+      class_id: "Select one of your active classes.",
+    });
+  }
+
+  const { data, error } = await dao.updateTeacherExamSessionConfig(examSessionId, teacherId, {
+    class_id: targetClassId,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw dbError(error);
+  if (!data) throw notFound();
+
+  return { message: "Exam has been added to the class.", exam: data };
+}
+
 export async function createExamSession(teacherId, payload = {}) {
   requireUser(teacherId);
 

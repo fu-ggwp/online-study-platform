@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Save, ArrowLeft, Database, FileSpreadsheet, Sparkles, Trash2 } from "lucide-react";
 import { aiService } from "@/services/ai.service";
 import { studySetsService } from "@/services/study-sets.service";
@@ -19,6 +19,7 @@ import DocumentPreviewModal from "@/components/study-set/document-preview-modal"
 
 export default function CreateStudySetPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -31,6 +32,18 @@ export default function CreateStudySetPage() {
   const [selectedClassIds, setSelectedClassIds] = useState([]);
   const [selectedClassNames, setSelectedClassNames] = useState([]);
   const [showClassSelector, setShowClassSelector] = useState(false);
+
+  // Arriving from a class page ("Add study set → Create new"): pre-assign to
+  // that one class and default visibility to Class Only.
+  useEffect(() => {
+    const classId = searchParams.get("classId");
+    const className = searchParams.get("className");
+    if (classId) {
+      setSelectedClassIds([classId]);
+      setSelectedClassNames([className || "Selected class"]);
+      setVisibility("class_only");
+    }
+  }, [searchParams]);
 
   const [questions, setQuestions] = useState([]);
 

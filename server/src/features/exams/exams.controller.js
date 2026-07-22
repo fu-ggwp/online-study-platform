@@ -9,6 +9,7 @@ import {
   listLearnerExamSessions,
   listLearnerCompletedAttempts,
   listTeacherExamSessions,
+  reassignExamClass as reassignExamClassService,
   recordLearnerExamEvent as recordLearnerExamEventService,
   saveLearnerExamAnswer as saveLearnerExamAnswerService,
   startLearnerExamAttempt as startLearnerExamAttemptService,
@@ -70,6 +71,19 @@ export async function getExamDetail(req, res) {
 export async function getExamAttempts(req, res) {
   try {
     const data = await getExamAttemptsService(req.params.id, getUserId(req));
+    return ok(res, data);
+  } catch (error) {
+    return sendExamError(res, error);
+  }
+}
+
+/**
+ * PATCH /api/exams/:id/class
+ * Move an exam session into one of the teacher's active classes.
+ */
+export async function reassignExamClass(req, res) {
+  try {
+    const data = await reassignExamClassService(req.params.id, getUserId(req), req.body?.class_id);
     return ok(res, data);
   } catch (error) {
     return sendExamError(res, error);
