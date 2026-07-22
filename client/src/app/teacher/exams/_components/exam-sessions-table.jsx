@@ -52,17 +52,17 @@ export function ExamSessionsTable({ exams }) {
   }
 
   return (
-    <section className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1080px] table-fixed border-collapse text-left text-sm">
+        <table className="min-w-full table-auto border-collapse text-left text-sm">
           <thead className="bg-muted text-xs font-bold uppercase text-muted-foreground">
             <tr>
-              <th className="w-[30%] px-5 py-3">Exam</th>
-              <th className="w-[20%] px-5 py-3">Class</th>
-              <th className="w-[16%] px-5 py-3">Start Time</th>
-              <th className="w-[11%] px-5 py-3 text-center">Status</th>
-              <th className="w-[13%] px-5 py-3 text-center">Visibility</th>
-              <th className="w-[10%] px-5 py-3 text-center">Actions</th>
+              <th className="w-[30%] px-4 py-3">Exam</th>
+              <th className="w-[22%] px-4 py-3">Class</th>
+              <th className="w-[16%] px-4 py-3">Start Time</th>
+              <th className="w-[10%] px-4 py-3 text-center">Status</th>
+              <th className="w-[12%] px-4 py-3 text-center">Visibility</th>
+              <th className="w-[10%] px-4 py-3 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -75,30 +75,31 @@ export function ExamSessionsTable({ exams }) {
                 onClick={() => goToExamDetail(exam.exam_session_id)}
                 onKeyDown={(event) => handleRowKeyDown(event, exam.exam_session_id)}
               >
-                <td className="px-5 py-4">
-                  <div className="truncate font-bold text-foreground">{exam.title}</div>
+                <td className="max-w-[260px] px-4 py-4 md:max-w-[360px]">
+                  <div className="line-clamp-2 font-bold text-foreground">{exam.title}</div>
                   <div className="mt-1 line-clamp-2 text-xs font-medium leading-5 text-muted-foreground">
                     {exam.description || "No description provided."}
                   </div>
                 </td>
-                <td className="px-5 py-4 font-medium text-muted-foreground">
+                <td className="max-w-[220px] px-4 py-4 font-medium text-muted-foreground">
                   <span className="line-clamp-2">{formatClassLabel(exam.classes)}</span>
                 </td>
-                <td className="px-5 py-4 font-medium text-muted-foreground">
+                <td className="px-4 py-4 font-medium text-muted-foreground">
                   {formatDateTime(exam.start_at)}
                 </td>
-                <td className="px-5 py-4 text-center">
+                <td className="px-4 py-4 text-center">
                   <StatusBadge status={exam.status} />
                 </td>
-                <td className="px-5 py-4 text-center">
+                <td className="px-4 py-4 text-center">
                   <VisibilityBadge visibility={exam.result_visibility} />
                 </td>
-                <td className="px-5 py-4 text-center">
+                <td className="px-4 py-4 text-center">
                   <Button
                     onClick={(event) => handleViewDetail(event, exam.exam_session_id)}
                     type="button"
                     variant="outline"
                     size="sm"
+                    className="whitespace-nowrap rounded-full"
                   >
                     View detail
                   </Button>
