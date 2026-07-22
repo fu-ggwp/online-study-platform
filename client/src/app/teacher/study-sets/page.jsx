@@ -263,7 +263,7 @@ export default function TeacherStudySetsPage() {
 function PageHeader() {
   return (
     <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
-      <div className="max-w-3xl">
+      <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Study Sets</h1>
       </div>
 

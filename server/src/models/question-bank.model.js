@@ -2,12 +2,6 @@
 // (The earlier scaffold used a `name` column; the real column is `title`.)
 export const QUESTION_BANK_TABLE = "question_banks";
 
-export const QuestionBankStatus = Object.freeze({
-  DRAFT: "Draft",
-  READY: "Ready",
-  DELETED: "Deleted",
-});
-
 /**
  * @typedef {Object} QuestionBank
  * @property {string} question_bank_id

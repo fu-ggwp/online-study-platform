@@ -151,7 +151,7 @@ export default function LearnerProgressPage() {
         {error ? <StatePanel tone="error" message={error} /> : null}
 
         <section className="space-y-4">
-          <SectionHeader title="Progress Snapshot" description="Your core learning signals at a glance." />
+          <SectionHeader title="Progress Snapshot" />
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {cards.map((card) => (
               <SnapshotCard key={card.label} loading={loading} {...card} />
@@ -207,7 +207,6 @@ function LearningRhythm({ data, loading }) {
     <section className="rounded-md border border-border bg-card p-5 shadow-sm">
       <SectionHeader
         title="Learning Rhythm"
-        description="Completed quizzes, submitted exams, and completed flashcard sessions across the last 30 days."
       />
 
       {loading ? (
@@ -249,7 +248,7 @@ function LearningRhythm({ data, loading }) {
 function RecentPerformance({ data, loading }) {
   return (
     <section className="rounded-md border border-border bg-card p-5 shadow-sm">
-      <SectionHeader title="Recent Performance" description="Latest scored quizzes and exams." />
+      <SectionHeader title="Recent Performance" />
 
       {loading ? <div className="mt-5 h-56 animate-pulse rounded-md bg-muted" /> : null}
 
@@ -298,7 +297,7 @@ function LearningMix({ data, loading }) {
 
   return (
     <section className="rounded-md border border-border bg-card p-5 shadow-sm">
-      <SectionHeader title="Learning Mix" description="How your learning activity is distributed." />
+      <SectionHeader title="Learning Mix" />
 
       {loading ? <div className="mt-5 h-44 animate-pulse rounded-md bg-muted" /> : null}
 

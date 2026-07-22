@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 export function ExamSettingsHeader({ examId }) {
   return (
     <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
-      <div className="space-y-2">
+      <div>
         <h1 className="text-3xl font-bold tracking-normal text-foreground">Configure Exam Settings</h1>
       </div>
       <Link
