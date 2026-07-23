@@ -6,7 +6,7 @@ import { studySetsService } from "@/services/study-sets.service";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
-import ResultDashboard from "@/app/learner/study-sets/[id]/quiz/result/_components/result-dashboard";
+import ResultSummary from "@/app/learner/study-sets/[id]/quiz/result/_components/result-summary";
 import AnswersReviewList from "@/app/learner/study-sets/[id]/quiz/result/_components/answers-review-list";
 
 export default function PublicQuizResultPage() {
@@ -91,7 +91,7 @@ export default function PublicQuizResultPage() {
     <main className="min-h-screen bg-background text-foreground px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        <ResultDashboard 
+        <ResultSummary 
           session={sessionData}
           totalQuestions={questions.length}
           onRetake={handleRetakeQuiz}
