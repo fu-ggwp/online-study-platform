@@ -153,15 +153,15 @@ export default function TeacherClassesPage() {
         {/* Class list */}
         {!loading && paginated.length > 0 && (
           <>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {paginated.map((cls) => (
-                <li key={cls.class_id} className="relative">
+                <li key={cls.class_id} className="relative h-full">
                   <Button asChild variant="outline" size="xs" className="absolute right-3 top-3 z-10">
                     <Link href={`/teacher/classes/${cls.class_id}/edit`}>Edit</Link>
                   </Button>
                   <Link
                     href={`/teacher/classes/${cls.class_id}`}
-                    className="block rounded-xl border border-border p-5 hover:border-ring transition"
+                    className="flex h-full flex-col rounded-xl border border-border p-5 hover:border-ring transition"
                   >
                     <div className="mb-2 flex items-start justify-between gap-2">
                       <h2 className="font-semibold text-lg leading-tight">
@@ -174,7 +174,7 @@ export default function TeacherClassesPage() {
                       <p className="text-sm text-muted-foreground">{cls.grade_level}</p>
                     )}
 
-                    <p className="mt-3 text-sm text-muted-foreground/70">
+                    <p className="mt-auto pt-3 text-sm text-muted-foreground/70">
                       {cls.member_count ?? 0} /{" "}
                       {cls.learner_capacity ?? "—"} members
                     </p>
