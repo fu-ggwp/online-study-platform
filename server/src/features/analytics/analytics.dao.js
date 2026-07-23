@@ -1,5 +1,4 @@
 import { supabase } from "../../config/supabase.js";
-import { ATTEMPT_ANSWER_TABLE } from "../../models/attempt-answer.model.js";
 import { EXAM_ATTEMPT_TABLE } from "../../models/exam-attempt.model.js";
 import { PRACTICE_ATTEMPT_TABLE } from "../../models/practice-attempt.model.js";
 
@@ -21,10 +20,6 @@ export function listPracticeAttemptsForProgress(learnerId) {
       study_sets:study_sets (
         study_set_id,
         title
-      ),
-      attempt_answers:${ATTEMPT_ANSWER_TABLE} (
-        attempt_answer_id,
-        is_correct
       )
     `)
     .eq("learner_id", learnerId);
@@ -43,11 +38,8 @@ export function listExamAttemptsForProgress(learnerId) {
       total_score,
       exam_sessions:exam_sessions (
         exam_session_id,
-        title
-      ),
-      attempt_answers:${ATTEMPT_ANSWER_TABLE} (
-        attempt_answer_id,
-        is_correct
+        title,
+        result_visibility
       )
     `)
     .eq("learner_id", learnerId);
