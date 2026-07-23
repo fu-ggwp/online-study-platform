@@ -57,12 +57,11 @@ export function ExamSessionsTable({ exams }) {
         <table className="min-w-full table-auto border-collapse text-left text-sm">
           <thead className="bg-muted text-xs font-bold uppercase text-muted-foreground">
             <tr>
-              <th className="w-[30%] px-4 py-3">Exam</th>
-              <th className="w-[22%] px-4 py-3">Class</th>
-              <th className="w-[16%] px-4 py-3">Start Time</th>
+              <th className="w-[35%] px-4 py-3">Exam</th>
+              <th className="w-[25%] px-4 py-3">Class</th>
+              <th className="w-[18%] px-4 py-3">Start Time</th>
               <th className="w-[10%] px-4 py-3 text-center">Status</th>
               <th className="w-[12%] px-4 py-3 text-center">Visibility</th>
-              <th className="w-[10%] px-4 py-3 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -92,17 +91,6 @@ export function ExamSessionsTable({ exams }) {
                 </td>
                 <td className="px-4 py-4 text-center">
                   <VisibilityBadge visibility={exam.result_visibility} />
-                </td>
-                <td className="px-4 py-4 text-center">
-                  <Button
-                    onClick={(event) => handleViewDetail(event, exam.exam_session_id)}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="whitespace-nowrap rounded-full"
-                  >
-                    View detail
-                  </Button>
                 </td>
               </tr>
             ))}

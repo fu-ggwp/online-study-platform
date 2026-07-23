@@ -50,9 +50,6 @@ function getQuestionCount(studySet) {
   return studySet.question_count ?? studySet.questionCount ?? 0;
 }
 
-function getLearnerCount(studySet) {
-  return studySet.learners ?? studySet.learner_count ?? 0;
-}
 
 export default function TeacherStudySetsPage() {
   // Pending filters (changed in the UI but not applied yet)
@@ -336,9 +333,9 @@ function StudySetsTable({ studySets, onAssignClick, assignLoadingId }) {
         <table className="min-w-full divide-y divide-border text-sm">
           <thead className="bg-muted text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
             <tr>
-              {["Study Set", "Source", "Visibility", "Questions", "Learners", "Actions"].map(
+              {["Study Set", "Source", "Visibility", "Questions", "Actions"].map(
                 (header) => {
-                  const isCentered = ["Questions", "Learners", "Visibility"].includes(header);
+                  const isCentered = ["Questions", "Visibility"].includes(header);
                   return (
                     <th className={`px-4 py-3 ${isCentered ? "text-center" : ""}`} key={header}>
                       {header}
@@ -377,7 +374,6 @@ function StudySetsTable({ studySets, onAssignClick, assignLoadingId }) {
                     <VisibilityBadge visibility={studySet.visibility} />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-center">{getQuestionCount(studySet)}</td>
-                  <td className="px-4 py-3 text-muted-foreground text-center">{getLearnerCount(studySet)}</td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-wrap gap-2">
                       <Button

@@ -22,9 +22,6 @@ export function findByTeacher(teacherId) {
           class_name
         )
       ),
-      practice_attempts (
-        learner_id
-      ),
       study_set_materials (
         material_id,
         material_name

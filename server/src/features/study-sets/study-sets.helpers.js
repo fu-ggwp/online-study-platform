@@ -100,13 +100,6 @@ export function formatItems(items) {
       .map((a) => a.classes?.class_name)
       .filter(Boolean);
 
-    const uniqueLearners = new Set(
-      (set.practice_attempts || [])
-        .map((pa) => pa.learner_id)
-        .filter(Boolean)
-    );
-    const learnerCount = uniqueLearners.size;
-
     const setCopy = { ...set };
     delete setCopy.study_set_assignments;
     delete setCopy.practice_attempts;
@@ -115,8 +108,6 @@ export function formatItems(items) {
       ...setCopy,
       assigned_class_names: assignedClassNames,
       assignedClassNames: assignedClassNames,
-      learners: learnerCount,
-      learner_count: learnerCount,
     };
   });
 }
