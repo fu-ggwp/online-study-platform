@@ -59,6 +59,19 @@ export const remove = async (req, res) => {
   }
 };
 
+export const assignClass = async (req, res) => {
+  try {
+    const result = await service.assignClass(
+      req.params.id,
+      req.user.user_id || req.user.id,
+      req.body?.classId,
+    );
+    return ok(res, result, 201);
+  } catch (err) {
+    return fail(res, err, err.status || 400);
+  }
+};
+
 export const startSession = async (req, res) => {
   try {
     return ok(res, await service.startSession(req.user, req.params.id, req.body.mode), 201);

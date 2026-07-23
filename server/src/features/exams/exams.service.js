@@ -3,6 +3,7 @@ export {
   getExamAttempts,
   getExamDetail,
   listTeacherExamSessions,
+  reassignExamClass,
   updateExamSettings,
 } from "./services/teacher.service.js";
 

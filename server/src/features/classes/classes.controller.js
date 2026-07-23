@@ -2,6 +2,7 @@ import {
   listTeacherClasses,
   createClass as createClassService,
   getClassDetail as getClassDetailService,
+  getTeacherClassDetail as getTeacherClassDetailService,
   listMembers as listMembersService,
   listJoinRequests as listJoinRequestsService,
   resolveJoinRequest as resolveJoinRequestService,
@@ -95,7 +96,7 @@ export async function createClass(req, res) {
  */
 export async function getClassDetail(req, res) {
   try {
-    const cls = await getClassDetailService(req.params.id, req.user.id);
+    const cls = await getTeacherClassDetailService(req.params.id, req.user.id);
     res.json({ ok: true, data: cls });
   } catch (err) {
     res.status(err.status || 500).json({ ok: false, error: err.message });

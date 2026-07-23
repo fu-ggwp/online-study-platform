@@ -10,6 +10,8 @@ export const studySetsService = {
   create: (payload) => axiosClient.post("/api/study-sets", payload).then((r) => r.data),
   update: (id, changes) => axiosClient.patch(`/api/study-sets/${id}`, changes).then((r) => r.data),
   remove: (id) => axiosClient.delete(`/api/study-sets/${id}`).then((r) => r.data),
+  assignClass: (id, classId) =>
+    axiosClient.post(`/api/study-sets/${id}/classes`, { classId }).then((r) => r.data),
 
   // Practice sessions (learner)
   startSession: (id, mode) => axiosClient.post(`/api/study-sets/${id}/sessions`, { mode }).then((r) => r.data),

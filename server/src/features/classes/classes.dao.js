@@ -608,3 +608,22 @@ export async function getPublishedExamsByClass(classId) {
 
   return { data, error };
 }
+
+/**
+ * All exam sessions for a class (any status, including draft), for the Teacher
+ * Class Detail screen. Teachers own the class so they see every non-deleted
+ * session they've created for it; ordered newest-first.
+ */
+export async function getExamsByClass(classId) {
+  const { data, error } = await db
+    .from(EXAM_SESSION_TABLE)
+    .select(
+      "exam_session_id, class_id, title, description, status, start_at, end_at, " +
+        "duration_minutes, attempt_limit, question_count, result_visibility, created_at"
+    )
+    .eq("class_id", classId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  return { data, error };
+}

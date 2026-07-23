@@ -30,10 +30,10 @@ function fromSelectValue(value) {
 
 function SelectField({ id, label, value, onValueChange, options }) {
   return (
-    <label htmlFor={id} className="flex flex-col gap-2 text-sm font-bold text-foreground">
-      <span>{label}</span>
+    <label htmlFor={id} className="block space-y-1.5">
+      <span className="text-sm font-semibold text-foreground">{label}</span>
       <Select value={toSelectValue(value)} onValueChange={(next) => onValueChange(fromSelectValue(next))}>
-        <SelectTrigger id={id} className="h-11 w-full">
+        <SelectTrigger id={id} className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -58,19 +58,44 @@ export function ExamSessionsFilters({
   onUpdateFilter,
 }) {
   return (
-    <section className="rounded-md border border-border bg-card p-5 shadow-sm">
-      <div className="grid gap-5 lg:grid-cols-[minmax(280px,1fr)_minmax(180px,292px)_minmax(180px,292px)_auto] lg:items-end">
-        <label htmlFor="exam-search" className="flex flex-col gap-2 text-sm font-bold text-foreground">
-          <span>Search Exam Sessions</span>
+    <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+      <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr)_auto_auto] md:items-end">
+        <label
+          htmlFor="exam-search"
+          className="block space-y-1.5"
+        >
+          <span className="text-sm font-semibold text-foreground">Search Exam Sessions</span>
           <Input
             id="exam-search"
             value={filters.search}
             onChange={(event) => onUpdateFilter("search", event.target.value)}
             placeholder="Exam title, class, status"
-            className="h-11"
           />
         </label>
 
+        <Button
+          type="button"
+          onClick={onApply}
+          className="w-full md:w-auto"
+        >
+          <Search data-icon="inline-start" aria-hidden="true" />
+          Apply
+        </Button>
+
+        <div className="flex items-end md:justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onReset}
+            className="w-full md:w-auto"
+          >
+            <SlidersHorizontal data-icon="inline-start" aria-hidden="true" />
+            Reset Filters
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(150px,180px)_minmax(180px,240px)_minmax(150px,180px)_minmax(150px,180px)]">
         <SelectField
           id="status-filter"
           label="Status Filter"
@@ -93,18 +118,6 @@ export function ExamSessionsFilters({
           ]}
         />
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onApply}
-          className="h-11 px-5 text-sm font-bold"
-        >
-          <Search data-icon="inline-start" aria-hidden="true" />
-          Apply
-        </Button>
-      </div>
-
-      <div className="mt-5 grid gap-5 md:grid-cols-[minmax(180px,292px)_minmax(180px,292px)_1fr] md:items-end">
         <SelectField
           id="visibility-filter"
           label="Result Visibility"
@@ -120,18 +133,6 @@ export function ExamSessionsFilters({
           onValueChange={(value) => onUpdateFilter("sortBy", value)}
           options={SORT_OPTIONS}
         />
-
-        <div className="flex justify-start md:justify-end">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onReset}
-            className="h-11 px-4 text-sm font-bold"
-          >
-            <SlidersHorizontal data-icon="inline-start" aria-hidden="true" />
-            Reset Filters
-          </Button>
-        </div>
       </div>
     </section>
   );

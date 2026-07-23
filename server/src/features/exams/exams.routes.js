@@ -12,6 +12,7 @@ import {
   getMyExamSessions,
   getMyExamAttempts,
   getTeacherExamAttemptResults,
+  reassignExamClass,
   recordLearnerExamEvent,
   saveLearnerExamAnswer,
   startLearnerExamAttempt,
@@ -42,6 +43,7 @@ examsRouter.post("/", requireAuth, requireRole("teacher"), createExamSession);
 // Exam detail and settings routes
 examsRouter.get("/:id/attempts", requireAuth, requireRole("teacher"), getExamAttempts);
 examsRouter.get("/:id", requireAuth, requireRole("teacher"), getExamDetail);
+examsRouter.patch("/:id/class", requireAuth, requireRole("teacher"), reassignExamClass);
 examsRouter.patch("/:id/settings", requireAuth, requireRole("teacher"), updateExamSettings);
 
 export default examsRouter;

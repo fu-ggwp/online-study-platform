@@ -260,7 +260,7 @@ export default function LearnerClassDetailPage() {
                 {exams.map((ex) => (
                   <li key={ex.exam_session_id}>
                     <Link
-                      href="/learner/exams"
+                      href={`/learner/exams/${ex.exam_session_id}`}
                       className="block h-full rounded-xl border border-border p-5 transition hover:border-ring"
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -274,10 +274,20 @@ export default function LearnerClassDetailPage() {
                         </span>
                       </div>
 
+                      {ex.description && (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground/80">
+                          {ex.description}
+                        </p>
+                      )}
+
                       <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                         <div>
                           <dt className="text-muted-foreground/70">Start</dt>
                           <dd>{formatDateTime(ex.start_at) ?? "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground/70">End</dt>
+                          <dd>{formatDateTime(ex.end_at) ?? "—"}</dd>
                         </div>
                         <div>
                           <dt className="text-muted-foreground/70">Duration</dt>
@@ -290,6 +300,12 @@ export default function LearnerClassDetailPage() {
                         <div>
                           <dt className="text-muted-foreground/70">Attempts</dt>
                           <dd>{ex.attempt_limit}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground/70">Results</dt>
+                          <dd className="capitalize">
+                            {(ex.result_visibility ?? "—").replace("_", " ")}
+                          </dd>
                         </div>
                       </dl>
 
