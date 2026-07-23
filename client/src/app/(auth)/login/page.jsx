@@ -73,9 +73,12 @@ function getLoginNextPath() {
 
 function GoogleMark() {
   return (
-    <span className="grid size-5 place-items-center rounded-full bg-background text-xs font-semibold text-primary">
-      G
-    </span>
+    <svg className="h-5 w-5 mr-1" viewBox="0 0 48 48">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.5 24c0-1.61-.15-3.16-.42-4.67H24v9h12.75c-.55 2.87-2.17 5.3-4.61 6.94l7.19 5.57C43.5 36.33 46.5 30.73 46.5 24z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.19-5.57c-2.11 1.41-4.81 2.25-8.7 2.25-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      <path fill="#FBBC05" d="M10.54 28.09c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59L2.56 12.72C.92 16.09 0 19.94 0 24s.92 7.91 2.56 11.28l7.98-6.19z"/>
+    </svg>
   );
 }
 
