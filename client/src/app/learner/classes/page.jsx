@@ -67,12 +67,12 @@ export default function LearnerClassesPage() {
 
         {/* Class grid */}
         {!loading && !error && classes.length > 0 && (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {classes.map((cls) => (
               <li key={cls.class_id} className="min-w-0">
                 <Link
                   href={`/learner/classes/${cls.class_id}`}
-                  className="block rounded-xl border border-border p-5 hover:border-ring transition"
+                  className="flex h-48 flex-col rounded-xl border border-border p-5 hover:border-ring transition"
                 >
                   <h2 className="mb-1 truncate text-lg font-semibold leading-tight">
                     {cls.class_name}
@@ -92,7 +92,7 @@ export default function LearnerClassesPage() {
                     <p className="mt-1 truncate text-sm text-muted-foreground">{cls.grade_level}</p>
                   )}
 
-                  <div className="mt-3 flex items-center justify-between gap-2">
+                  <div className="mt-auto flex items-center justify-between gap-2 pt-3">
                     <p className="truncate text-sm text-muted-foreground/70">
                       {cls.member_count ?? 0} / {cls.learner_capacity ?? "—"} members
                     </p>
